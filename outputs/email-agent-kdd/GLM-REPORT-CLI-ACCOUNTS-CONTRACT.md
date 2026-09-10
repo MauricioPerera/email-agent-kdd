@@ -1,0 +1,18 @@
+# GLM-REPORT-CLI-ACCOUNTS-CONTRACT
+
+## Resumen
+Se congelo la extension CLI amigable para cuentas como contrato CCDD + oraculo, SIN implementar nada en `src/email/cli.py`. El contrato `cli_accounts` define sobre `cli_main(argv: list) -> int` los comandos `account add ROOT ACCOUNT_ID PROVIDER EMAIL CREDENTIAL_REF` (delega en `create_email_account` + `save_email_account`, stdout exacto `account saved: ACCOUNT_ID`, codigo 0), `account list ROOT` (delega en `load_email_accounts`, una linea JSON por cuenta con solo `account_id`/`provider`/`email`/`status` — jamas `credential_ref` —, codigo 0 incluso con raiz/archivo ausente), errores de argumentos con codigo 2 y mensaje amigable + usage en stderr sin traceback, errores de almacenamiento/validacion con codigo 1 y mensaje generico sin `credential_ref`, y `search` intacto con su semantica ya congelada en `cli_search`. `lint_task_contract` dio `{"ok": true, "errors": 0}` tras corregir intent atomico y budgets a los topes firmados (cyclomatic_max 20, lines_max 80).
+
+## Archivos tocados
+- NUEVO `outputs/email-agent-kdd/knowledge/contracts/cli-accounts.md` — contrato con 7 secciones (Intent, Interface, Invariants, Examples, Do / Don't, Tests, Constraints) + `PARAR y reportar si...` en Constraints; 12 casos congelados en bloque ```frozen-cases```; front-matter validado (task: cli_accounts, signature "def cli_main(argv: list) -> int", target src/email/cli.py, deps_allowed [argparse, sys, json], forbids [eval, exec, subprocess, network_access]).
+- NUEVO `outputs/email-agent-kdd/tests/frozen_cli_accounts.py` — oraculo independiente (14 tests, no importa src.email): verifica front-matter, 7 secciones y stop phrase; que el contrato congela las firmas de `create_email_account(account_id, provider, email, credential_ref) -> dict`, `save_email_account(root, account) -> str` y `load_email_accounts(root) -> list` (delegacion obligatoria, prohibicion de reimplementar); que `search` queda intacto; y re-deriva los 12 casos congelados con una implementacion de referencia propia (referencias espejo de las tres funciones + CLI de referencia), afirmando por caso: codigo exacto, stdout/stderr exactos, sin traceback, y que `credential_ref`/marcadores de secreto (`vault://...`, `MARCADOR-SECRETO-123`) no aparecen en stdout ni en la salida de errores; ademas verifica via `expect_store` que `account add` escribio el registro en `<root>/.email-agent/accounts.json` con `credential_ref` verbatim solo en disco.
+- SIN modificaciones: `src/email/cli.py`, `src/email/account.py`, `src/email/account_store.py` y cualquier otro archivo existente (verificado por timestamps).
+
+## Verificación
+- `lint_task_contract(contract_text, test_code)` -> `{"ok": true, "errors": 0, "warnings": 0}` (despues de 1 corrida con 3 errores: intent no atomico y budgets 30/120 sobre los topes 20/80; corregido).
+- `python -m pytest outputs/email-agent-kdd/tests/frozen_cli_accounts.py -q` -> **14 passed in 0.30s** (solo la prueba nueva; el oraculo no importa src.email, es oraculo de contrato).
+- Iteraciones del oraculo: (1) leia el store tras ejecutar casos de store corrupto -> limitado a casos con `expect_store`; (2) semilla con email no normalizado -> semilla congelada ya en minúsculas (el save es verbatim; la normalizacion vive en `create_email_account`).
+- Sin red, sin procesos foreground, sin secretos reales (solo referencias opacas de prueba `vault://...`).
+
+## Estado
+COMPLETO — contrato cli_accounts congelado (lint verde), oraculo frozen_cli_accounts.py en verde (14/14), reporte emitido. Ningun archivo existente modificado. `cli.py` sigue sin implementar account (queda para la tarea de implementacion via `run_ephemeral_agent` con este contrato + tests congelados).

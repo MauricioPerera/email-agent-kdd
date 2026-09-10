@@ -1,0 +1,28 @@
+# Datos locales y potencialmente sensibles
+store/
+work/
+.email-agent/
+drafts/
+
+# Caches
+.pytest_cache/
+__pycache__/
+*.pyc
+
+# Secretos y credenciales
+.env
+.env.*
+*.env
+*.key
+*.pem
+*.p12
+*.pfx
+credentials*.json
+*credentials*.json
+.secrets/
+secret*
+
+# Excepciones: conservar código del proyecto
+!src/email/credentials.py
+!src/email/contact_store.py
+!src/email/account_store.py
