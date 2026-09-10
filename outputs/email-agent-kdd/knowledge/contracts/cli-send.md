@@ -39,6 +39,7 @@ Comandos (posición estricta, sin flags):
    - Carga el draft desde `ROOT/drafts/<DRAFT_ID>.json`. Si no existe, imprime error genérico en stderr y devuelve `1`.
    - EXIGE que el cuarto argumento sea EXACTAMENTE la frase de confirmación (`CONFIRMAR ENVIO`, mayúsculas, acento incluido, sin normalización). Cualquier otra cosa (minúsculas, sin acento, vacío, "yes", "y") se rechaza: error genérico en stderr, devuelve `1`, y NO se resuelve credencial ni se abre conexión SMTP.
    - Delega en `confirm_email_draft(...)` para validar el estado del draft (solo pending-confirmado avanza).
+   - **Puente `status` -> `confirmed`:** `confirm_email_draft(...)` devuelve el draft con `status == "confirmed"` y `confirmation_hash`, pero SIN la clave booleana `confirmed` que `send_smtp_message` exige (`message["confirmed"] is True`). Tras la confirmación exitosa, la CLI construye una copia NUEVA del dict confirmado (p. ej. `dict(confirmed)`) que conserva TODOS los campos (`account_id`, `to`, `subject`, `body`, `status`, `confirmation_hash` y los demás) y añade EXACTAMENTE `confirmed=True`. Esa copia — no el draft original, no el dict devuelto por `confirm_email_draft`, que NO se mutan — es lo que se pasa a `send_smtp_message(...)` y a `extract_outgoing_contacts(...)`.
    - Resuelve la credencial SOLO en memoria (nunca en disco, nunca en el draft JSON).
    - Delega en `send_smtp_message(...)` ÚNICAMENTE después de confirmación exitosa.
    - Después de que `send_smtp_message(...)` retorne sin excepción (y SOLO entonces), la rama `send` registra los contactos salientes en dos delegaciones, SIN reimplementar lógica:
@@ -75,6 +76,7 @@ Errores genéricos: NUNCA incluir el contenido de la excepción cruda, traceback
 12. **Orden de delegación post-envío:** `extract_outgoing_contacts(confirmed)` y `store_email_contacts(root, contacts)` se invocan estrictamente DESPUÉS de un `send_smtp_message` exitoso; nunca antes, y `store_email_contacts` se invoca EXACTAMENTE una vez por rama `send` exitosa (también cuando el resultado es una lista vacía).
 13. **Extracción solo de destinatarios:** la extracción delegada lee únicamente `confirmed["to"]` (el draft confirmado) y devuelve un esquema compatible `{name, email}` con `store_email_contacts`; la deduplicación, normalización y fusión en la libreta son responsabilidad de `outgoing_contacts`/`contact_store`: la CLI no reimplementa lógica, solo delega y ordena.
 14. **Fallo post-envío no retriable:** si la extracción o el store fallan, la CLI devuelve `1` con stderr genérico, sin traceback y sin la línea JSON de éxito; el mensaje documenta que el SMTP ya pudo haber enviado y que el llamador no debe reintentar automáticamente (un reenvío duplicaría el correo; la libreta puede actualizarse por otra vía sin reenvío).
+15. **Puente `status` -> `confirmed=True` sin mutación:** tras `confirm_email_draft` exitoso (que fija `status == "confirmed"`), `send_smtp_message` exige `message["confirmed"] is True`; la CLI construye una copia NUEVA con los mismos campos y EXACTAMENTE `confirmed=True`, y jamás muta el draft persistido (sigue `pending`, sin clave `confirmed`) ni el dict devuelto por `confirm_email_draft` (sigue sin la clave `confirmed`).
 
 ## Examples
 
@@ -113,6 +115,7 @@ cli_main(["draft", "/root/ws", "acc-1", "a@b.c"])   # -> 2 (faltan SUBJECT y BOD
 
 **Do**
 - Delegar todo el comportamiento en `src.email.draft` y el resolvedor de credencial existente.
+- Tras `confirm_email_draft` exitoso, construir una copia NUEVA del draft confirmado con EXACTAMENTE `confirmed=True` (conservando todos los campos) para pasársela a `send_smtp_message` y a `extract_outgoing_contacts`, sin mutar el original.
 - Verificar la frase de confirmación EXACTA antes de tocar credencial o red.
 - Registrar contactos salientes SOLO tras un `send_smtp_message` exitoso: delegar en `extract_outgoing_contacts(confirmed)` y luego en `store_email_contacts(root, contacts)` UNA sola vez (lista vacía incluida).
 - Ante fallo de la extracción o del store post-envío: devolver `1` con stderr genérico y documentar que el SMTP ya pudo haber enviado (el llamador NO debe reintentar automáticamente).
@@ -129,6 +132,7 @@ cli_main(["draft", "/root/ws", "acc-1", "a@b.c"])   # -> 2 (faltan SUBJECT y BOD
 - No tratar la lista vacía como error ni omitir la única llamada al store en ese caso.
 - No reintentar el envío si el store falla después de SMTP: reportar `1` y salir.
 - No normalizar la frase de confirmación (sin `.lower()`, sin `.strip()` de acentos, sin trim).
+- No mutar el draft persistido ni el dict devuelto por `confirm_email_draft`: el puente `status -> confirmed=True` se hace sobre una copia nueva.
 - No implementar adjuntos, ni aceptarlos, ni silenciarlos: devolver `2`.
 - No añadir subcomandos, flags, ni tocar `sync`/`search`/`account`.
 - No dejar que una excepción cruda llegue al llamante: traducirla a `1` o `2` genéricos.
@@ -266,6 +270,36 @@ def test_fallo_del_store_tras_smtp(cli, tmp_root, monkeypatch, capsys):
     assert "sent" not in capturado.out          # sin línea de éxito
     assert "traceback" not in capturado.err.lower()
     assert "boom" not in capturado.err          # sin excepción cruda
+```
+
+Propiedad 10 — el mensaje entregado a SMTP lleva `confirmed is True` y nada se muta:
+```python
+def test_mensaje_para_smtp_confirmed_true_sin_mutar(cli, tmp_root, monkeypatch):
+    confirmada_original = {}
+    confirm_real = cli.confirm_email_draft
+    def envoltorio_confirm(draft, frase):
+        resultado = confirm_real(draft, frase)
+        confirmada_original["objeto"] = resultado
+        confirmada_original["copia_antes"] = copy.deepcopy(resultado)
+        return resultado
+    monkeypatch.setattr(cli, "confirm_email_draft", envoltorio_confirm)
+    recibidos = []
+    monkeypatch.setattr(cli, "send_smtp_message", lambda a, c, m: recibidos.append(m))
+    cli.cli_main(["draft", str(tmp_root), "acc-1", "a@b.c", "Hola", "Cuerpo"])
+    draft_id = next((tmp_root / "drafts").glob("*.json")).stem
+    rc = cli.cli_main(["send", str(tmp_root), "acc-1", draft_id, "CONFIRMAR ENVIO"])
+    assert rc == 0
+    mensaje = recibidos[0]
+    assert mensaje.get("confirmed") is True       # puente status -> confirmed=True
+    assert mensaje.get("status") == "confirmed"
+    for clave, valor in confirmada_original["copia_antes"].items():
+        assert mensaje.get(clave) == valor         # conserva todos los campos
+    assert mensaje is not confirmada_original["objeto"]   # copia nueva
+    assert "confirmed" not in confirmada_original["objeto"]  # original intacto
+    draft_en_disco = json.loads(
+        (tmp_root / "drafts" / (draft_id + ".json")).read_text(encoding="utf-8")
+    )
+    assert draft_en_disco["status"] == "pending" and "confirmed" not in draft_en_disco
 ```
 
 ## Constraints

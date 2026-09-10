@@ -300,6 +300,12 @@ def _run_send(argv):
     except Exception:
         _print_stderr(["error: la confirmacion del borrador fallo"])
         return 1
+    # Puente status -> confirmed: confirm_email_draft marca status "confirmed"
+    # pero no añade la clave booleana que smtp_send exige. Se construye una
+    # copia nueva (sin mutar el draft ni el retorno original) con los mismos
+    # campos y confirmed=True para el envio y el registro de contactos.
+    deliverable = dict(confirmed)
+    deliverable["confirmed"] = True
     try:
         accounts = load_email_accounts(root)
     except Exception:
@@ -328,7 +334,7 @@ def _run_send(argv):
         "password": secret,
     }
     try:
-        send_smtp_message(account, config, confirmed)
+        send_smtp_message(account, config, deliverable)
     except Exception:
         _print_stderr(["error: el envio fallo"])
         return 1
@@ -336,7 +342,7 @@ def _run_send(argv):
     # mensaje; si el registro falla NO se reintentara el envio automaticamente
     # (reenviar duplicaria el correo; la libreta puede actualizarse por otra via).
     try:
-        contacts = extract_outgoing_contacts(confirmed)
+        contacts = extract_outgoing_contacts(deliverable)
         store_email_contacts(root, contacts)
     except Exception:
         _print_stderr([

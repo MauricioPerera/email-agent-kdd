@@ -10,6 +10,7 @@
 #   texto declara las ramas draft/send; de lo contrario pytest.skip.
 
 import ast
+import copy
 import hashlib
 import importlib.util
 import json
@@ -448,6 +449,73 @@ def test_send_draft_con_adjuntos_devuelve_2_sin_backend_ni_secretos(
         assert secreto.lower() not in capturado.out.lower()
         assert secreto.lower() not in capturado.err.lower()
         assert secreto.lower() not in json.dumps(draft).lower()
+
+
+# ---- Capa 2 (añadido): puente status "confirmed" -> confirmed=True ---------
+
+
+def test_mensaje_para_smtp_lleva_confirmed_true_sin_mutar_nada(
+    cli, tmp_root, capsys, monkeypatch
+):
+    """Integración: el mensaje entregado a send_smtp_message es una copia NUEVA
+    del draft confirmado con EXACTAMENTE confirmed=True (puente
+    status 'confirmed' -> confirmed=True), conservando todos los campos
+    (account_id, to, subject, body, status, confirmation_hash) y SIN mutar ni
+    el dict devuelto por confirm_email_draft ni el draft persistido en disco."""
+    confirmada_original = {}
+    _stub_backend(monkeypatch, cli)
+    confirm_real = cli.confirm_email_draft
+
+    def envoltorio_confirm(draft, frase):
+        resultado = confirm_real(draft, frase)
+        confirmada_original["objeto"] = resultado
+        confirmada_original["copia_antes"] = copy.deepcopy(resultado)
+        return resultado
+
+    monkeypatch.setattr(cli, "confirm_email_draft", envoltorio_confirm)
+    recibidos = []
+    monkeypatch.setattr(
+        cli,
+        "send_smtp_message",
+        lambda account, config, mensaje: recibidos.append(mensaje) or None,
+    )
+
+    cli.cli_main(["draft", str(tmp_root), "acc-1", "a@b.c", "Hola", "Cuerpo"])
+    draft_id = _draft_id_de(tmp_root)
+    capsys.readouterr()
+    rc = cli.cli_main(["send", str(tmp_root), "acc-1", draft_id, CONFIRM_PHRASE])
+    capturado = capsys.readouterr()
+
+    assert rc == EXIT_OK, "el envio confirmado debe terminar en 0"
+    assert len(recibidos) == 1, "send_smtp_message se invoca exactamente una vez"
+    mensaje = recibidos[0]
+    # el puente exacto: la clave booleana que smtp_send exige
+    assert mensaje.get("confirmed") is True, (
+        "el mensaje entregado a send_smtp_message debe tener confirmed is True"
+    )
+    assert mensaje.get("status") == "confirmed"
+    # conserva TODOS los campos del draft confirmado
+    for clave, valor in confirmada_original["copia_antes"].items():
+        assert mensaje.get(clave) == valor, f"se perdio el campo {clave!r}"
+    # copia nueva: el dict devuelto por confirm_email_draft NO se muto
+    assert mensaje is not confirmada_original["objeto"], (
+        "debe entregarse una copia nueva, no el retorno original"
+    )
+    assert "confirmed" not in confirmada_original["objeto"], (
+        "el dict confirmado original no debe mutarse"
+    )
+    # el draft persistido tampoco se muta: sigue pending, sin clave confirmed
+    draft_en_disco = json.loads(
+        (tmp_root / "drafts" / (draft_id + ".json")).read_text(encoding="utf-8")
+    )
+    assert draft_en_disco["status"] == "pending"
+    assert "confirmed" not in draft_en_disco
+    # salida limpia, sin secretos
+    lineas = [ln for ln in capturado.out.splitlines() if ln.strip()]
+    assert lineas == [json.dumps({"id": draft_id, "status": "sent"}, sort_keys=True)]
+    for bad in SECRETS_FORBIDDEN_SUBSTRINGS:
+        assert bad not in capturado.out.lower()
+        assert bad not in capturado.err.lower()
 
 
 # ---- Capa 2 (añadido): contactos salientes post-envío ----------------------
