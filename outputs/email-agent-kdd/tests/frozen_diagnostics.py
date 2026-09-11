@@ -3,6 +3,7 @@ from pathlib import Path
 
 from src.email.cli import cli_main
 from src.email.diagnostics import run_diagnostics, write_diagnostic_report, _write_diagnostic_report
+from src.email.language import load_language, save_language
 
 
 def test_diagnostics_is_local_and_has_safe_checks():
@@ -49,3 +50,10 @@ def test_diagnostic_report_supports_english_and_portuguese_text(tmp_path):
     assert _write_diagnostic_report(str(portuguese), result, "pt", "json") is True
     assert "Email Agent diagnostics" in english.read_text(encoding="utf-8")
     assert json.loads(portuguese.read_text(encoding="utf-8"))["language"] == "pt"
+
+
+def test_language_preference_is_local_and_used_by_doctor(tmp_path, capsys):
+    assert save_language(str(tmp_path), "en") == "en"
+    assert load_language(str(tmp_path)) == "en"
+    assert cli_main(["doctor", str(tmp_path), "--format", "text", "--report", str(tmp_path / "report.txt")]) == 0
+    assert "Status:" in (tmp_path / "report.txt").read_text(encoding="utf-8")

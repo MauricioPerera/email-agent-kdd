@@ -53,3 +53,5 @@
 * [Contrato del Objetivo 18](contracts/sprint18-diagnostic-report.md) - Reporte local y atómico.
 * [Informe de reportes multilingües](../../SPRINT19-MULTILINGUAL-REPORT-REPORT.md) - JSON y texto en tres idiomas.
 * [Contrato del Objetivo 19](contracts/sprint19-multilingual-reports.md) - Formatos legibles y estables.
+* [Informe de preferencia de idioma](../../SPRINT20-LANGUAGE-PREFERENCE-REPORT.md) - Configuración local en tres idiomas.
+* [Contrato del Objetivo 20](contracts/sprint20-language-preference.md) - Idioma efectivo y seguro.

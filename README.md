@@ -16,6 +16,7 @@ problemas detectados; el programa no aplica cambios automáticamente.
 Puedes guardar un reporte compartible con `email-agent doctor --report diagnostico.json`;
 el archivo no incluye credenciales ni rutas completas.
 También puedes elegir idioma y formato: `--lang es|en|pt` y `--format json|text`.
+La preferencia puede guardarse para futuros diagnósticos con `email-agent language set ROOT es|en|pt`.
 
 Necesitas Python 3.10 o superior instalado en tu equipo. Los mismos pasos valen en los tres sistemas: instala, comprueba y crea tu cuenta.
 

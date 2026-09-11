@@ -89,6 +89,7 @@ from src.email.notifications import delete_notification_rule, list_notification_
 from src.email.autostart import install_startup, remove_startup, startup_status
 from src.email.unlink import unlink_email_account
 from src.email.diagnostics import run_diagnostics, write_diagnostic_report, _write_diagnostic_report
+from src.email.language import load_language, save_language, normalize_language
 
 USAGE = (
     "usage: email-agent [--help] | email-agent query ROOT INSTRUCTION | "
@@ -105,6 +106,7 @@ USAGE = (
     "email-agent notification add|list|delete ROOT ... | "
     "email-agent startup install|status|remove ROOT ACCOUNT_ID ... | "
     "email-agent doctor [ROOT] [--fix] [--lang es|en|pt] [--format json|text] [--report FILE] | "
+    "email-agent language set|get ROOT [es|en|pt] | "
     "email-agent message delete ROOT REL_PATH | "
     "email-agent message restore ROOT TRASH_REL_PATH | "
     "email-agent message trash ROOT | "
@@ -1403,6 +1405,8 @@ def cli_main(argv: list) -> int:
         print("  notification delete ROOT NAME  elimina una regla")
         print("  startup install|status|remove ROOT ACCOUNT_ID  inicio automatico")
         print("  doctor [ROOT] [--fix] [--lang es|en|pt] [--format json|text] [--report FILE]  diagnóstico seguro")
+        print("  language set ROOT es|en|pt  guarda la preferencia local")
+        print("  language get ROOT  muestra la preferencia efectiva")
         print("  draft ROOT ACCOUNT_ID TO SUBJECT BODY")
         print("  send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO")
         return 0
@@ -1445,7 +1449,7 @@ def cli_main(argv: list) -> int:
         repair = "--fix" in argv[1:]
         arguments = [value for value in argv[1:] if value != "--fix"]
         report_path = None
-        language = "es"
+        language = None
         report_format = "json"
         if "--report" in arguments:
             report_index = arguments.index("--report")
@@ -1467,18 +1471,43 @@ def cli_main(argv: list) -> int:
         roots = arguments
         if len(roots) > 1 or any(value.startswith("--") for value in roots):
             return _fail(["error: doctor acepta un solo ROOT", USAGE])
-        result = run_diagnostics(roots[0] if roots else None, repair=repair)
+        root = roots[0] if roots else None
+        if language is None:
+            language = load_language(root) if root else "es"
+        else:
+            try:
+                language = normalize_language(language)
+            except ValueError:
+                return _fail(["error: doctor acepta --lang es|en|pt", USAGE])
+        result = run_diagnostics(root, repair=repair)
         if report_path is not None:
             try:
                 _write_diagnostic_report(report_path, result, language, report_format)
             except (OSError, ValueError):
                 _print_stderr(["error: no se pudo guardar el reporte de diagnostico"])
                 return 1
-        if language != "es":
-            result = dict(result)
-            result["language"] = language
+        result = dict(result)
+        result["language"] = language
         print(json.dumps(result, sort_keys=True))
         return 0 if result["status"] == "ready" else 1
+    if argv[0] == "language":
+        if len(argv) < 3 or argv[1] not in ("set", "get"):
+            return _fail(["error: language requiere set o get y ROOT", USAGE])
+        if argv[1] == "get":
+            if len(argv) != 3:
+                return _fail(["error: language get requiere ROOT", USAGE])
+            try:
+                print(json.dumps({"language": load_language(argv[2])}, sort_keys=True))
+                return 0
+            except (OSError, ValueError):
+                return _fail(["error: no se pudo leer la preferencia de idioma", USAGE])
+        if len(argv) != 4:
+            return _fail(["error: language set requiere ROOT y es|en|pt", USAGE])
+        try:
+            print(json.dumps({"language": save_language(argv[2], normalize_language(argv[3])), "saved": True}, sort_keys=True))
+            return 0
+        except (OSError, ValueError):
+            return _fail(["error: no se pudo guardar la preferencia de idioma", USAGE])
 
     return _fail([
         "error: subcomando invalido (se esperaba 'query', 'search', "
