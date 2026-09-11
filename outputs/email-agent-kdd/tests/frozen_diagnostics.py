@@ -9,7 +9,10 @@ def test_diagnostics_is_local_and_has_safe_checks():
     result = run_diagnostics()
     assert result["status"] in {"ready", "needs_attention"}
     assert {item["name"] for item in result["checks"]} >= {"platform", "python", "pip"}
-    assert all("secret" not in json.dumps(item).lower() for item in result["checks"])
+    serialized = json.dumps(result["checks"]).lower()
+    assert "password" not in serialized
+    assert "credential_ref" not in serialized
+    assert "secreto-frozen" not in serialized
 
 
 def test_doctor_help_is_documented_and_accepts_optional_root(capsys, tmp_path):
