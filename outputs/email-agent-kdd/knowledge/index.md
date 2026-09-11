@@ -113,3 +113,5 @@
 * [Contrato del Objetivo 48](contracts/sprint48-cli-notification-auth.md) - Frase literal para mutaciones destructivas.
 * [Informe de reemplazo de reglas](../../SPRINT49-CLI-NOTIFICATION-REPLACE-REPORT.md) - Cambios protegidos por confirmación.
 * [Contrato del Objetivo 49](contracts/sprint49-cli-notification-replace.md) - No sobrescribir reglas silenciosamente.
+* [Informe de alcance de confirmación](../../SPRINT50-PLUGIN-NOTIFICATION-CONFIRMATION-SCOPE-REPORT.md) - Autorización de una sola operación.
+* [Contrato del Objetivo 50](contracts/sprint50-plugin-notification-confirmation-scope.md) - Sin permisos permanentes ni transferibles.

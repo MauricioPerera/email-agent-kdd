@@ -189,6 +189,8 @@ def test_skill_documents_notification_rule_authorization():
     assert "only after the user explicitly requests that exact rule" in text
     assert "notification add ROOT NAME QUERY CONFIRMAR REGLA" in text
     assert "first show its stored query" in text
+    assert "only the single add/delete invocation it accompanies" in text
+    assert "never save it, reuse it for another rule" in text
     assert "notification list ROOT" in text
     assert "Listing rules is read-only and does not need confirmation" in text
     assert "notification delete ROOT NAME CONFIRMAR REGLA" in text

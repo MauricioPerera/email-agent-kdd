@@ -32,6 +32,7 @@ The same onboarding flow works on Windows, macOS, and Linux: install, verify, cr
 
 - Create a local rule: `notification add ROOT NAME QUERY`.
 - Create a new rule with `notification add ROOT NAME QUERY` only after the user explicitly requests that exact rule; do not infer a filter from context. If `NAME` already exists, first show its stored query and request `CONFIRMAR REGLA`, then run `notification add ROOT NAME QUERY CONFIRMAR REGLA` to replace it.
+- `CONFIRMAR REGLA` authorizes only the single add/delete invocation it accompanies; never save it, reuse it for another rule, or treat it as standing permission.
 - For a recipient alias, use `notification add ROOT ventas "para:ventas+cliente@example.com"`; preserve dots and `+tag` exactly as received.
 - Rules are evaluated only after `sync`; do not promise an immediate notification before a synchronization cycle.
 - List rules: `notification list ROOT`.
