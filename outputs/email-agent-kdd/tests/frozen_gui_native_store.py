@@ -16,6 +16,7 @@ Secret Service antes de invocar `secret-tool`.
 import os
 import sys
 import tempfile
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
@@ -37,10 +38,11 @@ def test_darwin_without_keychain_stops():
     root = _fresh_root()
     try:
         try:
-            provision_email_account(
-                root, "cuenta-x", "custom", "x@example.com",
-                "email-cuenta-x", "secreto-frozen", platform="darwin",
-            )
+            with patch("src.email.keychain.shutil.which", return_value=None):
+                provision_email_account(
+                    root, "cuenta-x", "custom", "x@example.com",
+                    "email-cuenta-x", "secreto-frozen", platform="darwin",
+                )
         except RuntimeError as exc:
             assert str(exc).startswith("PARAR"), (
                 "el mensaje de parada debe empezar por PARAR: " + str(exc)
