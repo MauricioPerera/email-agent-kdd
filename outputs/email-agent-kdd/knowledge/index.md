@@ -85,3 +85,5 @@
 * [Contrato del Objetivo 34](contracts/sprint34-plugin-onboarding.md) - Comandos y límites de seguridad.
 * [Informe de opciones del plugin](../../SPRINT35-PLUGIN-ONBOARDING-OPTIONS-REPORT.md) - Contrato documentado del onboarding.
 * [Contrato del Objetivo 35](contracts/sprint35-plugin-onboarding-options.md) - Opciones verificadas para agentes.
+* [Informe de recuperación de preferencias](../../SPRINT36-ONBOARDING-PREFERENCE-RECOVERY-REPORT.md) - Fallback seguro ante corrupción.
+* [Contrato del Objetivo 36](contracts/sprint36-onboarding-preference-recovery.md) - Preferencias ilegibles sin filtrado.

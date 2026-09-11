@@ -187,3 +187,16 @@ def test_onboard_rejects_invalid_language_before_writing_or_setup(monkeypatch, t
     assert called == []
     assert not (tmp_path / ".email-agent" / "preferences.json").exists()
     assert "--lang es|en|pt" in capsys.readouterr().err
+
+
+def test_onboard_falls_back_safely_from_corrupt_language_preference(monkeypatch, tmp_path, capsys):
+    import src.email.cli as cli
+
+    preference_dir = tmp_path / ".email-agent"
+    preference_dir.mkdir()
+    (preference_dir / "preferences.json").write_text("{not-valid: preference-secret}", encoding="utf-8")
+    monkeypatch.setattr(cli, "run_diagnostics", lambda root: {"status": "needs_attention", "checks": [], "next": "irrelevant"})
+    assert cli.cli_main(["onboard", str(tmp_path)]) == 1
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "needs_attention"
+    assert "preference-secret" not in json.dumps(payload)
