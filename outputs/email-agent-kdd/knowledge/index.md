@@ -81,3 +81,5 @@
 * [Contrato del Objetivo 32](contracts/sprint32-terminal-i18n.md) - Idioma explícito y compatibilidad.
 * [Informe de ayuda de setup](../../SPRINT33-SETUP-HELP-REPORT.md) - Opción de idioma visible.
 * [Contrato del Objetivo 33](contracts/sprint33-setup-help.md) - Descubribilidad sin cambiar compatibilidad.
+* [Informe de onboarding del plugin](../../SPRINT34-PLUGIN-ONBOARDING-REPORT.md) - Guía para agentes.
+* [Contrato del Objetivo 34](contracts/sprint34-plugin-onboarding.md) - Comandos y límites de seguridad.

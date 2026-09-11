@@ -15,6 +15,7 @@ The same onboarding flow works on Windows, macOS, and Linux: install, verify, cr
 - Before invoking commands, check whether `email-agent --help` is available. If it is missing, offer the user the platform-appropriate installer or install the package with `python -m pip install .`; do not install silently. Verify the command after installation.
 - If the command is not found, tell the user to add Python's script directory to PATH (`Scripts` on Windows, `bin` on macOS/Linux), reopen the terminal, and verify again.
 - Guide the user to create their first account with `account setup-gui ROOT` (simple local form) or `account setup ROOT` (terminal wizard).
+- For the simplest first use, prefer `onboard ROOT`; it checks prerequisites and selects GUI or terminal. Use `onboard ROOT --gui` or `--terminal` to force a flow, and `--lang es|en|pt` to choose the language. Never invent or provide a password.
 - The setup GUI and the terminal wizard never print passwords, credential references, or raw secrets; their error messages are generic. Cancelling or closing the form persists nothing. The terminal wizard never asks for the password itself, only for the environment variable name that holds it.
 
 ## Read and synchronize
@@ -48,6 +49,7 @@ Create drafts first with `draft`. Sending is an external side effect and require
 ## Account management
 
 - Add manually with `account setup-gui ROOT` or use the guided `account setup ROOT`.
+- Assisted first use: `onboard ROOT [--gui|--terminal] [--lang es|en|pt]`. Treat its JSON summary as public metadata only; never request or print credential references.
 - List linked accounts with `account list ROOT`.
 - Unlink only after explicit confirmation: `account remove ROOT ACCOUNT_ID CONFIRMAR DESVINCULAR`.
 - Unlinking removes the stored reference and the secret from the platform's native secure store (Windows Credential Manager, macOS Keychain, or Linux Secret Service), but keeps downloaded email data.

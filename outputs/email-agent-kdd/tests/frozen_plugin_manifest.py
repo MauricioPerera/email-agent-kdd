@@ -61,6 +61,7 @@ CLI_COMMAND_TOKENS = [
     "send",
     "account setup-gui",
     "account setup",
+    "onboard",
     "account list",
     "account remove",
     "query",
