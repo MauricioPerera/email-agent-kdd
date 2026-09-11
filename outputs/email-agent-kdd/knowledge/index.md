@@ -57,3 +57,5 @@
 * [Contrato del Objetivo 20](contracts/sprint20-language-preference.md) - Idioma efectivo y seguro.
 * [Informe de primer uso](../../SPRINT21-FIRST-USE-REPORT.md) - Selección automática de GUI o terminal.
 * [Contrato del Objetivo 21](contracts/sprint21-first-use.md) - Onboarding sin degradar seguridad.
+* [Informe de errores del onboarding](../../SPRINT22-ONBOARDING-ERRORS-REPORT.md) - Cancelación y siguientes pasos.
+* [Contrato del Objetivo 22](contracts/sprint22-onboarding-errors.md) - Resultados accionables y seguros.

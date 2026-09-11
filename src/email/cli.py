@@ -1379,10 +1379,13 @@ def _run_onboard(argv):
     root = argv[1]
     result = run_diagnostics(root)
     if result["status"] != "ready":
-        print(json.dumps({"status": result["status"], "checks": result["checks"], "next": result["next"]}, sort_keys=True))
+        print(json.dumps({"status": result["status"], "checks": result["checks"], "next": result["next"], "action": "email-agent doctor --fix"}, sort_keys=True))
         return 1
     gui_available = any(item["name"] == "gui" and item["status"] == "ok" for item in result["checks"])
-    return _account_setup_gui(["account", "setup-gui", root]) if gui_available else _account_setup(["account", "setup", root])
+    code = _account_setup_gui(["account", "setup-gui", root]) if gui_available else _account_setup(["account", "setup", root])
+    if code != 0:
+        _print_stderr(["onboard: configuracion cancelada o incompleta; puedes volver a ejecutar 'email-agent onboard ROOT'"])
+    return code
 
 
 def cli_main(argv: list) -> int:

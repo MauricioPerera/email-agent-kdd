@@ -67,3 +67,21 @@ def test_onboard_runs_diagnostics_before_selecting_setup(monkeypatch, tmp_path):
     monkeypatch.setattr(cli, "_account_setup_gui", lambda argv: calls.append(argv) or 0)
     assert cli.cli_main(["onboard", str(tmp_path)]) == 0
     assert calls == [["account", "setup-gui", str(tmp_path)]]
+
+
+def test_onboard_explains_cancelled_setup(monkeypatch, tmp_path, capsys):
+    import src.email.cli as cli
+
+    monkeypatch.setattr(cli, "run_diagnostics", lambda root: {"status": "ready", "checks": [{"name": "gui", "status": "ok"}], "next": "ok"})
+    monkeypatch.setattr(cli, "_account_setup_gui", lambda argv: 1)
+    assert cli.cli_main(["onboard", str(tmp_path)]) == 1
+    assert "configuracion cancelada" in capsys.readouterr().err
+
+
+def test_onboard_reports_required_diagnostic_action(monkeypatch, tmp_path, capsys):
+    import src.email.cli as cli
+
+    monkeypatch.setattr(cli, "run_diagnostics", lambda root: {"status": "needs_attention", "checks": [], "next": "fix"})
+    assert cli.cli_main(["onboard", str(tmp_path)]) == 1
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["action"] == "email-agent doctor --fix"
