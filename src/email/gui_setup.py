@@ -62,7 +62,7 @@ _UI_TEXT = {
 }
 
 
-def _platform_stop_message(platform=None) -> str:
+def _platform_stop_message(platform=None, language="es") -> str:
     """Mensaje de PARAR del almacen nativo, nombrado por OS.
 
     La GUI corre en cualquiera de los tres OS soportados; el mensaje
@@ -78,10 +78,12 @@ def _platform_stop_message(platform=None) -> str:
         name = "Linux (Secret Service)"
     else:
         name = "de este sistema"
-    return (
-        "PARAR: el almacenamiento seguro de " + name + " no esta "
-        "disponible en este sistema; no existe alternativa segura"
-    )
+    messages = {
+        "es": "PARAR: el almacenamiento seguro de " + name + " no esta disponible en este sistema; no existe alternativa segura",
+        "en": "STOP: the secure storage for " + name + " is unavailable on this system; no safe alternative exists",
+        "pt": "PARAR: o armazenamento seguro de " + name + " nao esta disponivel neste sistema; nao existe alternativa segura",
+    }
+    return messages.get(language, messages["es"])
 
 
 def _derive_account_id(email: str) -> str:
@@ -281,7 +283,7 @@ class _SetupForm:
                 self.password.get(),
             )
         except RuntimeError:
-            self._show(_platform_stop_message(), "warning")
+            self._show(_platform_stop_message(language=self.language), "warning")
         except Exception:
             self._show(_GENERIC_ERROR, "error")
         else:

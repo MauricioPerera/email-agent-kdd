@@ -71,3 +71,5 @@
 * [Contrato del Objetivo 27](contracts/sprint27-gui-i18n.md) - Preferencia local sin alterar seguridad.
 * [Informe de mensajes GUI](../../SPRINT28-GUI-MESSAGES-REPORT.md) - Validaciones y estados en tres idiomas.
 * [Contrato del Objetivo 28](contracts/sprint28-gui-messages.md) - Mensajes localizados sin datos sensibles.
+* [Informe de almacén nativo](../../SPRINT29-NATIVE-STORE-MESSAGE-REPORT.md) - Advertencia localizada y segura.
+* [Contrato del Objetivo 29](contracts/sprint29-native-store-message.md) - Detención sin fallback inseguro.
