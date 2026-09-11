@@ -17,6 +17,7 @@ The same onboarding flow works on Windows, macOS, and Linux: install, verify, cr
 - Guide the user to create their first account with `account setup-gui ROOT` (simple local form) or `account setup ROOT` (terminal wizard).
 - For the simplest first use, prefer `onboard ROOT`; it checks prerequisites and selects GUI or terminal. Use `onboard ROOT --gui` or `--terminal` to force a flow, and `--lang es|en|pt` to choose the language. Never invent or provide a password.
 - After a successful onboarding summary, use its public `account_id` with `email-agent sync ROOT ACCOUNT_ID --limit 50`; add `--unread` when the user asks only for unread mail. Continue with later pages using the stored cursor; do not infer or request any credential value.
+- If the user asks for active monitoring after the first sync, use `email-agent watch ROOT ACCOUNT_ID --every 300 --limit 50` and explain that it runs only while the process remains alive.
 - The setup GUI and the terminal wizard never print passwords, credential references, or raw secrets; their error messages are generic. Cancelling or closing the form persists nothing. The terminal wizard never asks for the password itself, only for the environment variable name that holds it.
 
 ## Read and synchronize

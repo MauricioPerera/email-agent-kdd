@@ -95,3 +95,5 @@
 * [Contrato del Objetivo 39](contracts/sprint39-plugin-first-sync.md) - Uso de metadatos públicos sin credenciales.
 * [Informe de sync paginado del plugin](../../SPRINT40-PLUGIN-SYNC-PAGINATION-REPORT.md) - Primer lote limitado y cursor.
 * [Contrato del Objetivo 40](contracts/sprint40-plugin-sync-pagination.md) - Paginación documentada para agentes.
+* [Informe del límite de watch](../../SPRINT41-PLUGIN-WATCH-BOUNDARY-REPORT.md) - Monitoreo activo sin promesas persistentes.
+* [Contrato del Objetivo 41](contracts/sprint41-plugin-watch-boundary.md) - Vida del proceso y startup separado.

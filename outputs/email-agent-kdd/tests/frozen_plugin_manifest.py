@@ -151,7 +151,7 @@ def test_skill_mentions_every_confirmation_phrase():
 
 def test_skill_documents_onboarding_options():
     text = SKILL.read_text(encoding="utf-8")
-    for phrase in ("onboard ROOT", "--gui", "--terminal", "--lang es|en|pt", "account setup ROOT --lang es|en|pt", "email-agent sync ROOT ACCOUNT_ID --limit 50", "--unread"):
+    for phrase in ("onboard ROOT", "--gui", "--terminal", "--lang es|en|pt", "account setup ROOT --lang es|en|pt", "email-agent sync ROOT ACCOUNT_ID --limit 50", "--unread", "watch ROOT ACCOUNT_ID --every 300 --limit 50", "runs only while the process remains alive"):
         assert phrase in text, f"SKILL.md no documenta onboarding: {phrase}"
 
 
