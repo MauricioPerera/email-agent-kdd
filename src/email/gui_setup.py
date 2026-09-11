@@ -28,6 +28,7 @@ from src.email.discover_mail_servers import discover_mail_servers
 from src.email.mail_server_store import store_mail_server_config
 from src.email.provision_account import provision_email_account
 from src.email.connection_check import verify_email_connection
+from src.email.language import load_language
 
 _LABEL_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 _HOST_PATTERN = re.compile(r"^[a-z0-9]([a-z0-9._-]{0,251}[a-z0-9])?$")
@@ -49,6 +50,11 @@ _DISCOVERY_CONFIRMED = (
 _INCOMPLETE = "error generico: faltan datos del servidor de correo"
 _VERIFYING = "comprobando conexion IMAP y SMTP; no se enviara ningun correo..."
 _VERIFY_FAILED = "no pudimos validar la conexion. Revisa los datos e intentalo de nuevo."
+_UI_TEXT = {
+    "es": {"title": "Configuracion segura de cuenta", "email": "Correo electronico", "password": "Contrasena", "save": "Guardar", "cancel": "Cancelar", "advanced": "Configuracion avanzada del servidor de correo", "imap": "Servidor de entrada (IMAP)", "imap_port": "Puerto de entrada", "smtp": "Servidor de salida (SMTP)", "smtp_port": "Puerto de salida"},
+    "en": {"title": "Secure account setup", "email": "Email address", "password": "Password", "save": "Save", "cancel": "Cancel", "advanced": "Advanced mail server settings", "imap": "Incoming server (IMAP)", "imap_port": "Incoming port", "smtp": "Outgoing server (SMTP)", "smtp_port": "Outgoing port"},
+    "pt": {"title": "Configuracao segura da conta", "email": "Email", "password": "Senha", "save": "Salvar", "cancel": "Cancelar", "advanced": "Configuracao avancada do servidor de email", "imap": "Servidor de entrada (IMAP)", "imap_port": "Porta de entrada", "smtp": "Servidor de saida (SMTP)", "smtp_port": "Porta de saida"},
+}
 
 
 def _platform_stop_message(platform=None) -> str:
@@ -103,9 +109,10 @@ def _valid_host(host: str) -> bool:
 class _SetupForm:
     """Ventana de alta segura; el secreto vive solo en el widget password."""
 
-    def __init__(self, master, root: str):
+    def __init__(self, master, root: str, language=None):
         self.window = master
         self.root = root
+        self.language = language or load_language(root)
         self.code = 1
         self.servers = None
         self.discovery_done = False
@@ -114,21 +121,22 @@ class _SetupForm:
         """Construir los campos publicos, el estado y la seccion avanzada."""
         import tkinter as tk
         window = self.window
-        window.title("Configuracion segura de cuenta")
-        tk.Label(window, text="Correo electronico").grid(
+        text = _UI_TEXT[self.language]
+        window.title(text["title"])
+        tk.Label(window, text=text["email"]).grid(
             row=0, column=0, sticky="w"
         )
         self.email = tk.Entry(window, width=32)
         self.email.grid(row=0, column=1, sticky="w")
-        tk.Label(window, text="Contrasena").grid(row=1, column=0, sticky="w")
+        tk.Label(window, text=text["password"]).grid(row=1, column=0, sticky="w")
         self.password = tk.Entry(window, show="*", width=32)
         self.password.grid(row=1, column=1, sticky="w")
         self.status = tk.Label(window, text="", wraplength=360, justify="left")
         self.status.grid(row=2, column=0, columnspan=2, sticky="w")
-        tk.Button(window, text="Guardar", command=self._on_save).grid(
+        tk.Button(window, text=text["save"], command=self._on_save).grid(
             row=3, column=0, sticky="w"
         )
-        tk.Button(window, text="Cancelar", command=self._on_cancel).grid(
+        tk.Button(window, text=text["cancel"], command=self._on_cancel).grid(
             row=3, column=1, sticky="w"
         )
         self._build_advanced(window)
@@ -137,12 +145,13 @@ class _SetupForm:
     def _build_advanced(self, window):
         """Seccion avanzada oculta: solo hosts y puertos, sin mas terminos."""
         import tkinter as tk
-        frame = tk.LabelFrame(window, text=_ADVANCED_TITLE)
+        text = _UI_TEXT[self.language]
+        frame = tk.LabelFrame(window, text=text["advanced"])
         fields = (
-            ("Servidor de entrada (IMAP)", "imap_host"),
-            ("Puerto de entrada", "imap_port"),
-            ("Servidor de salida (SMTP)", "smtp_host"),
-            ("Puerto de salida", "smtp_port"),
+            (text["imap"], "imap_host"),
+            (text["imap_port"], "imap_port"),
+            (text["smtp"], "smtp_host"),
+            (text["smtp_port"], "smtp_port"),
         )
         for row, (text, attr) in enumerate(fields):
             tk.Label(frame, text=text).grid(row=row, column=0, sticky="w")
@@ -293,7 +302,7 @@ def run_account_setup_gui(root: str) -> int:
     """
     import tkinter as tk
     window = tk.Tk()
-    form = _SetupForm(window, root)
+    form = _SetupForm(window, root, load_language(root))
     form.build()
     window.mainloop()
     return form.code

@@ -229,6 +229,16 @@ def test_form_never_prints_nor_logs():
         )
 
 
+def test_form_uses_saved_language_for_ui_labels(tmp_path):
+    """La preferencia local llega al formulario sin incluir secretos."""
+    from src.email.language import save_language
+
+    save_language(str(tmp_path), "en")
+    form = gui._SetupForm(_FakeWindow(), str(tmp_path))
+    assert form.language == "en"
+    assert gui._UI_TEXT[form.language]["save"] == "Save"
+
+
 def test_discovery_is_called_without_password():
     """El discovery jamas toca self.password en el codigo real."""
     tree = ast.parse(

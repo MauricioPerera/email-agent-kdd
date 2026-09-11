@@ -67,3 +67,5 @@
 * [Contrato del Objetivo 25](contracts/sprint25-onboarding-next-step.md) - Continuidad accionable y localizada.
 * [Informe de selección de flujo](../../SPRINT26-ONBOARDING-FLOW-REPORT.md) - GUI o terminal bajo demanda.
 * [Contrato del Objetivo 26](contracts/sprint26-onboarding-flow.md) - Selección explícita y segura.
+* [Informe del formulario gráfico multilingüe](../../SPRINT27-GUI-I18N-REPORT.md) - Etiquetas en tres idiomas.
+* [Contrato del Objetivo 27](contracts/sprint27-gui-i18n.md) - Preferencia local sin alterar seguridad.
