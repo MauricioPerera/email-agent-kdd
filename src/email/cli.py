@@ -103,7 +103,7 @@ USAGE = (
     "email-agent sync ROOT ACCOUNT_ID [HOST] [--limit N] [--unread] "
     "[--attachments CONFIRMAR EXTRACCION] | "
     "email-agent watch ROOT ACCOUNT_ID [--every N] [--limit N] [--unread] | "
-    "email-agent notification add|list|delete ROOT ... | "
+    "email-agent notification add|list|show|delete ROOT ... | "
     "email-agent startup install|status|remove ROOT ACCOUNT_ID ... | "
     "email-agent doctor [ROOT] [--fix] [--lang es|en|pt] [--format json|text] [--report FILE] | "
     "email-agent language set|get ROOT [es|en|pt] | "
@@ -828,8 +828,8 @@ def _run_watch(argv):
 
 
 def _run_notification(argv):
-    if len(argv) < 2 or argv[1] not in ("add", "list", "delete"):
-        return _fail(["error: notification requiere add, list o delete", USAGE])
+    if len(argv) < 2 or argv[1] not in ("add", "list", "show", "delete"):
+        return _fail(["error: notification requiere add, list, show o delete", USAGE])
     action = argv[1]
     try:
         if action == "list":
@@ -837,6 +837,18 @@ def _run_notification(argv):
                 return _fail(["error: notification list requiere ROOT", USAGE])
             for rule in list_notification_rules(argv[2]):
                 print(json.dumps(rule, sort_keys=True))
+            return 0
+        if action == "show":
+            if len(argv) != 4:
+                return _fail(["error: notification show requiere ROOT y NAME", USAGE])
+            rule = next(
+                (item for item in list_notification_rules(argv[2]) if item.get("name") == argv[3]),
+                None,
+            )
+            if rule is None:
+                _print_stderr(["error: regla de notificacion no encontrada"])
+                return 1
+            print(json.dumps(rule, sort_keys=True))
             return 0
         if action == "delete":
             if len(argv) != 6 or " ".join(argv[4:]) != _NOTIFICATION_DELETE_CONFIRMATION:

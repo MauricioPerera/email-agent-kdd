@@ -192,6 +192,8 @@ def test_skill_documents_notification_rule_authorization():
     assert "only the single add/delete invocation it accompanies" in text
     assert "never save it, reuse it for another rule" in text
     assert "notification list ROOT" in text
+    assert "notification show ROOT NAME" in text
+    assert "exact stored query" in text
     assert "Listing rules is read-only and does not need confirmation" in text
     assert "notification delete ROOT NAME CONFIRMAR REGLA" in text
     assert "request and receive explicit confirmation immediately before running" in text

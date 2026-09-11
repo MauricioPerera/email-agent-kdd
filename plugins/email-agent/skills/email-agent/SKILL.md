@@ -36,6 +36,7 @@ The same onboarding flow works on Windows, macOS, and Linux: install, verify, cr
 - For a recipient alias, use `notification add ROOT ventas "para:ventas+cliente@example.com"`; preserve dots and `+tag` exactly as received.
 - Rules are evaluated only after `sync`; do not promise an immediate notification before a synchronization cycle.
 - List rules: `notification list ROOT`.
+- Inspect one rule without changing it: `notification show ROOT NAME`; use this to present the exact stored query before requesting a replacement or deletion.
 - Listing rules is read-only and does not need confirmation.
 - Remove a rule: first show the rule name and exact query, then request and receive explicit confirmation immediately before running `notification delete ROOT NAME CONFIRMAR REGLA`.
 - Never delete, replace, or broaden a rule merely because a notification was inconvenient; if the requested name or query is ambiguous, stop and ask the user.
