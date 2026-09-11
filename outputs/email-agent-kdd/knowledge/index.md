@@ -101,3 +101,5 @@
 * [Contrato del Objetivo 42](contracts/sprint42-plugin-startup-confirmation.md) - Frontera de autorización para agentes.
 * [Informe de retiro startup](../../SPRINT43-PLUGIN-STARTUP-REMOVE-REPORT.md) - Deshabilitación con autorización.
 * [Contrato del Objetivo 43](contracts/sprint43-plugin-startup-remove.md) - Retiro explícito y verificable.
+* [Informe de filtros de notificación](../../SPRINT44-PLUGIN-NOTIFICATION-FILTER-REPORT.md) - Dirección real y ciclo de sync.
+* [Contrato del Objetivo 44](contracts/sprint44-plugin-notification-filter.md) - Reglas por destinatario sin normalización indebida.

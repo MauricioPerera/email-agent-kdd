@@ -163,6 +163,12 @@ def test_skill_documents_startup_confirmation_boundary():
     assert "receiving confirmation immediately before removal" in text
 
 
+def test_skill_documents_delivery_filter_notifications():
+    text = SKILL.read_text(encoding="utf-8")
+    assert 'notification add ROOT ventas "para:ventas+cliente@example.com"' in text
+    assert "Rules are evaluated only after `sync`" in text
+
+
 def test_installers_verify_command_after_install():
     for name in ("install.ps1", "install.sh"):
         text = (REPO / "installers" / name).read_text(encoding="utf-8")

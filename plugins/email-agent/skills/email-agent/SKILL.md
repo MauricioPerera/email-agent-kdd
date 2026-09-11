@@ -31,6 +31,8 @@ The same onboarding flow works on Windows, macOS, and Linux: install, verify, cr
 ## Notifications
 
 - Create a local rule: `notification add ROOT NAME QUERY`.
+- For a recipient alias, use `notification add ROOT ventas "para:ventas+cliente@example.com"`; preserve dots and `+tag` exactly as received.
+- Rules are evaluated only after `sync`; do not promise an immediate notification before a synchronization cycle.
 - List rules: `notification list ROOT`.
 - Remove a rule: `notification delete ROOT NAME`.
 
