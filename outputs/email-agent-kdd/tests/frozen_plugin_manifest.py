@@ -155,6 +155,13 @@ def test_skill_documents_onboarding_options():
         assert phrase in text, f"SKILL.md no documenta onboarding: {phrase}"
 
 
+def test_skill_documents_conservative_contact_resolution():
+    text = SKILL.read_text(encoding="utf-8")
+    assert "natural-language request about a person" in text
+    assert "contact:EMAIL" in text
+    assert "instead of guessing" in text
+
+
 def test_skill_documents_startup_confirmation_boundary():
     text = SKILL.read_text(encoding="utf-8")
     assert "startup install ROOT ACCOUNT_ID --every 300 --limit 50" in text

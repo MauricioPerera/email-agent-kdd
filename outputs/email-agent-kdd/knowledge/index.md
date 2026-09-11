@@ -129,3 +129,5 @@
 * [Contrato del Objetivo 56](contracts/sprint56-notification-idempotency.md) - Repetición segura de operaciones.
 * [Informe de límite de reglas](../../SPRINT57-NOTIFICATION-RULE-LIMIT-REPORT.md) - Crecimiento acotado del almacén.
 * [Contrato del Objetivo 57](contracts/sprint57-notification-rule-limit.md) - Máximo de 100 reglas.
+* [Informe de consultas naturales por contacto](../../SPRINT58-NATURAL-CONTACT-QUERY-REPORT.md) - Resolución sin suposiciones.
+* [Contrato del Objetivo 58](contracts/sprint58-natural-contact-query.md) - Dirección clara o aclaración.

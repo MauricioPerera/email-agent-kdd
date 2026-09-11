@@ -55,6 +55,7 @@ Synchronization is read-only, paginated, and resumes from the stored UID cursor.
 
 - Use `query ROOT "para:ADDRESS"` to filter by the actual delivery address.
 - Combine `para:`, `contact:`, `conversation:`, `topic:`, `account:` and free terms as supported by the CLI.
+- For a natural-language request about a person, use `contact:EMAIL` when the email is unambiguous; if several contacts share a name, show the candidates and ask which address to use instead of guessing.
 - Use `read ROOT REL_PATH` only after selecting a local node.
 
 ## Sending policy
