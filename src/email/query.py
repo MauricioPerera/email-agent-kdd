@@ -66,8 +66,7 @@ def _parse_filters(instruction: str):
             local, _, domain = recipient.partition("@")
             if not local or not domain:
                 raise ValueError("para: EMAIL malformado (sin @ o partes vacias): " + token[5:])
-            terms.append("delivered_to")
-            terms.append(recipient)
+            terms.append("para:" + recipient)
         else:
             terms.append(token.casefold())
     return terms, indexes
@@ -95,6 +94,13 @@ def _resolve_node(root_path: Path, raw: str):
 
 _DELIVERED_RE = re.compile(r"^delivered_to\s*:", re.IGNORECASE)
 _CONTACT_HEADER_RE = re.compile(r"^(from|to|cc)\s*:", re.IGNORECASE)
+_EMAIL_BOUNDARY = r"[A-Za-z0-9._%+-]"
+
+
+def _email_value_match(line: str, value: str) -> bool:
+    pattern = r"(?<!" + _EMAIL_BOUNDARY + r")" + re.escape(value)
+    pattern += r"(?!" + _EMAIL_BOUNDARY + r")"
+    return re.search(pattern, line.casefold()) is not None
 
 
 def _delivered_to_match(text: str, value: str) -> bool:
@@ -102,14 +108,12 @@ def _delivered_to_match(text: str, value: str) -> bool:
     lines = text.splitlines()
     if not lines or lines[0].strip() != "---":
         return False
-    closed = False
     for line in lines[1:]:
         if line.strip() == "---":
-            closed = True
             break
-        if _DELIVERED_RE.match(line) and value in line.casefold():
+        if _DELIVERED_RE.match(line) and _email_value_match(line, value):
             return True
-    return closed
+    return False
 
 
 def _contact_header_match(text: str, value: str) -> bool:
@@ -120,7 +124,7 @@ def _contact_header_match(text: str, value: str) -> bool:
     for line in lines[1:]:
         if line.strip() == "---":
             break
-        if _CONTACT_HEADER_RE.match(line) and value in line.casefold():
+        if _CONTACT_HEADER_RE.match(line) and _email_value_match(line, value):
             return True
     return False
 

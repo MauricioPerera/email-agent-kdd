@@ -147,3 +147,5 @@
 * [Contrato del Objetivo 65](contracts/sprint65-contact-find-pagination.md) - Offset y límite para la libreta.
 * [Informe de filtro por encabezados](../../SPRINT66-CONTACT-HEADER-FILTER-REPORT.md) - Menos falsos positivos por contacto.
 * [Contrato del Objetivo 66](contracts/sprint66-contact-header-filter.md) - From, To y Cc como fuente.
+* [Informe de límites de filtros](../../SPRINT67-EMAIL-FILTER-BOUNDARIES-REPORT.md) - Direcciones sin coincidencias parciales.
+* [Contrato del Objetivo 67](contracts/sprint67-email-filter-boundaries.md) - Delimitación exacta.

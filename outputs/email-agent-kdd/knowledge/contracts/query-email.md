@@ -60,14 +60,14 @@ interpreta, y el contenido de la instrucción nunca se ejecuta: es datos, no có
     y DEBE contener `@` con parte no vacía a ambos lados (igual que `contact:`); un `EMAIL` sin `@`
     o con partes vacías es malformado y lanza `ValueError`. Emite DOS términos requeridos: el
     marcador `delivered_to` (el frontmatter de los nodos con envelope de entrega lleva la línea
-    `delivered_to: addr1, addr2` de `parse_raw_email`) y el `EMAIL` casefold como subcadena. Así la
+    `delivered_to: addr1, addr2` de `parse_raw_email`) y el `EMAIL` casefold como dirección delimitada. Así la
     coincidencia exige que el nodo declare un destinatario de entrega: un nodo donde el email solo
     aparece en `from:`/`to:`/`cc:` (o cuyo cuerpo no menciona `delivered_to`) NO matchea. Las
     direcciones de entrega van verbatim (SIN colapsar puntos del local part, `+tag` ni minusculas),
     de modo que `para:user+tag@gmail.com` y `para:user.tag@gmail.com` solo matchean si el nodo
     congeló EXACTAMENTE esa forma: las variantes NO se asumen equivalentes entre proveedores.
-    Límite documentado (léxico, no estructural): la coincidencia es por substring sobre el texto
-    del nodo, por lo que un cuerpo que contenga el literal `delivered_to` y la dirección podría
+    Límite documentado (léxico, no estructural): la coincidencia inspecciona la línea de frontmatter
+    `delivered_to`, por lo que un cuerpo que contenga el literal y la dirección no podría
     casar sin ser frontmatter; los nodos persistidos ANTES de este filtro no llevan la línea y
     nunca matchean `para:`.
   - Cualquier otro token (incluidos los que contengan `:` con otro prefijo) es un término libre:

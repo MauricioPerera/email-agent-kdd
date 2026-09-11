@@ -160,6 +160,7 @@ def test_skill_documents_conservative_contact_resolution():
     assert "natural-language request about a person" in text
     assert "contact:EMAIL" in text
     assert "only in the body is not a contact match" in text
+    assert "Address filters use boundaries" in text
     assert "instead of guessing" in text
     assert "contact show ROOT EMAIL" in text
     assert "contact find ROOT TEXT" in text
