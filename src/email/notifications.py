@@ -10,6 +10,7 @@ import subprocess
 _RULES = "notification-rules.json"
 _STATE = "notification-state.json"
 _NAME_RE = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+MAX_NOTIFICATION_RULES = 100
 
 
 def _path(root, name):
@@ -83,6 +84,8 @@ def save_notification_rule(root, name, query, enabled=True):
     if not isinstance(enabled, bool):
         raise ValueError("enabled invalido")
     rules = [rule for rule in list_notification_rules(root) if rule.get("name") != name]
+    if len(rules) >= MAX_NOTIFICATION_RULES:
+        raise ValueError("limite de reglas de notificacion alcanzado")
     rules.append({"name": name, "query": normalized_query, "enabled": enabled})
     _write(_path(root, _RULES), {"rules": rules})
     return name

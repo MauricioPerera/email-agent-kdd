@@ -127,3 +127,5 @@
 * [Contrato del Objetivo 55](contracts/sprint55-notification-state-integrity.md) - Detención sin reescritura.
 * [Informe de idempotencia de reglas](../../SPRINT56-NOTIFICATION-IDEMPOTENCY-REPORT.md) - No-ops sin escrituras innecesarias.
 * [Contrato del Objetivo 56](contracts/sprint56-notification-idempotency.md) - Repetición segura de operaciones.
+* [Informe de límite de reglas](../../SPRINT57-NOTIFICATION-RULE-LIMIT-REPORT.md) - Crecimiento acotado del almacén.
+* [Contrato del Objetivo 57](contracts/sprint57-notification-rule-limit.md) - Máximo de 100 reglas.

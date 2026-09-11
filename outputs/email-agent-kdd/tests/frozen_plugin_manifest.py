@@ -174,6 +174,7 @@ def test_skill_documents_delivery_filter_notifications():
     assert "delivery history cannot be lost silently" in text
     assert "Repeating an already-satisfied enable/disable" in text
     assert "deleting a missing rule is a no-op" in text
+    assert "at most 100 notification rules" in text
     assert "Rules are evaluated only after `sync`" in text
 
 

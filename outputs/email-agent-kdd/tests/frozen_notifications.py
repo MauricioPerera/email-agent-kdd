@@ -238,6 +238,15 @@ def test_setting_existing_state_is_a_noop(tmp_path, monkeypatch):
     assert calls == []
 
 
+def test_notification_rule_limit_allows_replace_but_rejects_new_rule(tmp_path):
+    for index in range(notifications.MAX_NOTIFICATION_RULES):
+        notifications.save_notification_rule(str(tmp_path), f"r{index}", "marcador")
+    with pytest.raises(ValueError, match="limite de reglas"):
+        notifications.save_notification_rule(str(tmp_path), "extra", "marcador")
+    notifications.save_notification_rule(str(tmp_path), "r0", "otro")
+    assert len(notifications.list_notification_rules(str(tmp_path))) == notifications.MAX_NOTIFICATION_RULES
+
+
 def test_subject_fallback_when_empty(tmp_path):
     _save_rule(tmp_path, "todo", "marcador")
     seen = _Sink()
