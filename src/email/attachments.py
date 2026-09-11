@@ -17,6 +17,7 @@ from email.parser import BytesParser
 from pathlib import Path
 
 from src.email.node import read_email_node
+from src.email.antivirus import scan_bytes
 
 MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
 MAX_EXTRACTED_TEXT_BYTES = 2 * 1024 * 1024
@@ -416,7 +417,7 @@ def list_node_attachments(root, rel_path):
     return rows
 
 
-def extract_text_from_blob(root, entry, max_bytes=MAX_EXTRACTED_TEXT_BYTES):
+def extract_text_from_blob(root, entry, max_bytes=MAX_EXTRACTED_TEXT_BYTES, scanner=None):
     """Lee solo blobs almacenados y los convierte con parsers de texto inertes.
 
     No interpreta HTML, PDF, documentos ofimaticos ni formatos ejecutables:
@@ -436,6 +437,9 @@ def extract_text_from_blob(root, entry, max_bytes=MAX_EXTRACTED_TEXT_BYTES):
         raise AttachmentError("size-limit-exceeded", "texto extraido demasiado grande")
     if hashlib.sha256(content).hexdigest() != sha256:
         raise AttachmentError("hash-mismatch", "blob corrupto")
+    scan_status = scan_bytes(content, scanner)
+    if scan_status != "clean":
+        raise AttachmentError("antivirus-" + scan_status, "escaneo antivirus no aprobado")
     if b"\x00" in content:
         raise AttachmentError("unsafe-content", "contenido no textual")
     try:

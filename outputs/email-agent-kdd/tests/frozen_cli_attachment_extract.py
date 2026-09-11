@@ -24,8 +24,16 @@ def _blob(cli, root, content):
     blob.write_bytes(content)
 
 
-def test_attachment_extracta_texto_local_sin_red(tmp_path, capsys):
+def test_attachment_extracta_texto_local_sin_red(tmp_path, capsys, monkeypatch):
     cli = importlib.import_module("src.email.cli")
+    attachments = importlib.import_module("src.email.attachments")
+    monkeypatch.setattr(
+        cli,
+        "extract_text_from_blob",
+        lambda root, entry: attachments.extract_text_from_blob(
+            root, entry, scanner=lambda _: "clean"
+        ),
+    )
     content = "Hola, mundo\n".encode("utf-8")
     digest = _node(tmp_path, content)
     _blob(cli, tmp_path, content)

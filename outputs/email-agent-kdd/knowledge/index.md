@@ -161,3 +161,5 @@
 * [Contrato del Objetivo 74](contracts/sprint74-verified-release-installer.md) - Instalación segura desde release.
 * [Informe de extracción segura](../../SPRINT75-SAFE-TEXT-EXTRACTION-REPORT.md) - Texto desde blobs locales autorizados.
 * [Contrato del Objetivo 75](contracts/sprint75-safe-text-extraction.md) - Sin ejecución de contenido activo.
+* [Informe del gate antivirus](../../SPRINT76-ANTIVIRUS-GATE-REPORT.md) - Escaneo fail-closed antes de extraer.
+* [Contrato del Objetivo 76](contracts/sprint76-antivirus-gate.md) - Estados y adaptador ClamAV.

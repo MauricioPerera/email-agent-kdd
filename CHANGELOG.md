@@ -9,6 +9,12 @@ es `0.1.0`, y coincide con `pyproject.toml` (`email-agent-cli`) y con
 
 ## [Unreleased]
 
+### Seguridad de adjuntos (Sprint 76 — 2026-09-11)
+
+- `attachment extract` ejecuta un gate antivirus fail-closed antes de decodificar
+  texto; ClamAV se consume por stdin y sus estados no exponen contenido.
+- Ausencia, infección, timeout o error del scanner detienen la extracción.
+
 ### Añadido (Sprint 75 — 2026-09-11)
 
 - `attachment extract` convierte localmente blobs almacenados de tipos textuales
