@@ -38,6 +38,8 @@ email-agent watch . CUENTA --every 300 --limit 50
 
 El alta puede hacerse con el formulario local `email-agent account setup-gui ROOT` o con el asistente de terminal `email-agent account setup ROOT`. Las cuentas vinculadas se consultan con `email-agent account list ROOT`.
 
+El formulario valida los campos y comprueba autenticación IMAP y SMTP antes de guardar. La prueba SMTP solo autentica la cuenta: nunca envía un correo.
+
 Para desvincular una cuenta se requiere una confirmación literal e independiente:
 
 ```bash

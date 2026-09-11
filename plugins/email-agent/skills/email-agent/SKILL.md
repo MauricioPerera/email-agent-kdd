@@ -46,6 +46,7 @@ Create drafts first with `draft`. Sending is an external side effect and require
 - Unlink only after explicit confirmation: `account remove ROOT ACCOUNT_ID CONFIRMAR DESVINCULAR`.
 - Unlinking removes the stored reference and Windows Credential Manager secret, but keeps downloaded email data.
 - An AI assistant may guide the user and prepare the command, but must not invent or silently supply the unlink confirmation.
+- The graphical setup performs IMAP and SMTP authentication before saving; SMTP preflight must never send a message.
 
 ## Platform behavior
 

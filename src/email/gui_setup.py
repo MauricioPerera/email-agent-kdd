@@ -24,6 +24,7 @@ import re
 from src.email.discover_mail_servers import discover_mail_servers
 from src.email.mail_server_store import store_mail_server_config
 from src.email.provision_account import provision_windows_email_account
+from src.email.connection_check import verify_email_connection
 
 _LABEL_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 _HOST_PATTERN = re.compile(r"^[a-z0-9]([a-z0-9._-]{0,251}[a-z0-9])?$")
@@ -47,6 +48,8 @@ _DISCOVERY_CONFIRMED = (
     "Detectamos los servidores de tu correo; guardando la cuenta..."
 )
 _INCOMPLETE = "error generico: faltan datos del servidor de correo"
+_VERIFYING = "comprobando conexion IMAP y SMTP; no se enviara ningun correo..."
+_VERIFY_FAILED = "no pudimos validar la conexion. Revisa los datos e intentalo de nuevo."
 
 
 def _derive_account_id(email: str) -> str:
@@ -212,6 +215,14 @@ class _SetupForm:
                 if self.servers is None:
                     self._note(_INCOMPLETE)
                     return
+        self._note(_VERIFYING)
+        try:
+            verify_email_connection(
+                {"email": email}, self.servers, self.password.get()
+            )
+        except (ValueError, RuntimeError):
+            self._note(_VERIFY_FAILED)
+            return
         self._provision(email)
 
     def _provision(self, email: str):
