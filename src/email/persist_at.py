@@ -21,11 +21,12 @@ def _validate_root(root: str) -> Path:
 
 def _resolve_rel_path(root: Path, rel_path: str) -> Path:
     text = str(rel_path)
-    if not text or Path(text).is_absolute() or text.startswith("~"):
+    portable_text = text.replace("\\", "/")
+    if not text or Path(portable_text).is_absolute() or portable_text.startswith("~"):
         raise ValueError("rel_path insegura: absoluta o fuera de la raiz: " + text)
-    if ".." in text.replace("\\", "/").split("/"):
+    if ".." in portable_text.split("/"):
         raise ValueError("rel_path insegura: segmento '..' no permitido: " + text)
-    target = (root / Path(text)).resolve()
+    target = (root / Path(portable_text)).resolve()
     if target != root and root not in target.parents:
         raise ValueError("rel_path insegura: resuelve fuera de la raiz: " + text)
     return target

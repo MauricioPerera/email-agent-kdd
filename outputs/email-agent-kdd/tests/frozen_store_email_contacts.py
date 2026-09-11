@@ -124,10 +124,11 @@ def test_raiz_explícita_no_es_el_cwd(tmp_path):
     assert os.path.isfile(os.path.join(resolved, STORE_NAME))
     if not existed_before:
         assert not os.path.exists(cwd_store)
-    with open(cwd_store, "rb") as fh:
-        preexisting = fh.read()
-    with open(os.path.join(resolved, STORE_NAME), "rb") as fh:
-        assert fh.read() != preexisting or str(resolved) == cwd
+    if existed_before:
+        with open(cwd_store, "rb") as fh:
+            preexisting = fh.read()
+        with open(os.path.join(resolved, STORE_NAME), "rb") as fh:
+            assert fh.read() != preexisting or str(resolved) == cwd
 
 
 def test_registros_invalidos_lanzan_valueerror(tmp_path):
