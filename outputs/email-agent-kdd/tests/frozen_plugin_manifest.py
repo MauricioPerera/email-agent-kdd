@@ -176,6 +176,13 @@ def test_skill_documents_notification_payload_safety():
     assert "`$()`" in text
 
 
+def test_skill_documents_notification_retry_boundary():
+    text = SKILL.read_text(encoding="utf-8")
+    assert "Notifications are deduplicated by message hash" in text
+    assert "already-sent notifications are remembered" in text
+    assert "failed ones are retried on the next cycle" in text
+
+
 def test_installers_verify_command_after_install():
     for name in ("install.ps1", "install.sh"):
         text = (REPO / "installers" / name).read_text(encoding="utf-8")

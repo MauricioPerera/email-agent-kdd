@@ -105,3 +105,5 @@
 * [Contrato del Objetivo 44](contracts/sprint44-plugin-notification-filter.md) - Reglas por destinatario sin normalización indebida.
 * [Informe de seguridad de notificaciones](../../SPRINT45-PLUGIN-NOTIFICATION-SAFETY-REPORT.md) - Payload como dato no ejecutable.
 * [Contrato del Objetivo 45](contracts/sprint45-plugin-notification-safety.md) - Asuntos sin shell ni interpolación.
+* [Informe de reintentos de notificación](../../SPRINT46-PLUGIN-NOTIFICATION-RETRY-REPORT.md) - Avisos deduplicados y controlados.
+* [Contrato del Objetivo 46](contracts/sprint46-plugin-notification-retry.md) - Frontera entre avisos y correo.
