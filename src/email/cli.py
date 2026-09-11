@@ -327,14 +327,18 @@ def _run_account(argv):
 
 
 def _run_query(argv):
-    if len(argv) not in (3, 5, 7):
+    if len(argv) < 3 or len(argv) > 8:
         return _fail([
             "error: query requiere ROOT, INSTRUCTION y opciones --offset/--limit",
             USAGE,
         ])
     root, instruction = argv[1], argv[2]
     offset, limit = 0, None
-    options = argv[3:]
+    options = list(argv[3:])
+    as_json = False
+    if "--json" in options:
+        options.remove("--json")
+        as_json = True
     if len(options) % 2:
         return _fail(["error: query requiere pares --offset N y --limit N", USAGE])
     for index in range(0, len(options), 2):
@@ -364,19 +368,28 @@ def _run_query(argv):
     except Exception:
         _print_stderr(["error: la consulta fallo"])
         return 1
-    for path in matches[offset:offset + limit if limit is not None else None]:
-        print(path)
+    page = matches[offset:offset + limit if limit is not None else None]
+    if as_json:
+        next_offset = offset + len(page) if limit is not None and offset + len(page) < len(matches) else None
+        print(json.dumps({"limit": limit, "next_offset": next_offset, "offset": offset, "results": page, "total": len(matches)}, sort_keys=True))
+    else:
+        for path in page:
+            print(path)
     return 0
 
 
 def _run_search(argv):
-    if len(argv) not in (3, 5, 7):
+    if len(argv) < 3 or len(argv) > 8:
         return _fail([
             "error: search requiere ROOT, QUERY y opciones --offset/--limit",
             USAGE,
         ])
     offset, limit = 0, None
-    options = argv[3:]
+    options = list(argv[3:])
+    as_json = False
+    if "--json" in options:
+        options.remove("--json")
+        as_json = True
     if len(options) % 2:
         return _fail(["error: search requiere pares --offset N y --limit N", USAGE])
     for index in range(0, len(options), 2):
@@ -402,8 +415,13 @@ def _run_search(argv):
             "error: la busqueda fallo (raiz invalida o query sin terminos)",
         ])
         return 1
-    for path in matches[offset:offset + limit if limit is not None else None]:
-        print(path)
+    page = matches[offset:offset + limit if limit is not None else None]
+    if as_json:
+        next_offset = offset + len(page) if limit is not None and offset + len(page) < len(matches) else None
+        print(json.dumps({"limit": limit, "next_offset": next_offset, "offset": offset, "results": page, "total": len(matches)}, sort_keys=True))
+    else:
+        for path in page:
+            print(path)
     return 0
 
 

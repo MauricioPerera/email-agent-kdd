@@ -139,3 +139,5 @@
 * [Contrato del Objetivo 61](contracts/sprint61-query-pagination.md) - Offset y límite deterministas.
 * [Informe de paginación de search](../../SPRINT62-SEARCH-PAGINATION-REPORT.md) - Búsquedas grandes por lotes.
 * [Contrato del Objetivo 62](contracts/sprint62-search-pagination.md) - Paginación compatible.
+* [Informe de recibos JSON](../../SPRINT63-PAGINATION-JSON-REPORT.md) - Continuación explícita de páginas.
+* [Contrato del Objetivo 63](contracts/sprint63-pagination-json.md) - Metadatos de recorrido.

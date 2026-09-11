@@ -165,6 +165,7 @@ def test_skill_documents_conservative_contact_resolution():
     assert "ask the user to choose" in text
     assert 'query ROOT "INSTRUCTION" --offset N --limit N' in text
     assert 'search ROOT "QUERY" --offset N --limit N' in text
+    assert "Add `--json` to either paginated command" in text
 
 
 def test_skill_documents_startup_confirmation_boundary():

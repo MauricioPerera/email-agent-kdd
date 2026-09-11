@@ -59,6 +59,7 @@ Synchronization is read-only, paginated, and resumes from the stored UID cursor.
 - Combine `para:`, `contact:`, `conversation:`, `topic:`, `account:` and free terms as supported by the CLI.
 - Paginate large result sets with `query ROOT "INSTRUCTION" --offset N --limit N`; `--offset` starts at 0 and `--limit` accepts 1–100. Continue with the next offset instead of loading all paths at once.
 - The same pagination options work with `search ROOT "QUERY" --offset N --limit N`.
+- Add `--json` to either paginated command to receive `total`, `offset`, `limit`, `results`, and `next_offset`; continue with `next_offset` until it is `null`.
 - For a natural-language request about a person, use `contact:EMAIL` when the email is unambiguous; if several contacts share a name, show the candidates and ask which address to use instead of guessing.
 - Use `read ROOT REL_PATH` only after selecting a local node.
 
