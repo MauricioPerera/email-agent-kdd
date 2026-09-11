@@ -155,6 +155,12 @@ def test_skill_documents_onboarding_options():
         assert phrase in text, f"SKILL.md no documenta onboarding: {phrase}"
 
 
+def test_skill_documents_startup_confirmation_boundary():
+    text = SKILL.read_text(encoding="utf-8")
+    assert "startup install ROOT ACCOUNT_ID --every 300 --limit 50" in text
+    assert "only after the user confirms immediately before enabling it" in text
+
+
 def test_installers_verify_command_after_install():
     for name in ("install.ps1", "install.sh"):
         text = (REPO / "installers" / name).read_text(encoding="utf-8")

@@ -97,3 +97,5 @@
 * [Contrato del Objetivo 40](contracts/sprint40-plugin-sync-pagination.md) - Paginación documentada para agentes.
 * [Informe del límite de watch](../../SPRINT41-PLUGIN-WATCH-BOUNDARY-REPORT.md) - Monitoreo activo sin promesas persistentes.
 * [Contrato del Objetivo 41](contracts/sprint41-plugin-watch-boundary.md) - Vida del proceso y startup separado.
+* [Informe de autorización startup](../../SPRINT42-PLUGIN-STARTUP-CONFIRMATION-REPORT.md) - Persistencia con confirmación inmediata.
+* [Contrato del Objetivo 42](contracts/sprint42-plugin-startup-confirmation.md) - Frontera de autorización para agentes.

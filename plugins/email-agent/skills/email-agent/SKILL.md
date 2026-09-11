@@ -64,7 +64,7 @@ Create drafts first with `draft`. Sending is an external side effect and require
 The core commands are platform-neutral. A watcher runs only while its process is alive; shutdown stops it. If startup persistence is requested, explain which OS integration will be used (Windows Task Scheduler, macOS launchd, or Linux systemd user service) and obtain confirmation immediately before enabling it.
 
 - Check status: `startup status ROOT ACCOUNT_ID`.
-- Install automatic startup: `startup install ROOT ACCOUNT_ID --every 300 --limit 50` (optionally add `--unread`).
+- Install automatic startup: `startup install ROOT ACCOUNT_ID --every 300 --limit 50` (optionally add `--unread`) only after the user confirms immediately before enabling it; explain the OS integration first.
 - Remove automatic startup: `startup remove ROOT ACCOUNT_ID`.
 - The three formats are serialized defensively: Windows quotes the Task Scheduler `/TR` value with `list2cmdline` rules, macOS XML-escapes every plist value, and Linux quotes each systemd `ExecStart` argument. Paths with spaces, quotes or Unicode travel as data; control characters (newlines, tabs, NUL) are rejected before anything is written.
 
