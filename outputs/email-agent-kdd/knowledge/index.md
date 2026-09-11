@@ -41,3 +41,5 @@
 * [Contrato: guardar servidores de correo](contracts/store-mail-servers.md) - Persiste en `root/.email-agent/mail-servers.json` la configuracion publica IMAP/SMTP por cuenta (solo hosts y puertos, jamas secretos) con JSON determinista y escritura atomica; carga ausente `None`, corrupta `RuntimeError`.
 * [Contrato: destinatario real de entrega](contracts/delivery-recipient.md) - Extrae verbatim de `Delivered-To`/`X-Original-To`/`Envelope-To` las direcciones de entrega (sin colapsar puntos, `+tag` ni minusculas), alimenta `delivered_to` del registro y el filtro `para:EMAIL` de `query`.
 * [Contrato: CLI sync con pagina limitada](contracts/cli-sync-limit.md) - Anade la opcion `--limit N` (1..100) al subcomando `sync` para procesar una pagina IMAP limitada por ejecucion, continuando buzones grandes en ejecuciones posteriores via el cursor UID sin duplicados y sin alterar el uso actual.
+* [Matriz de plataformas](../../PLATFORM-MATRIX.md) - Instalación y capacidades por sistema operativo.
+* [Contrato del Objetivo 14](contracts/sprint14-platform-matrix.md) - Guía multiplataforma para usuarios finales.
