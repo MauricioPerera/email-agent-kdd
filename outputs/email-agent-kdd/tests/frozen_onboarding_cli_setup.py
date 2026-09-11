@@ -103,6 +103,16 @@ def test_setup_accepts_explicit_portuguese_language(monkeypatch, tmp_path, capsy
     assert "configuracao cancelada" in err
 
 
+def test_setup_rejects_invalid_language_before_reading_input(monkeypatch, tmp_path, capsys):
+    called = []
+    monkeypatch.setattr(cli, "input", lambda: called.append("input") or "unexpected")
+    assert cli.cli_main(["account", "setup", str(tmp_path), "--lang", "xx"]) == 2
+    _, err = _caps(capsys)
+    assert called == []
+    assert not (tmp_path / ".email-agent" / "accounts.json").exists()
+    assert "--lang es|en|pt" in err
+
+
 def test_setup_cancel_persists_nothing(run_setup, capsys):
     code, _, store_exists = run_setup(
         ["personal", "cancelar", "yo@example.com", "GMAIL_APP_PASSWORD"]

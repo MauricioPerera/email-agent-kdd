@@ -87,3 +87,5 @@
 * [Contrato del Objetivo 35](contracts/sprint35-plugin-onboarding-options.md) - Opciones verificadas para agentes.
 * [Informe de recuperación de preferencias](../../SPRINT36-ONBOARDING-PREFERENCE-RECOVERY-REPORT.md) - Fallback seguro ante corrupción.
 * [Contrato del Objetivo 36](contracts/sprint36-onboarding-preference-recovery.md) - Preferencias ilegibles sin filtrado.
+* [Informe de seguridad de idioma en setup](../../SPRINT37-SETUP-LANGUAGE-SAFETY-REPORT.md) - Validación antes de leer entradas.
+* [Contrato del Objetivo 37](contracts/sprint37-setup-language-safety.md) - Rechazo sin efectos secundarios.
