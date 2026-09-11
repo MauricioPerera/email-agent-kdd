@@ -3,6 +3,10 @@ store/
 work/
 .email-agent/
 drafts/
+build/
+dist/
+*.egg-info/
+contacts.json
 
 # Caches
 .pytest_cache/

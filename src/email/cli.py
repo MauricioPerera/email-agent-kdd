@@ -3,22 +3,25 @@
 Interpreta `argv` (sin el nombre del programa): `--help`/`-h`, el subcomando
 `query ROOT INSTRUCTION`, el subcomando `search ROOT QUERY`, el subcomando
 `account` (`setup ROOT` guiado, `add ROOT ACCOUNT_ID PROVIDER EMAIL
-CREDENTIAL_REF` y `list ROOT`) o el subcomando `sync ROOT ACCOUNT_ID [HOST]`. Los datos van a stdout; usage
+CREDENTIAL_REF` y `list ROOT`) o el subcomando `sync ROOT ACCOUNT_ID [HOST] [--limit N]`. Los datos van a stdout; usage
 y errores a stderr, siempre genericos
 (sin `credential_ref` ni secretos ni tracebacks). Codigos: 0 exito/ayuda,
 1 fallo de operacion, 2 error de argumentos. La lectura de cuentas, la
-resolucion de credenciales, el fetch IMAP, la orquestacion, la persistencia
-OKF y la extraccion/almacen de contactos no se reimplementan: se delega en
-account, account_store, search, credentials, imap_reader, sync, persist_at,
-contacts, contact_store, outgoing_contacts y cursor_store.
+resolucion de credenciales, la carga de servidores guardados, el fetch IMAP,
+la orquestacion, la persistencia OKF y la extraccion/almacen de contactos no
+se reimplementan: se delega en account, account_store, search, credentials,
+mail_server_store, imap_reader, sync, persist_at, contacts, contact_store,
+outgoing_contacts y cursor_store.
 """
 
 import json
 import os
+import subprocess
 import sys
+import time
 
 from src.email.account import create_email_account
-from src.email.account_store import load_email_accounts, save_email_account
+from src.email.account_store import load_email_accounts, remove_email_account, save_email_account
 from src.email.confirm import confirm_email_draft
 from src.email.contacts import extract_contacts
 from src.email.contact_store import load_email_contacts, store_email_contacts
@@ -27,6 +30,7 @@ from src.email.draft import create_email_draft
 from src.email.smtp_send import send_smtp_message
 from src.email.conversation_index import persist_conversation_index
 from src.email.credentials import resolve_credential
+from src.email.mail_server_store import load_mail_server_config, remove_mail_server_config
 from src.email.imap_reader import fetch_imap_messages
 from src.email.node import read_email_node
 from src.email.outgoing_contacts import extract_outgoing_contacts
@@ -35,6 +39,10 @@ from src.email.topic_index import persist_topic_index
 from src.email.query import query_email
 from src.email.search import search_email_nodes
 from src.email.sync import sync_email_account
+from src.email.notifications import notify_new_records
+from src.email.notifications import delete_notification_rule, list_notification_rules, save_notification_rule
+from src.email.autostart import install_startup, remove_startup, startup_status
+from src.email.wincred import delete_windows_credential
 
 USAGE = (
     "usage: email-cli [--help] | email-cli query ROOT INSTRUCTION | "
@@ -42,12 +50,26 @@ USAGE = (
     "email-cli read ROOT REL_PATH | "
     "email-cli account add ROOT ACCOUNT_ID PROVIDER EMAIL CREDENTIAL_REF | "
     "email-cli account setup ROOT | "
+    "email-cli account setup-gui ROOT | "
+    "email-cli account remove ROOT ACCOUNT_ID CONFIRMAR DESVINCULAR | "
     "email-cli account list ROOT | email-cli contact list ROOT | "
-    "email-cli sync ROOT ACCOUNT_ID [HOST] | "
+    "email-cli sync ROOT ACCOUNT_ID [HOST] [--limit N] [--unread] | "
+    "email-cli watch ROOT ACCOUNT_ID [--every N] [--limit N] [--unread] | "
+    "email-cli notification add|list|delete ROOT ... | "
+    "email-cli startup install|status|remove ROOT ACCOUNT_ID ... | "
     "email-cli draft ROOT ACCOUNT_ID TO SUBJECT BODY | "
     "email-cli send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO"
 )
-SYNC_USAGE = "  sync ROOT ACCOUNT_ID [HOST]  sincroniza una cuenta guardada"
+SYNC_USAGE = (
+    "  sync ROOT ACCOUNT_ID [HOST] [--limit N] [--unread]  "
+    "sincroniza una cuenta guardada (paginacion, default 50)"
+)
+WATCH_USAGE = (
+    "  watch ROOT ACCOUNT_ID [--every N] [--limit N] [--unread]  "
+    "sincroniza cada N segundos (default 300, minimo 30)"
+)
+LIMIT_MIN = 1
+LIMIT_MAX = 100
 _PROVIDER_HOSTS = {"gmail": "imap.gmail.com", "outlook": "outlook.office365.com"}
 _PUBLIC_KEYS = ("account_id", "provider", "email", "status")
 _SMTP_PROVIDER_HOSTS = {"gmail": "smtp.gmail.com", "outlook": "smtp.office365.com"}
@@ -170,19 +192,35 @@ def _account_setup(argv):
     return 0
 
 
-def _run_account(argv):
-    if len(argv) < 2 or argv[1] not in ("add", "setup", "list"):
+def _account_setup_gui(argv):
+    if len(argv) != 3:
         return _fail([
-            "error: account requiere 'add', 'setup' o 'list'",
+            "error: account setup-gui requiere exactamente ROOT",
+            USAGE,
+        ])
+    from src.email.gui_setup import run_account_setup_gui
+    return run_account_setup_gui(argv[2])
+
+
+def _run_account(argv):
+    if len(argv) < 2 or argv[1] not in ("add", "setup", "setup-gui", "list", "remove"):
+        return _fail([
+            "error: account requiere 'add', 'setup', 'setup-gui', 'list' o 'remove'",
             USAGE,
             "  account setup ROOT  alta guiada interactiva",
+            "  account setup-gui ROOT  formulario local seguro",
             "  account add ROOT ACCOUNT_ID PROVIDER EMAIL CREDENTIAL_REF",
             "  account list ROOT",
+            "  account remove ROOT ACCOUNT_ID CONFIRMAR DESVINCULAR",
         ])
     if argv[1] == "add":
         return _account_add(argv)
     if argv[1] == "setup":
         return _account_setup(argv)
+    if argv[1] == "setup-gui":
+        return _account_setup_gui(argv)
+    if argv[1] == "remove":
+        return _account_remove(argv)
     return _account_list(argv)
 
 
@@ -319,17 +357,25 @@ def _run_send(argv):
         _print_stderr(["error: cuenta no encontrada"])
         return 1
     try:
+        servers = load_mail_server_config(root, account_id)
+    except Exception:
+        _print_stderr(["error: la configuracion de servidores es ilegible"])
+        return 1
+    try:
         secret = resolve_credential(account["credential_ref"])
     except Exception:
         _print_stderr(["error: credencial irresoluble"])
         return 1
-    host = account.get("smtp_host") or _SMTP_PROVIDER_HOSTS.get(account.get("provider"))
+    if servers is not None:
+        host = servers["smtp_host"]
+    else:
+        host = account.get("smtp_host") or _SMTP_PROVIDER_HOSTS.get(account.get("provider"))
     if not host:
         _print_stderr(["error: provider sin host smtp por defecto"])
         return 1
     config = {
         "host": host,
-        "port": _DEFAULT_SMTP_PORT,
+        "port": servers["smtp_port"] if servers is not None else _DEFAULT_SMTP_PORT,
         "username": account["email"],
         "password": secret,
     }
@@ -399,14 +445,55 @@ def _run_contact(argv):
     return 0
 
 
+def _sync_limit(raw):
+    """Devuelve el limite como int 1..100, o None si no es valido."""
+    try:
+        limit = int(raw)
+    except ValueError:
+        return None
+    if not LIMIT_MIN <= limit <= LIMIT_MAX:
+        return None
+    return limit
+
+
+def _pop_sync_limit(argv):
+    """Extrae los pares `--limit N` de argv; devuelve (resto, limit o None).
+
+    Con `--limit` sin valor o con un valor fuera de 1..100 devuelve
+    (None, None) para que el llamador responda con error de argumentos.
+    """
+    rest = list(argv)
+    limit = None
+    while "--limit" in rest:
+        index = rest.index("--limit")
+        if index + 1 >= len(rest):
+            return None, None
+        value = _sync_limit(rest[index + 1])
+        if value is None:
+            return None, None
+        limit = value
+        del rest[index:index + 2]
+    return rest, limit
+
+
 def _run_sync(argv):
-    if len(argv) not in (3, 4):
+    rest, limit = _pop_sync_limit(argv)
+    if rest is None:
         return _fail([
-            "error: sync requiere ROOT y ACCOUNT_ID y HOST opcional",
+            "error: sync requiere un valor entero para --limit entre 1 y 100",
             USAGE,
             SYNC_USAGE,
         ])
-    root, account_id = argv[1], argv[2]
+    unread = "--unread" in rest
+    rest = [item for item in rest if item != "--unread"]
+    if len(rest) not in (3, 4):
+        return _fail([
+            "error: sync requiere ROOT y ACCOUNT_ID y HOST opcional "
+            "(--limit N opcional)",
+            USAGE,
+            SYNC_USAGE,
+        ])
+    root, account_id = rest[1], rest[2]
     try:
         accounts = load_email_accounts(root)
     except Exception:
@@ -420,12 +507,19 @@ def _run_sync(argv):
         _print_stderr(["error: cuenta no encontrada"])
         return 1
     try:
+        servers = load_mail_server_config(root, account_id)
+    except Exception:
+        _print_stderr(["error: la configuracion de servidores es ilegible"])
+        return 1
+    try:
         secret = resolve_credential(account["credential_ref"])
     except Exception:
         _print_stderr(["error: credencial irresoluble"])
         return 1
-    if len(argv) == 4:
-        host = argv[3]
+    if len(rest) == 4:
+        host = rest[3]
+    elif servers is not None:
+        host = servers["imap_host"]
     else:
         host = _PROVIDER_HOSTS.get(account.get("provider"))
     if not host:
@@ -442,6 +536,12 @@ def _run_sync(argv):
         "password": secret,
         "since_uid": cursor,
     }
+    if limit is not None:
+        config["limit"] = limit
+    if unread:
+        config["unread"] = True
+    if servers is not None:
+        config["port"] = servers["imap_port"]
     fetched = []
 
     def fetch(_account):
@@ -469,8 +569,138 @@ def _run_sync(argv):
         except (ValueError, RuntimeError):
             _print_stderr(["error: el cursor de sincronizacion no se pudo guardar"])
             return 1
+        try:
+            notify_new_records(root, fetched)
+        except Exception:
+            _print_stderr(["error: no se pudieron emitir notificaciones"])
+            return 1
     print(json.dumps(summary, sort_keys=True))
     return 0
+
+
+def _account_remove(argv):
+    """Desvincular una cuenta tras una confirmacion literal del usuario."""
+    if len(argv) != 5:
+        return _fail(["error: account remove requiere ROOT, ACCOUNT_ID y confirmacion", USAGE])
+    if argv[4] != "DESVINCULAR":
+        _print_stderr(["error: confirmacion explicita requerida para desvincular"])
+        return 1
+    try:
+        records = load_email_accounts(argv[2])
+        record = next((item for item in records if item["account_id"] == argv[3]), None)
+        if record is None:
+            _print_stderr(["error: cuenta no encontrada"])
+            return 1
+        if record["credential_ref"].startswith("wincred://"):
+            delete_windows_credential(record["credential_ref"])
+        removed = remove_email_account(argv[2], argv[3])
+        remove_mail_server_config(argv[2], argv[3])
+    except (ValueError, RuntimeError, LookupError, OSError):
+        _print_stderr(["error: no se pudo desvincular la cuenta"])
+        return 1
+    print(json.dumps({"account_id": removed["account_id"], "status": "unlinked"}, sort_keys=True))
+    return 0
+
+
+def _pop_watch_option(argv, name, default=None, minimum=None):
+    rest = list(argv)
+    value = default
+    while name in rest:
+        index = rest.index(name)
+        if index + 1 >= len(rest):
+            return None, None
+        try:
+            candidate = int(rest[index + 1])
+        except ValueError:
+            return None, None
+        if minimum is not None and candidate < minimum:
+            return None, None
+        value = candidate
+        del rest[index:index + 2]
+    return rest, value
+
+
+def _run_watch(argv):
+    rest, every = _pop_watch_option(argv, "--every", 300, 30)
+    if rest is None:
+        return _fail(["error: watch requiere --every entero >= 30", USAGE, WATCH_USAGE])
+    rest, limit = _pop_watch_option(rest, "--limit", None, 1)
+    if rest is None or (limit is not None and limit > LIMIT_MAX):
+        return _fail(["error: watch requiere --limit entre 1 y 100", USAGE, WATCH_USAGE])
+    unread = "--unread" in rest
+    rest = [item for item in rest if item != "--unread"]
+    if len(rest) != 3:
+        return _fail(["error: watch requiere ROOT y ACCOUNT_ID", USAGE, WATCH_USAGE])
+    sync_args = ["sync", rest[1], rest[2]]
+    if limit is not None:
+        sync_args.extend(["--limit", str(limit)])
+    if unread:
+        sync_args.append("--unread")
+    try:
+        while True:
+            result = _run_sync(sync_args)
+            if result != 0:
+                return result
+            time.sleep(every)
+    except KeyboardInterrupt:
+        print("watch stopped")
+        return 0
+
+
+def _run_notification(argv):
+    if len(argv) < 2 or argv[1] not in ("add", "list", "delete"):
+        return _fail(["error: notification requiere add, list o delete", USAGE])
+    action = argv[1]
+    try:
+        if action == "list":
+            if len(argv) != 3:
+                return _fail(["error: notification list requiere ROOT", USAGE])
+            for rule in list_notification_rules(argv[2]):
+                print(json.dumps(rule, sort_keys=True))
+            return 0
+        if action == "delete":
+            if len(argv) != 4:
+                return _fail(["error: notification delete requiere ROOT y NAME", USAGE])
+            print(json.dumps({"deleted": delete_notification_rule(argv[2], argv[3])}))
+            return 0
+        if len(argv) != 5:
+            return _fail(["error: notification add requiere ROOT NAME QUERY", USAGE])
+        save_notification_rule(argv[2], argv[3], argv[4])
+        print(json.dumps({"saved": argv[3]}, sort_keys=True))
+        return 0
+    except (ValueError, RuntimeError, OSError):
+        _print_stderr(["error: no se pudo modificar la regla de notificacion"])
+        return 1
+
+
+def _run_startup(argv):
+    if len(argv) < 4 or argv[1] not in ("install", "status", "remove"):
+        return _fail(["error: startup requiere install, status o remove y ROOT ACCOUNT_ID", USAGE])
+    action, root, account_id = argv[1], argv[2], argv[3]
+    try:
+        if action == "status":
+            print(json.dumps({"enabled": startup_status(account_id)}, sort_keys=True))
+            return 0
+        if action == "remove":
+            print(json.dumps({"removed": remove_startup(account_id)}, sort_keys=True))
+            return 0
+        interval, limit = 300, 50
+        unread = "--unread" in argv[4:]
+        options = [value for value in argv[4:] if value != "--unread"]
+        if options:
+            if len(options) not in (2, 4) or options[0] != "--every":
+                return _fail(["error: startup install acepta --every N, --limit N y --unread", USAGE])
+            interval = int(options[1])
+            if len(options) == 4 and options[2] == "--limit":
+                limit = int(options[3])
+            elif len(options) == 4:
+                return _fail(["error: startup install acepta --every N, --limit N y --unread", USAGE])
+        path = install_startup(root, account_id, interval, limit, unread)
+        print(json.dumps({"installed": path}, sort_keys=True))
+        return 0
+    except (ValueError, OSError, subprocess.SubprocessError):
+        _print_stderr(["error: no se pudo modificar el inicio automatico"])
+        return 1
 
 
 def cli_main(argv: list) -> int:
@@ -479,11 +709,17 @@ def cli_main(argv: list) -> int:
         print("  query ROOT INSTRUCTION  consulta el store local con query_email")
         print("  account setup ROOT  alta guiada interactiva")
         print("  account add ROOT ACCOUNT_ID PROVIDER EMAIL CREDENTIAL_REF")
+        print("  account setup-gui ROOT  formulario local seguro")
         print("  account list ROOT")
         print("  contact list ROOT  lista la libreta de contactos")
         print("  search ROOT QUERY  busca nodos .md que contengan QUERY")
         print("  read ROOT REL_PATH  imprime el texto integro de un nodo .md")
         print(SYNC_USAGE)
+        print(WATCH_USAGE)
+        print("  notification add ROOT NAME QUERY  crea una regla local")
+        print("  notification list ROOT  lista reglas")
+        print("  notification delete ROOT NAME  elimina una regla")
+        print("  startup install|status|remove ROOT ACCOUNT_ID  inicio automatico")
         print("  draft ROOT ACCOUNT_ID TO SUBJECT BODY")
         print("  send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO")
         return 0
@@ -507,6 +743,12 @@ def cli_main(argv: list) -> int:
         return _run_read(argv)
     if argv[0] == "sync":
         return _run_sync(argv)
+    if argv[0] == "watch":
+        return _run_watch(argv)
+    if argv[0] == "notification":
+        return _run_notification(argv)
+    if argv[0] == "startup":
+        return _run_startup(argv)
     if argv[0] == "draft":
         return _run_draft(argv)
     if argv[0] == "send":
@@ -519,3 +761,8 @@ def cli_main(argv: list) -> int:
         "  search ROOT QUERY  busca nodos .md que contengan QUERY",
         "  read ROOT REL_PATH  imprime el texto integro de un nodo .md",
     ])
+
+
+def main() -> int:
+    """Entry point for the installed ``email-agent`` command."""
+    return cli_main(sys.argv[1:])

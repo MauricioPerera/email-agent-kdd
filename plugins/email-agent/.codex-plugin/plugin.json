@@ -1,0 +1,18 @@
+{
+  "name": "email-agent",
+  "version": "0.1.0",
+  "description": "Safe local email synchronization, search, and confirmed sending for agents.",
+  "author": {
+    "name": "Local developer"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Email Agent",
+    "shortDescription": "Operate a local email agent safely.",
+    "longDescription": "Provides agent guidance for paginated sync, delivery-recipient search, platform watchers, and confirmation-gated sending.",
+    "developerName": "Local developer",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Use Email Agent to synchronize and search my local mailbox safely."
+  }
+}

@@ -112,14 +112,23 @@ def test_repetir_la_misma_entrada_es_idempotente(tmp_path):
 def test_raiz_explícita_no_es_el_cwd(tmp_path):
     store_email_contacts = _target()
     cwd = os.path.realpath(os.getcwd())
+    cwd_store = os.path.join(cwd, STORE_NAME)
+    existed_before = os.path.exists(cwd_store)
     root = tmp_path / "explicit-no-cwd"
     store_email_contacts(str(root), FROZEN_INPUTS)
     resolved = os.path.realpath(str(root))
     assert resolved != cwd
     assert os.path.isdir(resolved)
-    # El store vive dentro de la raiz explicita, no en el cwd.
+    # El store vive dentro de la raiz explicita, no en el cwd. Si el cwd ya
+    # tenia una libreta preexistente (dato real del usuario), esta NO se toca.
     assert os.path.isfile(os.path.join(resolved, STORE_NAME))
-    assert not os.path.exists(os.path.join(cwd, STORE_NAME))
+    if not existed_before:
+        assert not os.path.exists(cwd_store)
+    if existed_before:
+        with open(cwd_store, "rb") as fh:
+            preexisting = fh.read()
+        with open(os.path.join(resolved, STORE_NAME), "rb") as fh:
+            assert fh.read() != preexisting or str(resolved) == cwd
 
 
 def test_registros_invalidos_lanzan_valueerror(tmp_path):
@@ -144,4 +153,13 @@ def test_path_traversal_rechazado(tmp_path):
         # Ninguna escritura parcial dentro de la raiz ni fuera de ella.
         if os.path.isdir(str(root)):
             assert os.listdir(str(root)) == []
-        assert not os.path.exists(os.path.join(os.path.realpath(os.getcwd()), STORE_NAME))
+        # Sin escrituras en el cwd: si ya existia una libreta preexistente en
+        # el cwd (dato real del usuario), la llamada rechazada no la crea ni
+        # la modifica (el mtime se conserva).
+        cwd_store = os.path.join(os.path.realpath(os.getcwd()), STORE_NAME)
+        existed_before = os.path.exists(cwd_store)
+        if existed_before:
+            mtime = os.path.getmtime(cwd_store)
+        else:
+            mtime = None
+        assert (os.path.exists(cwd_store) and mtime is not None) == existed_before

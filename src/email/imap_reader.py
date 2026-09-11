@@ -48,6 +48,8 @@ def _validate(account, config):
         not isinstance(since_uid, int) or isinstance(since_uid, bool) or since_uid < 0
     ):
         raise ValueError("since_uid debe ser int no bool >= 0")
+    if "unread" in config and not isinstance(config["unread"], bool):
+        raise ValueError("unread debe ser bool")
     return mailbox, limit, since_uid
 
 
@@ -85,14 +87,15 @@ def fetch_imap_messages(account: dict, config: dict, connection_factory=None) ->
     try:
         connection.login(config["username"], config["password"])
         connection.select(mailbox, readonly=True)
-        typ, data = connection.search(None, "ALL")
+        criterion = "UNSEEN" if config.get("unread", False) else "ALL"
+        typ, data = connection.search(None, criterion)
         ids = _search_ids((typ, data))
         if since_uid is not None:
             ids = [message_id for message_id in ids if message_id > since_uid]
         ids = sorted(ids)[:limit]
         records = []
         for message_id in ids:
-            typ, data = connection.fetch(message_id, "(RFC822)")
+            typ, data = connection.fetch(str(message_id), "(RFC822)")
             record = parse_raw_email(_raw_message((typ, data)), account_id)
             record["imap_uid"] = message_id
             records.append(record)

@@ -45,11 +45,14 @@ Hola desde el MVP.
 
 Los adjuntos no se embeben en el nodo: se referencian por `sha256` en una lista `attachments` del frontmatter.
 
+Cuando el registro trae `delivered_to` (lista de direcciones de envelope de entrega de `parse_raw_email`: `Delivered-To`, `X-Original-To`, `Envelope-To`), se agrega la linea `delivered_to: <addr1, addr2>` inmediatamente despues de `to` (cada direccion verbatim, unidas por `", "`; sin canonicalizar variantes de puntos, `+tag` ni minusculas). Si el registro NO trae la clave (o es lista vacia), la linea NO se emite: los nodos ya persistidos se siguen renderizando byte a byte igual (compatibilidad hacia atras). Es la representacion de indice que el filtro `para:EMAIL` de `query_email` casca por substring.
+
 ## Invariants
 
 - El nodo escrito siempre lleva `type: Email Message`.
 - `account_id` y `raw_sha256` del registro quedan en el frontmatter sin alterar; el nodo no recalcula el hash.
 - El cuerpo del nodo es exactamente el `body` del registro; los bytes originales (`raw`) nunca se escriben en el nodo.
+- La linea `delivered_to` del frontmatter se emite SOLO si el registro trae la clave con lista no vacia; las direcciones van verbatim (sin minusculas, sin colapsar puntos ni `+tag`), en el orden del registro.
 - El destino siempre queda dentro de `root` resuelto: ninguna combinación de `root` y `rel_path` válidos puede resolver fuera de la raíz.
 - `root` vacío, no `str`, o `rel_path` absoluto, con `..`, con `~` o que resuelva fuera de `root` se rechaza con `ValueError` antes de abrir ningún archivo y no deja escrituras parciales.
 - La escritura es atómica UTF-8 (temporal + reemplazo) y con saltos de línea LF puros, sin `CR`.

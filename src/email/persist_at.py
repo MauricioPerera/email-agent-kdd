@@ -21,11 +21,18 @@ def _validate_root(root: str) -> Path:
 
 def _resolve_rel_path(root: Path, rel_path: str) -> Path:
     text = str(rel_path)
-    if not text or Path(text).is_absolute() or text.startswith("~"):
+    portable_text = text.replace("\\", "/")
+    windows_absolute = len(portable_text) >= 3 and portable_text[1:3] == ":/"
+    if (
+        not text
+        or Path(portable_text).is_absolute()
+        or windows_absolute
+        or portable_text.startswith("~")
+    ):
         raise ValueError("rel_path insegura: absoluta o fuera de la raiz: " + text)
-    if ".." in text.replace("\\", "/").split("/"):
+    if ".." in portable_text.split("/"):
         raise ValueError("rel_path insegura: segmento '..' no permitido: " + text)
-    target = (root / Path(text)).resolve()
+    target = (root / Path(portable_text)).resolve()
     if target != root and root not in target.parents:
         raise ValueError("rel_path insegura: resuelve fuera de la raiz: " + text)
     return target
@@ -50,6 +57,9 @@ def _render(record):
     for label, key in _FRONT_FIELDS:
         value = "Email Message" if label == "type" else record.get(key)
         lines.append(label + ": " + _scalar(value))
+        if label == "to" and record.get("delivered_to"):
+            delivered = record.get("delivered_to")
+            lines.append("delivered_to: " + ", ".join(str(addr) for addr in delivered))
     if record.get("attachments"):
         lines.append("attachments:")
         for attachment in record["attachments"]:

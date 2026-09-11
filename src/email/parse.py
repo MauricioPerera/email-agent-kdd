@@ -5,6 +5,8 @@ import hashlib
 from email import policy
 from email.parser import BytesParser
 
+from src.email.delivery import extract_delivered_to
+
 
 def _header(message, name):
     value = message.get(name)
@@ -61,7 +63,7 @@ def parse_raw_email(raw_message: bytes, account_id: str) -> dict:
     if not isinstance(account_id, str) or not account_id:
         raise ValueError("account_id debe ser str no vacio")
     message = BytesParser(policy=policy.default).parsebytes(raw_message)
-    return {
+    record = {
         "type": "email",
         "account_id": account_id,
         "subject": _header(message, "Subject"),
@@ -76,3 +78,7 @@ def parse_raw_email(raw_message: bytes, account_id: str) -> dict:
         "raw_sha256": hashlib.sha256(raw_message).hexdigest(),
         "attachments": _attachments(message),
     }
+    delivered = extract_delivered_to(message)
+    if delivered:
+        record["delivered_to"] = delivered
+    return record

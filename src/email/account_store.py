@@ -83,3 +83,21 @@ def load_email_accounts(root: str) -> list:
     records = _read_records(path, RuntimeError)
     records.sort(key=lambda r: r["account_id"])
     return records
+
+
+def remove_email_account(root: str, account_id: str) -> dict:
+    """Quitar una cuenta del registro sin borrar los correos descargados."""
+    if not isinstance(account_id, str) or not account_id.strip():
+        raise ValueError("account_id debe ser un str no vacio")
+    path = _store_path(root)
+    records = _read_records(path, RuntimeError) if path.exists() else []
+    found = next((item for item in records if item["account_id"] == account_id), None)
+    if found is None:
+        raise LookupError("cuenta no encontrada")
+    remaining = [item for item in records if item["account_id"] != account_id]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps({"accounts": remaining}, sort_keys=True, ensure_ascii=False)
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_bytes((payload + "\n").encode("utf-8"))
+    os.replace(temporary, path)
+    return {"account_id": found["account_id"], "email": found["email"], "credential_ref": found["credential_ref"]}

@@ -1,7 +1,7 @@
 """Envio de correos ya confirmados por SMTP, con recibo serializable. Valida toda la entrada
 (confirmacion estricta ``is True``) antes de conectar; ``quit()`` corre en ``finally``; los
 errores de transporte se relanzan como ``RuntimeError`` sin password ni cuerpo. Sin disco,
-sin logs; la unica red es la fabrica inyectada (por defecto ``smtplib.SMTP``)."""
+sin logs; la unica red es la fabrica inyectada (465: ``smtplib.SMTP_SSL``; resto: ``SMTP``)."""
 
 import smtplib
 from email.message import EmailMessage
@@ -55,14 +55,16 @@ def _deliver(factory, endpoint, credentials, msg):
 
 def send_smtp_message(account, config, message, connection_factory=None):
     _validate(account, config, message)
-    endpoint = (config["host"], _resolve_port(config))
+    port = _resolve_port(config)
+    endpoint = (config["host"], port)
     from_email = _resolve_from_email(account, config)
     msg = EmailMessage()
     msg["From"] = from_email
     msg["To"] = ", ".join(message["to"])
     msg["Subject"] = message["subject"]
     msg.set_content(message["body"])
-    factory = connection_factory if connection_factory is not None else smtplib.SMTP
+    default = smtplib.SMTP_SSL if port == 465 else smtplib.SMTP
+    factory = connection_factory if connection_factory is not None else default
     try:
         _deliver(factory, endpoint, (config["username"], config["password"]), msg)
     except Exception as exc:
