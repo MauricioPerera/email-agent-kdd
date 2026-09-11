@@ -9,6 +9,9 @@ requisitos de tu sistema y el camino recomendado si no tienes interfaz gráfica.
 Los instaladores detectan automáticamente si falta Python 3.10+ o `pip` y se
 detienen con una instrucción clara antes de modificar el entorno.
 
+Antes de configurar una cuenta puedes ejecutar `email-agent doctor` para revisar
+los requisitos locales sin conectarte al correo ni leer credenciales.
+
 Necesitas Python 3.10 o superior instalado en tu equipo. Los mismos pasos valen en los tres sistemas: instala, comprueba y crea tu cuenta.
 
 1. **Instala el programa** con el instalador de tu sistema (ambos avisan de lo que hacen y pueden tardar unos minutos):

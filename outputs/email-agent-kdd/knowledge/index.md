@@ -45,3 +45,5 @@
 * [Contrato del Objetivo 14](contracts/sprint14-platform-matrix.md) - Guía multiplataforma para usuarios finales.
 * [Informe de instaladores guiados](../../SPRINT15-INSTALLER-REPORT.md) - Detección de Python y pip antes de instalar.
 * [Contrato del Objetivo 15](contracts/sprint15-installers.md) - Requisitos y mensajes accionables del instalador.
+* [Informe de diagnóstico](../../SPRINT16-DIAGNOSTICS-REPORT.md) - Revisión local previa a configurar una cuenta.
+* [Contrato del Objetivo 16](contracts/sprint16-diagnostics.md) - Comando `doctor` seguro y accionable.

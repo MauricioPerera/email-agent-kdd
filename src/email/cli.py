@@ -88,6 +88,7 @@ from src.email.notifications import notify_new_records
 from src.email.notifications import delete_notification_rule, list_notification_rules, save_notification_rule
 from src.email.autostart import install_startup, remove_startup, startup_status
 from src.email.unlink import unlink_email_account
+from src.email.diagnostics import run_diagnostics
 
 USAGE = (
     "usage: email-agent [--help] | email-agent query ROOT INSTRUCTION | "
@@ -103,6 +104,7 @@ USAGE = (
     "email-agent watch ROOT ACCOUNT_ID [--every N] [--limit N] [--unread] | "
     "email-agent notification add|list|delete ROOT ... | "
     "email-agent startup install|status|remove ROOT ACCOUNT_ID ... | "
+    "email-agent doctor [ROOT] | "
     "email-agent message delete ROOT REL_PATH | "
     "email-agent message restore ROOT TRASH_REL_PATH | "
     "email-agent message trash ROOT | "
@@ -1400,6 +1402,7 @@ def cli_main(argv: list) -> int:
         print("  notification list ROOT  lista reglas")
         print("  notification delete ROOT NAME  elimina una regla")
         print("  startup install|status|remove ROOT ACCOUNT_ID  inicio automatico")
+        print("  doctor [ROOT]  revisa requisitos locales sin red ni credenciales")
         print("  draft ROOT ACCOUNT_ID TO SUBJECT BODY")
         print("  send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO")
         return 0
@@ -1408,7 +1411,7 @@ def cli_main(argv: list) -> int:
         return _fail([
             "error: subcomando invalido (se esperaba 'query', 'search', "
             "'read', 'account', 'contact', 'message', 'attachment', 'sync', "
-            "'draft' o 'send')",
+            "'draft', 'send' o 'doctor')",
             USAGE,
         ])
 
@@ -1438,6 +1441,12 @@ def cli_main(argv: list) -> int:
         return _run_draft(argv)
     if argv[0] == "send":
         return _run_send(argv)
+    if argv[0] == "doctor":
+        if len(argv) > 2:
+            return _fail(["error: doctor acepta opcionalmente ROOT", USAGE])
+        result = run_diagnostics(argv[1] if len(argv) == 2 else None)
+        print(json.dumps(result, sort_keys=True))
+        return 0 if result["status"] == "ready" else 1
 
     return _fail([
         "error: subcomando invalido (se esperaba 'query', 'search', "
