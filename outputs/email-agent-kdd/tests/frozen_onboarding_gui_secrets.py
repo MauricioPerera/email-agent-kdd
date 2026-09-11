@@ -167,7 +167,7 @@ def _form(monkeypatch, *, discovery=None, verify=None, provision=None,
     """Formulario REAL con widgets falsos y dependencias inyectadas."""
     window = _FakeWindow()
     recorder = _FakeDialog()
-    form = gui._SetupForm(window, FAKE_ROOT)
+    form = gui._SetupForm(window, FAKE_ROOT, "es")
     form.email = _FakeEntry(email)
     form.password = _FakeEntry(password)
     form.status = _FakeStatus()
