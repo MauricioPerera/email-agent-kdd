@@ -214,6 +214,17 @@ def test_corrupt_rule_store_is_rejected_before_notification(tmp_path):
     assert not (Path(tmp_path) / ".email-agent" / "notification-state.json").exists()
 
 
+def test_corrupt_notification_state_is_rejected_before_notification(tmp_path):
+    notifications.save_notification_rule(str(tmp_path), "todo", "marcador")
+    path = Path(tmp_path) / ".email-agent" / "notification-state.json"
+    path.write_text(json.dumps({"sent": "h1"}))
+    seen = _Sink()
+    with pytest.raises(RuntimeError, match="almacen de notificaciones invalido"):
+        notifications.notify_new_records(str(tmp_path), [_record("h2", "marcador")], seen)
+    assert seen.items == []
+    assert json.loads(path.read_text()) == {"sent": "h1"}
+
+
 def test_subject_fallback_when_empty(tmp_path):
     _save_rule(tmp_path, "todo", "marcador")
     seen = _Sink()

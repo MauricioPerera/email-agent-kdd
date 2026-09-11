@@ -123,3 +123,5 @@
 * [Contrato del Objetivo 53](contracts/sprint53-notification-rule-state.md) - Cambios de estado autorizados.
 * [Informe de integridad del almacén](../../SPRINT54-NOTIFICATION-RULE-STORE-REPORT.md) - Corrupción detenida de forma segura.
 * [Contrato del Objetivo 54](contracts/sprint54-notification-rule-store.md) - Sin avisos parciales ni reparación silenciosa.
+* [Informe de integridad del estado](../../SPRINT55-NOTIFICATION-STATE-INTEGRITY-REPORT.md) - Historial protegido ante corrupción.
+* [Contrato del Objetivo 55](contracts/sprint55-notification-state-integrity.md) - Detención sin reescritura.

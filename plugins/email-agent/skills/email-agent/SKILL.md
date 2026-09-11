@@ -36,6 +36,7 @@ The same onboarding flow works on Windows, macOS, and Linux: install, verify, cr
 - For a recipient alias, use `notification add ROOT ventas "para:ventas+cliente@example.com"`; preserve dots and `+tag` exactly as received.
 - Filters are validated before saving: they cannot be empty, contain control characters, or use an empty `para:` token; if validation fails, correct the filter instead of retrying it unchanged.
 - If the local rule store is corrupt or has an invalid rule, stop and report a generic storage error; do not rewrite it, emit partial notifications, or retry unchanged data.
+- Treat a corrupt notification state store the same way: stop before notifying or rewriting it so delivery history cannot be lost silently.
 - Rules are evaluated only after `sync`; do not promise an immediate notification before a synchronization cycle.
 - List rules: `notification list ROOT`.
 - Inspect one rule without changing it: `notification show ROOT NAME`; use this to present the exact stored query before requesting a replacement or deletion.

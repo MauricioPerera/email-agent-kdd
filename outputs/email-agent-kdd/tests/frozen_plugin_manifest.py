@@ -170,6 +170,8 @@ def test_skill_documents_delivery_filter_notifications():
     assert "empty `para:` token" in text
     assert "If the local rule store is corrupt" in text
     assert "do not rewrite it" in text
+    assert "corrupt notification state store" in text
+    assert "delivery history cannot be lost silently" in text
     assert "Rules are evaluated only after `sync`" in text
 
 

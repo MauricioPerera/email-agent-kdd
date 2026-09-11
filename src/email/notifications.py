@@ -58,6 +58,14 @@ def _valid_rule(rule):
     )
 
 
+def _valid_state(value):
+    return (
+        isinstance(value, dict)
+        and isinstance(value.get("sent", []), list)
+        and all(isinstance(item, str) and item for item in value["sent"])
+    )
+
+
 def list_notification_rules(root):
     value = _read(_path(root, _RULES), {"rules": []})
     rules = value.get("rules") if isinstance(value, dict) else None
@@ -159,7 +167,9 @@ def _desktop_notify(title, body):
 def notify_new_records(root, records, notifier=None):
     rules = [rule for rule in list_notification_rules(root) if rule.get("enabled", True)]
     state = _read(_path(root, _STATE), {"sent": []})
-    sent = set(state.get("sent", [])) if isinstance(state, dict) else set()
+    if not _valid_state(state):
+        raise RuntimeError("almacen de notificaciones invalido")
+    sent = set(state["sent"])
     notifier = notifier or _desktop_notify
     notified = 0
     failures = 0
