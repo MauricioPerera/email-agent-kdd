@@ -79,3 +79,5 @@
 * [Contrato del Objetivo 31](contracts/sprint31-onboarding-language-safety.md) - Validación previa del idioma.
 * [Informe del asistente de terminal](../../SPRINT32-TERMINAL-I18N-REPORT.md) - Configuración localizada bajo demanda.
 * [Contrato del Objetivo 32](contracts/sprint32-terminal-i18n.md) - Idioma explícito y compatibilidad.
+* [Informe de ayuda de setup](../../SPRINT33-SETUP-HELP-REPORT.md) - Opción de idioma visible.
+* [Contrato del Objetivo 33](contracts/sprint33-setup-help.md) - Descubribilidad sin cambiar compatibilidad.

@@ -18,7 +18,9 @@ def test_diagnostics_is_local_and_has_safe_checks():
 
 def test_doctor_help_is_documented_and_accepts_optional_root(capsys, tmp_path):
     assert cli_main(["--help"]) == 0
-    assert "doctor [ROOT] [--fix] [--lang es|en|pt] [--format json|text] [--report FILE]" in capsys.readouterr().out
+    help_text = capsys.readouterr().out
+    assert "doctor [ROOT] [--fix] [--lang es|en|pt] [--format json|text] [--report FILE]" in help_text
+    assert "account setup ROOT --lang es|en|pt" in help_text
     assert cli_main(["doctor", str(tmp_path)]) in {0, 1}
     payload = json.loads(capsys.readouterr().out)
     assert payload["checks"]

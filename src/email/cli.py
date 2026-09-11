@@ -96,7 +96,7 @@ USAGE = (
     "email-agent search ROOT QUERY | "
     "email-agent read ROOT REL_PATH | "
     "email-agent account add ROOT ACCOUNT_ID PROVIDER EMAIL CREDENTIAL_REF | "
-    "email-agent account setup ROOT | "
+    "email-agent account setup ROOT [--lang es|en|pt] | "
     "email-agent account setup-gui ROOT | "
     "email-agent account remove ROOT ACCOUNT_ID CONFIRMAR DESVINCULAR | "
     "email-agent account list ROOT | email-agent contact list ROOT | "
@@ -308,6 +308,7 @@ def _run_account(argv):
             "error: account requiere 'add', 'setup', 'setup-gui', 'list' o 'remove'",
             USAGE,
             "  account setup ROOT  alta guiada interactiva",
+            "  account setup ROOT --lang es|en|pt  asistente localizado",
             "  account setup-gui ROOT  formulario local seguro",
             "  account add ROOT ACCOUNT_ID PROVIDER EMAIL CREDENTIAL_REF",
             "  account list ROOT",
@@ -1460,6 +1461,7 @@ def cli_main(argv: list) -> int:
         print(USAGE)
         print("  query ROOT INSTRUCTION  consulta el store local con query_email")
         print("  account setup ROOT  alta guiada interactiva")
+        print("  account setup ROOT --lang es|en|pt  asistente localizado")
         print("  account add ROOT ACCOUNT_ID PROVIDER EMAIL CREDENTIAL_REF")
         print("  account setup-gui ROOT  formulario local seguro")
         print("  account list ROOT")
