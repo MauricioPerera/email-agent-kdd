@@ -122,6 +122,7 @@ USAGE = (
     "CONFIRMAR EXTRACCION | "
     "email-agent attachment gc ROOT [CONFIRMAR BORRADO ADJUNTOS] | "
     "email-agent draft ROOT ACCOUNT_ID TO SUBJECT BODY | "
+    "email-agent draft show ROOT DRAFT_ID | "
     "email-agent send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO"
 )
 SYNC_USAGE = (
@@ -448,6 +449,38 @@ def _run_read(argv):
 
 
 def _run_draft(argv):
+    if len(argv) >= 2 and argv[1] == "show":
+        if len(argv) != 4:
+            return _fail([
+                "error: draft show requiere ROOT y DRAFT_ID",
+                USAGE,
+            ])
+        root, draft_id = argv[2], argv[3]
+        # El identificador se genera como sha256. Ademas de documentar la
+        # forma esperada, esta validacion impide que una consulta de lectura
+        # pueda escapar de ROOT/drafts mediante una ruta construida.
+        if (
+            len(draft_id) != 64
+            or any(char not in "0123456789abcdef" for char in draft_id.lower())
+        ):
+            _print_stderr(["error: el identificador del borrador es invalido"])
+            return 1
+        try:
+            with open(
+                os.path.join(root, "drafts", draft_id + ".json"),
+                encoding="utf-8",
+            ) as handle:
+                draft = json.load(handle)
+        except (OSError, ValueError):
+            _print_stderr(["error: el borrador no se pudo leer"])
+            return 1
+        if not isinstance(draft, dict) or draft.get("id") != draft_id:
+            _print_stderr(["error: el borrador no es valido"])
+            return 1
+        # Vista previa de solo lectura: el objeto de borrador no contiene
+        # credenciales, y deliberadamente no se resuelve ninguna cuenta.
+        print(json.dumps(draft, sort_keys=True, ensure_ascii=False))
+        return 0
     if len(argv) != 6:
         return _fail([
             "error: draft requiere ROOT, ACCOUNT_ID, TO, SUBJECT y BODY",
@@ -1643,6 +1676,7 @@ def cli_main(argv: list) -> int:
         print("  language get ROOT  muestra la preferencia efectiva")
         print("  onboard ROOT [--gui|--terminal] [--lang es|en|pt]  revisa requisitos y abre el flujo de primer uso")
         print("  draft ROOT ACCOUNT_ID TO SUBJECT BODY")
+        print("  draft show ROOT DRAFT_ID  vista previa de solo lectura")
         print("  send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO")
         return 0
 

@@ -68,7 +68,7 @@ Synchronization is read-only, paginated, and resumes from the stored UID cursor.
 
 ## Sending policy
 
-Create drafts first with `draft`. Sending is an external side effect and requires the exact user confirmation phrase `CONFIRMAR ENVIO` in a separate explicit step. Never request or print passwords, credential references, or raw secrets. Never retry an uncertain SMTP result automatically.
+Create drafts first with `draft`. Before asking for authorization, show the exact pending content with `draft show ROOT DRAFT_ID` and present its recipients, subject, and body to the user. Sending is an external side effect and requires the exact user confirmation phrase `CONFIRMAR ENVIO` in a separate explicit step. Never request or print passwords, credential references, or raw secrets. Never retry an uncertain SMTP result automatically.
 
 ## Account management
 

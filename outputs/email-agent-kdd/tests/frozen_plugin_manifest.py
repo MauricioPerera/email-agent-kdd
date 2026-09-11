@@ -58,6 +58,7 @@ CLI_COMMAND_TOKENS = [
     "notification delete",
     "startup install|status|remove",
     "draft",
+    "draft show",
     "send",
     "account setup-gui",
     "account setup",

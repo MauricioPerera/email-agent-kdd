@@ -149,3 +149,5 @@
 * [Contrato del Objetivo 66](contracts/sprint66-contact-header-filter.md) - From, To y Cc como fuente.
 * [Informe de límites de filtros](../../SPRINT67-EMAIL-FILTER-BOUNDARIES-REPORT.md) - Direcciones sin coincidencias parciales.
 * [Contrato del Objetivo 67](contracts/sprint67-email-filter-boundaries.md) - Delimitación exacta.
+* [Informe de vista previa de borradores](../../SPRINT68-DRAFT-SHOW-REPORT.md) - Revisión explícita antes del envío.
+* [Contrato del Objetivo 68](contracts/sprint68-draft-show.md) - Consulta de borradores sin mutación ni credenciales.

@@ -44,6 +44,7 @@ TARGET_SUFFIX = "src/email/cli.py"
 SIGNATURE = "def cli_main(argv: list) -> int"
 
 DRAFT_ARGV = ["draft", "ROOT", "ACCOUNT_ID", "TO", "SUBJECT", "BODY"]
+SHOW_DRAFT_ARGV = ["draft", "show", "ROOT", "DRAFT_ID"]
 SEND_ARGV = ["send", "ROOT", "ACCOUNT_ID", "DRAFT_ID", "CONFIRMAR_ENVIO"]
 
 CONFIRM_PHRASE = "CONFIRMAR ENVIO"          # exacta: mayúsculas + acento
@@ -298,6 +299,33 @@ def test_draft_devuelve_0_y_persiste_un_json(cli, tmp_root, capsys):
     low = json.dumps(relectura).lower()
     for bad in SECRETS_FORBIDDEN_SUBSTRINGS:
         assert bad not in low
+
+
+def test_draft_show_muestra_previsualizacion_sin_mutar(cli, tmp_root, capsys):
+    cli.cli_main(["draft", str(tmp_root), "acc-1", "a@b.c", "Hola", "Cuerpo"])
+    draft_path = next((tmp_root / "drafts").glob("*.json"))
+    draft_id = draft_path.stem
+    original = draft_path.read_bytes()
+    capsys.readouterr()
+
+    rc = cli.cli_main(["draft", "show", str(tmp_root), draft_id])
+
+    assert rc == EXIT_OK
+    assert json.loads(capsys.readouterr().out) == json.loads(original)
+    assert draft_path.read_bytes() == original
+
+
+def test_draft_show_rechaza_id_invalido_y_no_sale_de_drafts(cli, tmp_root, capsys):
+    rc = cli.cli_main(["draft", "show", str(tmp_root), "../secreto"])
+    assert rc == EXIT_OP_ERROR
+    assert "traceback" not in capsys.readouterr().err.lower()
+    assert not (tmp_root.parent / "secreto.json").exists()
+
+
+def test_draft_show_inexistente_devuelve_1(cli, tmp_root, capsys):
+    rc = cli.cli_main(["draft", "show", str(tmp_root), "0" * 64])
+    assert rc == EXIT_OP_ERROR
+    assert "traceback" not in capsys.readouterr().err.lower()
 
 
 def _stub_backend(monkeypatch, cli):
