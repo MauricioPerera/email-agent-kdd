@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-TARGET = Path(r"C:\Users\Administrador\Documents\Codex\2026-09-10\l\src\email\topic_index.py")
+TARGET = Path(__file__).resolve().parents[3] / "src" / "email" / "topic_index.py"
 CONTRACT = Path(__file__).resolve().parents[1] / "knowledge" / "contracts" / "persist-topic-index.md"
 REPO_ROOT = TARGET.parents[2]
 SECTIONS = {
