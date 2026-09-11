@@ -30,3 +30,4 @@ secret*
 !src/email/credentials.py
 !src/email/contact_store.py
 !src/email/account_store.py
+!src/email/secretservice.py
