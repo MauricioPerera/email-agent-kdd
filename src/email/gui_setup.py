@@ -50,6 +50,11 @@ _DISCOVERY_CONFIRMED = (
 _INCOMPLETE = "error generico: faltan datos del servidor de correo"
 _VERIFYING = "comprobando conexion IMAP y SMTP; no se enviara ningun correo..."
 _VERIFY_FAILED = "no pudimos validar la conexion. Revisa los datos e intentalo de nuevo."
+_UI_MESSAGES = {
+    "es": {"empty": _EMPTY_FIELDS, "guide": _DISCOVERY_GUIDE, "confirmed": _DISCOVERY_CONFIRMED, "incomplete": _INCOMPLETE, "verifying": _VERIFYING, "verify_failed": _VERIFY_FAILED, "dialog": "configuracion de cuenta", "saved": "cuenta guardada: ", "cancelled": "Cancelar"},
+    "en": {"empty": "error: enter your email and password", "guide": "We could not detect your mail servers automatically; complete the advanced section and press Save again.", "confirmed": "We detected your mail servers; saving the account...", "incomplete": "error: mail server details are incomplete", "verifying": "checking IMAP and SMTP connection; no email will be sent...", "verify_failed": "we could not validate the connection. Check the details and try again.", "dialog": "account setup", "saved": "account saved: ", "cancelled": "Cancel"},
+    "pt": {"empty": "erro: informe seu email e sua senha", "guide": "Nao foi possivel detectar os servidores de email automaticamente; preencha a secao avancada e pressione Salvar novamente.", "confirmed": "Detectamos os servidores de email; salvando a conta...", "incomplete": "erro: faltam dados do servidor de email", "verifying": "verificando a conexao IMAP e SMTP; nenhum email sera enviado...", "verify_failed": "nao foi possivel validar a conexao. Confira os dados e tente novamente.", "dialog": "configuracao da conta", "saved": "conta salva: ", "cancelled": "Cancelar"},
+}
 _UI_TEXT = {
     "es": {"title": "Configuracion segura de cuenta", "email": "Correo electronico", "password": "Contrasena", "save": "Guardar", "cancel": "Cancelar", "advanced": "Configuracion avanzada del servidor de correo", "imap": "Servidor de entrada (IMAP)", "imap_port": "Puerto de entrada", "smtp": "Servidor de salida (SMTP)", "smtp_port": "Puerto de salida"},
     "en": {"title": "Secure account setup", "email": "Email address", "password": "Password", "save": "Save", "cancel": "Cancel", "advanced": "Advanced mail server settings", "imap": "Incoming server (IMAP)", "imap_port": "Incoming port", "smtp": "Outgoing server (SMTP)", "smtp_port": "Outgoing port"},
@@ -166,6 +171,9 @@ class _SetupForm:
         """Mensaje generico no terminal: la sesion continua en la ventana."""
         self.status.config(text=message)
 
+    def _message(self, key):
+        return _UI_MESSAGES[self.language][key]
+
     def _clear_password(self):
         self.password.delete(0, "end")
 
@@ -179,7 +187,7 @@ class _SetupForm:
             "warning": tkinter.messagebox.showwarning,
         }
         dialogs[kind](
-            "configuracion de cuenta", message, parent=self.window
+            self._message("dialog"), message, parent=self.window
         )
 
     def _finish(self, code: int):
@@ -220,7 +228,7 @@ class _SetupForm:
             self.servers = discover_mail_servers(email)
         except ValueError:
             self.advanced.grid()
-            self._note(_DISCOVERY_GUIDE)
+            self._note(self._message("guide"))
             return False
         except Exception:
             self._show(_GENERIC_ERROR, "error")
@@ -232,26 +240,26 @@ class _SetupForm:
         """Pipeline de Guardar: descubrir, derivar, provisionar y guardar."""
         email = self.email.get().strip()
         if email == "" or self.password.get() == "":
-            self._note(_EMPTY_FIELDS)
+            self._note(self._message("empty"))
             return
         if self.servers is None:
             if not self.discovery_done:
                 self.discovery_done = True
                 if not self._discover(email):
                     return
-                self._note(_DISCOVERY_CONFIRMED)
+                self._note(self._message("confirmed"))
             else:
                 self.servers = self._read_advanced()
                 if self.servers is None:
-                    self._note(_INCOMPLETE)
+                    self._note(self._message("incomplete"))
                     return
-        self._note(_VERIFYING)
+        self._note(self._message("verifying"))
         try:
             verify_email_connection(
                 {"email": email}, self.servers, self.password.get()
             )
         except (ValueError, RuntimeError):
-            self._note(_VERIFY_FAILED)
+            self._note(self._message("verify_failed"))
             return
         self._provision(email)
 
@@ -278,7 +286,7 @@ class _SetupForm:
             self._show(_GENERIC_ERROR, "error")
         else:
             if self._store_servers(account_id):
-                self._show("cuenta guardada: " + record["account_id"], "info")
+                self._show(self._message("saved") + record["account_id"], "info")
                 self._finish(0)
                 return
             self._show(_GENERIC_ERROR, "error")

@@ -69,3 +69,5 @@
 * [Contrato del Objetivo 26](contracts/sprint26-onboarding-flow.md) - Selección explícita y segura.
 * [Informe del formulario gráfico multilingüe](../../SPRINT27-GUI-I18N-REPORT.md) - Etiquetas en tres idiomas.
 * [Contrato del Objetivo 27](contracts/sprint27-gui-i18n.md) - Preferencia local sin alterar seguridad.
+* [Informe de mensajes GUI](../../SPRINT28-GUI-MESSAGES-REPORT.md) - Validaciones y estados en tres idiomas.
+* [Contrato del Objetivo 28](contracts/sprint28-gui-messages.md) - Mensajes localizados sin datos sensibles.

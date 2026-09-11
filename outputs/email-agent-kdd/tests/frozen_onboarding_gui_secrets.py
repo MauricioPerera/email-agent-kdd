@@ -237,6 +237,7 @@ def test_form_uses_saved_language_for_ui_labels(tmp_path):
     form = gui._SetupForm(_FakeWindow(), str(tmp_path))
     assert form.language == "en"
     assert gui._UI_TEXT[form.language]["save"] == "Save"
+    assert form._message("verify_failed").startswith("we could not")
 
 
 def test_discovery_is_called_without_password():
