@@ -67,4 +67,4 @@ email-agent startup remove ROOT ACCOUNT_ID
 Consulta [SECURITY.md](SECURITY.md) y [docs/RELEASE.md](docs/RELEASE.md) antes de publicar una release.
 
 La propuesta experimental de formularios locales seguros para agentes está en
-[docs/LSFA-PROPOSAL.md](docs/LSFA-PROPOSAL.md).
+el repositorio independiente [Local Secure Forms for Agent CLIs](https://github.com/MauricioPerera/local-secure-forms).
