@@ -530,6 +530,19 @@ def _run_send(argv):
     if not isinstance(draft, dict) or draft.get("account_id") != account_id:
         _print_stderr(["error: el borrador no corresponde a la cuenta"])
         return 1
+    try:
+        integrity_id = create_email_draft(
+            draft["account_id"],
+            draft["to"],
+            draft["subject"],
+            draft["body"],
+        )["id"]
+    except (KeyError, TypeError, ValueError):
+        _print_stderr(["error: el borrador no es integro"])
+        return 1
+    if draft.get("id") != integrity_id or draft_id != integrity_id:
+        _print_stderr(["error: el borrador cambio despues de su creacion"])
+        return 1
     if any(draft.get(key) for key in _ATTACHMENT_KEYS):
         return _fail(["error: el borrador no es valido para el envio"])
     try:

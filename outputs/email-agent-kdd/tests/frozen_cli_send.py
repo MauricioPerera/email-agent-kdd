@@ -392,6 +392,23 @@ def test_send_draft_inexistente_devuelve_1(cli, tmp_root, capsys):
     assert "traceback" not in err
 
 
+def test_send_rechaza_borrador_modificado_despues_de_la_previsualizacion(
+    cli, tmp_root, capsys, monkeypatch
+):
+    _stub_backend(monkeypatch, cli)
+    cli.cli_main(["draft", str(tmp_root), "acc-1", "a@b.c", "Hola", "Cuerpo"])
+    draft_path = next((tmp_root / "drafts").glob("*.json"))
+    draft = json.loads(draft_path.read_text(encoding="utf-8"))
+    draft["body"] = "Contenido cambiado sin regenerar el borrador"
+    draft_path.write_text(json.dumps(draft), encoding="utf-8")
+    capsys.readouterr()
+
+    rc = cli.cli_main(["send", str(tmp_root), "acc-1", draft_path.stem, CONFIRM_PHRASE])
+
+    assert rc == EXIT_OP_ERROR
+    assert "cambio" in capsys.readouterr().err.lower()
+
+
 def test_uso_incorrecto_devuelve_2(cli, tmp_root):
     for argv in USAGE_BAD_CASES:
         assert cli.cli_main(argv) == EXIT_USAGE, f"argv {argv!r} debe dar 2"

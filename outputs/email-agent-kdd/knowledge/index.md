@@ -153,3 +153,5 @@
 * [Contrato del Objetivo 68](contracts/sprint68-draft-show.md) - Consulta de borradores sin mutación ni credenciales.
 * [Informe de proyección segura](../../SPRINT69-DRAFT-PREVIEW-PROJECTION-REPORT.md) - Campos públicos acotados.
 * [Contrato del Objetivo 69](contracts/sprint69-draft-preview-projection.md) - Sin exposición de campos extra.
+* [Informe de integridad de borradores](../../SPRINT70-DRAFT-INTEGRITY-REPORT.md) - Vista previa vinculada al contenido enviado.
+* [Contrato del Objetivo 70](contracts/sprint70-draft-integrity.md) - Verificación antes de SMTP.
