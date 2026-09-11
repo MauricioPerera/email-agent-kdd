@@ -521,9 +521,9 @@ def _make_update_contacts(root):
 
 
 def _run_contact(argv):
-    if len(argv) < 2 or argv[1] not in ("list", "show"):
+    if len(argv) < 2 or argv[1] not in ("list", "show", "find"):
         return _fail([
-            "error: contact requiere el subcomando 'list' o 'show'",
+            "error: contact requiere el subcomando 'list', 'show' o 'find'",
             USAGE,
             "  contact list ROOT  lista la libreta de contactos",
         ])
@@ -531,6 +531,8 @@ def _run_contact(argv):
         return _fail(["error: contact list requiere exactamente ROOT", USAGE])
     if argv[1] == "show" and len(argv) != 4:
         return _fail(["error: contact show requiere ROOT y EMAIL", USAGE])
+    if argv[1] == "find" and len(argv) != 4:
+        return _fail(["error: contact find requiere ROOT y TEXT", USAGE])
     try:
         contacts = load_email_contacts(argv[2])
     except (ValueError, RuntimeError):
@@ -545,6 +547,14 @@ def _run_contact(argv):
             _print_stderr(["error: contacto no encontrado"])
             return 1
         print(json.dumps(contact, sort_keys=True))
+        return 0
+    if argv[1] == "find":
+        query = argv[3].strip().casefold()
+        if not query:
+            return _fail(["error: contact find requiere TEXT no vacio", USAGE])
+        for contact in contacts:
+            if query in contact["name"].casefold() or query in contact["email"]:
+                print(json.dumps(contact, sort_keys=True))
         return 0
     for record in contacts:
         print(json.dumps(

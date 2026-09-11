@@ -133,3 +133,5 @@
 * [Contrato del Objetivo 58](contracts/sprint58-natural-contact-query.md) - Dirección clara o aclaración.
 * [Informe de consulta exacta de contactos](../../SPRINT59-CONTACT-SHOW-REPORT.md) - Confirmación por email.
 * [Contrato del Objetivo 59](contracts/sprint59-contact-show.md) - Consulta de solo lectura.
+* [Informe de candidatos de contacto](../../SPRINT60-CONTACT-FIND-REPORT.md) - Resolución asistida sin suposiciones.
+* [Contrato del Objetivo 60](contracts/sprint60-contact-find.md) - Candidatos antes de elegir.
