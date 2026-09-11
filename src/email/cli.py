@@ -477,9 +477,15 @@ def _run_draft(argv):
         if not isinstance(draft, dict) or draft.get("id") != draft_id:
             _print_stderr(["error: el borrador no es valido"])
             return 1
-        # Vista previa de solo lectura: el objeto de borrador no contiene
-        # credenciales, y deliberadamente no se resuelve ninguna cuenta.
-        print(json.dumps(draft, sort_keys=True, ensure_ascii=False))
+        # Vista previa de solo lectura. Proyectar una lista cerrada evita que
+        # campos extra de un archivo heredado o manipulado lleguen a stdout
+        # (por ejemplo, una referencia de credencial).
+        preview = {
+            key: draft[key]
+            for key in ("id", "account_id", "to", "subject", "body", "status")
+            if key in draft
+        }
+        print(json.dumps(preview, sort_keys=True, ensure_ascii=False))
         return 0
     if len(argv) != 6:
         return _fail([

@@ -11,3 +11,4 @@ status: frozen
 - no resuelve cuentas, credenciales ni conexiones de red;
 - no modifica el archivo del borrador ni cambia su estado;
 - el agente debe presentar la vista previa antes de solicitar `CONFIRMAR ENVIO`.
+- la salida usa una lista cerrada de campos y omite cualquier campo extra persistido.

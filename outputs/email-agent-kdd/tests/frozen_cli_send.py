@@ -328,6 +328,22 @@ def test_draft_show_inexistente_devuelve_1(cli, tmp_root, capsys):
     assert "traceback" not in capsys.readouterr().err.lower()
 
 
+def test_draft_show_no_expone_campos_extra_del_archivo(cli, tmp_root, capsys):
+    cli.cli_main(["draft", str(tmp_root), "acc-1", "a@b.c", "Hola", "Cuerpo"])
+    draft_path = next((tmp_root / "drafts").glob("*.json"))
+    draft = json.loads(draft_path.read_text(encoding="utf-8"))
+    draft["credential_ref"] = "env://NO-DEBE-SALIR"
+    draft["internal_note"] = "dato interno"
+    draft_path.write_text(json.dumps(draft), encoding="utf-8")
+    capsys.readouterr()
+
+    assert cli.cli_main(["draft", "show", str(tmp_root), draft_path.stem]) == EXIT_OK
+    preview = json.loads(capsys.readouterr().out)
+    assert "credential_ref" not in preview
+    assert "internal_note" not in preview
+    assert preview["subject"] == "Hola"
+
+
 def _stub_backend(monkeypatch, cli):
     """Aisla la rama send de red y store real: cuenta fixa, credencial
     marcador y SMTP stub. NO cambia el comportamiento del cli (solo sus

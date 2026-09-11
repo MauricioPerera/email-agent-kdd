@@ -151,3 +151,5 @@
 * [Contrato del Objetivo 67](contracts/sprint67-email-filter-boundaries.md) - Delimitación exacta.
 * [Informe de vista previa de borradores](../../SPRINT68-DRAFT-SHOW-REPORT.md) - Revisión explícita antes del envío.
 * [Contrato del Objetivo 68](contracts/sprint68-draft-show.md) - Consulta de borradores sin mutación ni credenciales.
+* [Informe de proyección segura](../../SPRINT69-DRAFT-PREVIEW-PROJECTION-REPORT.md) - Campos públicos acotados.
+* [Contrato del Objetivo 69](contracts/sprint69-draft-preview-projection.md) - Sin exposición de campos extra.
