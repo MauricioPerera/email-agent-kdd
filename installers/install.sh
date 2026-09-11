@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 SOURCE="${1:-https://github.com/MauricioPerera/email-agent-kdd.git}"
+REF="${2:-v0.1.0}"
 if command -v python3 >/dev/null 2>&1; then
   PYTHON_BIN="python3"
 elif command -v python >/dev/null 2>&1; then
@@ -19,7 +20,7 @@ if ! "$PYTHON_BIN" -m pip --version >/dev/null 2>&1; then
 fi
 printf '%s\n' "Instalando Email Agent. Puede tardar unos minutos; no cierres esta ventana."
 "$PYTHON_BIN" -m pip install --upgrade pip
-"$PYTHON_BIN" -m pip install "git+${SOURCE}"
+"$PYTHON_BIN" -m pip install "git+${SOURCE}@${REF}"
 printf '%s\n' "Instalado. Comprobando que el programa responde (email-agent --help)..."
 if ! email-agent --help; then
   printf '%s\n' "El sistema no encuentra el comando 'email-agent'. Solucion: anade la carpeta 'bin' de Python a la variable PATH, cierra y vuelve a abrir la terminal, y ejecuta 'email-agent --help'."

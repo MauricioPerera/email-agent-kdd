@@ -36,6 +36,10 @@ Necesitas Python 3.10 o superior instalado en tu equipo. Los mismos pasos valen 
    sh installers/install.sh                       # macOS y Linux
    ```
 
+   Los instaladores usan por defecto la release estable `v0.1.0`, no la rama
+   `main`. En Windows puedes elegir otra referencia con `-Ref NOMBRE`; en macOS
+   y Linux, con `sh installers/install.sh REPOSITORIO REFERENCIA`.
+
    Alternativa manual (o aislada con `pipx install .`): `python -m pip install .`
 
 2. **Comprueba que quedó instalado** (el instalador ya lo hace al terminar; puedes repetirlo cuando quieras):

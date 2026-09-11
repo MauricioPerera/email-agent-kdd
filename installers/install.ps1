@@ -1,5 +1,6 @@
 param(
-  [string]$Source = "https://github.com/MauricioPerera/email-agent-kdd.git"
+  [string]$Source = "https://github.com/MauricioPerera/email-agent-kdd.git",
+  [string]$Ref = "v0.1.0"
 )
 $ErrorActionPreference = "Stop"
 $PythonCommand = Get-Command python -ErrorAction SilentlyContinue
@@ -16,7 +17,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "Instalando Email Agent. Puede tardar unos minutos; no cierres esta ventana."
 python -m pip install --upgrade pip
-python -m pip install "git+$Source"
+python -m pip install "git+$Source@$Ref"
 if ($LASTEXITCODE -ne 0) { throw "La instalacion fallo. Revisa el mensaje anterior de pip y vuelve a intentarlo." }
 Write-Host "Instalado. Comprobando que el programa responde (email-agent --help)..."
 email-agent --help

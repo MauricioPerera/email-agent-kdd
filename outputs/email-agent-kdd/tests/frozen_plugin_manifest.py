@@ -252,6 +252,8 @@ def test_installers_point_to_origin_repository():
     sh = (REPO / "installers" / "install.sh").read_text(encoding="utf-8")
     for content in (text, sh):
         assert "github.com/MauricioPerera/email-agent-kdd" in content
+        assert "v0.1.0" in content
+        assert "git+" in content and "@" in content
 
 
 def test_pyproject_declares_entry_point():

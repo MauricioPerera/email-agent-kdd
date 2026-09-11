@@ -155,3 +155,5 @@
 * [Contrato del Objetivo 69](contracts/sprint69-draft-preview-projection.md) - Sin exposición de campos extra.
 * [Informe de integridad de borradores](../../SPRINT70-DRAFT-INTEGRITY-REPORT.md) - Vista previa vinculada al contenido enviado.
 * [Contrato del Objetivo 70](contracts/sprint70-draft-integrity.md) - Verificación antes de SMTP.
+* [Informe de instaladores de release](../../SPRINT73-RELEASE-INSTALLERS-REPORT.md) - Instalación fijada a `v0.1.0`.
+* [Contrato del Objetivo 73](contracts/sprint73-release-installers.md) - Distribución sin rama mutable por defecto.

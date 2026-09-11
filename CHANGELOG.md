@@ -3,12 +3,18 @@
 Todos los cambios notables de este proyecto se documentan en este archivo.
 
 El formato se inspira en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
-la versión sigue [SemVer](https://semver.org/lang/es/). El proyecto no ha publicado
-ninguna release pública todavía: `0.1.0` es la versión de desarrollo actual y coincide
-con `pyproject.toml` (`email-agent-cli`) y con
+la versión sigue [SemVer](https://semver.org/lang/es/). La release pública actual
+es `0.1.0`, y coincide con `pyproject.toml` (`email-agent-cli`) y con
 `plugins/email-agent/.codex-plugin/plugin.json`.
 
-## [0.1.0] — sin publicar
+## [Unreleased]
+
+### Cambios posteriores a la publicación (Sprint 73 — 2026-09-11)
+
+- Los instaladores usan la referencia estable `v0.1.0` por defecto y permiten
+  seleccionar otra referencia de forma explícita.
+
+## [0.1.0] — 2026-09-11
 
 ### Añadido y corregido (sprints 68–70 — 2026-09-11)
 
