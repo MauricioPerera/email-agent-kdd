@@ -10,8 +10,11 @@ def _check(name, status, detail, required=True):
     return {"name": name, "status": status, "detail": detail, "required": required}
 
 
-def run_diagnostics(root=None):
-    """Devuelve checks seguros sin red, credenciales ni escrituras."""
+def run_diagnostics(root=None, repair=False):
+    """Devuelve checks seguros sin red, credenciales ni escrituras.
+
+    Con ``repair=True`` añade instrucciones de reparación; nunca las ejecuta.
+    """
     checks = []
     supported = sys.platform == "win32" or sys.platform == "darwin" or sys.platform.startswith("linux")
     checks.append(_check(
@@ -53,8 +56,28 @@ def run_diagnostics(root=None):
         root_ok = isinstance(root, str) and bool(root.strip()) and Path(root).is_dir()
         checks.append(_check("root", "ok" if root_ok else "warning", "carpeta local accesible" if root_ok else "la carpeta indicada no existe; se creará durante la configuración", required=False))
     required_errors = [item for item in checks if item["required"] and item["status"] == "error"]
-    return {
+    actions = []
+    if repair:
+        if not version_ok:
+            actions.append("Instala Python 3.10 o superior y vuelve a abrir la terminal")
+        if not pip_ok:
+            actions.append("Repara pip desde la instalación de Python; no uses un pip de otra versión")
+        if not tkinter_ok:
+            actions.append("Instala el componente Tkinter de tu distribución o usa account setup en terminal")
+        if not native_ok:
+            if native_name == "keychain":
+                actions.append("Verifica que macOS incluya el comando security y que Keychain esté disponible")
+            elif native_name == "secretservice":
+                actions.append("Instala libsecret/secret-tool e inicia una sesión de escritorio con Secret Service")
+            else:
+                actions.append("Usa Windows, macOS o Linux con su almacén seguro nativo compatible")
+        if not actions:
+            actions.append("No hay reparaciones pendientes; puedes abrir el formulario de configuración")
+    result = {
         "status": "ready" if not required_errors else "needs_attention",
         "checks": checks,
         "next": "Puedes abrir account setup-gui o account setup" if not required_errors else "Corrige los checks marcados como error y vuelve a ejecutar doctor",
     }
+    if repair:
+        result["repair"] = {"performed": False, "actions": actions}
+    return result

@@ -47,3 +47,5 @@
 * [Contrato del Objetivo 15](contracts/sprint15-installers.md) - Requisitos y mensajes accionables del instalador.
 * [Informe de diagnóstico](../../SPRINT16-DIAGNOSTICS-REPORT.md) - Revisión local previa a configurar una cuenta.
 * [Contrato del Objetivo 16](contracts/sprint16-diagnostics.md) - Comando `doctor` seguro y accionable.
+* [Informe de reparación guiada](../../SPRINT17-DOCTOR-REPAIR-REPORT.md) - Instrucciones sin cambios automáticos.
+* [Contrato del Objetivo 17](contracts/sprint17-doctor-repair.md) - Reparación guiada segura.

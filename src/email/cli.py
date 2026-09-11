@@ -104,7 +104,7 @@ USAGE = (
     "email-agent watch ROOT ACCOUNT_ID [--every N] [--limit N] [--unread] | "
     "email-agent notification add|list|delete ROOT ... | "
     "email-agent startup install|status|remove ROOT ACCOUNT_ID ... | "
-    "email-agent doctor [ROOT] | "
+    "email-agent doctor [ROOT] [--fix] | "
     "email-agent message delete ROOT REL_PATH | "
     "email-agent message restore ROOT TRASH_REL_PATH | "
     "email-agent message trash ROOT | "
@@ -1402,7 +1402,7 @@ def cli_main(argv: list) -> int:
         print("  notification list ROOT  lista reglas")
         print("  notification delete ROOT NAME  elimina una regla")
         print("  startup install|status|remove ROOT ACCOUNT_ID  inicio automatico")
-        print("  doctor [ROOT]  revisa requisitos locales sin red ni credenciales")
+        print("  doctor [ROOT] [--fix]  revisa requisitos y muestra reparaciones guiadas")
         print("  draft ROOT ACCOUNT_ID TO SUBJECT BODY")
         print("  send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO")
         return 0
@@ -1442,9 +1442,11 @@ def cli_main(argv: list) -> int:
     if argv[0] == "send":
         return _run_send(argv)
     if argv[0] == "doctor":
-        if len(argv) > 2:
-            return _fail(["error: doctor acepta opcionalmente ROOT", USAGE])
-        result = run_diagnostics(argv[1] if len(argv) == 2 else None)
+        repair = "--fix" in argv[1:]
+        roots = [value for value in argv[1:] if value != "--fix"]
+        if len(roots) > 1 or any(value.startswith("--") for value in roots):
+            return _fail(["error: doctor acepta un solo ROOT", USAGE])
+        result = run_diagnostics(roots[0] if roots else None, repair=repair)
         print(json.dumps(result, sort_keys=True))
         return 0 if result["status"] == "ready" else 1
 
