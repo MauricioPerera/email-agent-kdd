@@ -137,3 +137,5 @@
 * [Contrato del Objetivo 60](contracts/sprint60-contact-find.md) - Candidatos antes de elegir.
 * [Informe de paginación de búsquedas](../../SPRINT61-QUERY-PAGINATION-REPORT.md) - Resultados locales por lotes.
 * [Contrato del Objetivo 61](contracts/sprint61-query-pagination.md) - Offset y límite deterministas.
+* [Informe de paginación de search](../../SPRINT62-SEARCH-PAGINATION-REPORT.md) - Búsquedas grandes por lotes.
+* [Contrato del Objetivo 62](contracts/sprint62-search-pagination.md) - Paginación compatible.
