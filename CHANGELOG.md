@@ -10,6 +10,15 @@ con `pyproject.toml` (`email-agent-cli`) y con
 
 ## [0.1.0] — sin publicar
 
+### Añadido y corregido (sprints 68–70 — 2026-09-11)
+
+- **Previsualización segura de borradores**: `draft show ROOT DRAFT_ID` permite
+  revisar destinatarios, asunto y cuerpo sin red, credenciales ni mutación.
+- La salida de la previsualización usa una lista cerrada de campos y no expone
+  datos adicionales persistidos.
+- `send` verifica la integridad determinista del borrador antes de contactar al
+  SMTP y rechaza cambios posteriores a su creación.
+
 ### Corregido (sprint 12 — 2026-09-11)
 
 - **Emisión segura de notificaciones de escritorio**: el asunto del correo ya no

@@ -98,7 +98,17 @@ La desvinculación elimina la referencia de cuenta, la configuración pública d
 
 ## Envío
 
-Los mensajes se preparan con `draft`. El comando `send` exige exactamente `CONFIRMAR ENVIO`; un agente nunca debe saltarse esa confirmación ni reintentar un resultado SMTP incierto.
+Los mensajes se preparan con `draft`. Antes de solicitar autorización, se revisan
+con `draft show ROOT DRAFT_ID`, que muestra solo los campos públicos del borrador.
+El comando `send` verifica que el contenido no haya cambiado desde su creación y
+exige exactamente `CONFIRMAR ENVIO`; un agente nunca debe saltarse esa confirmación
+ni reintentar un resultado SMTP incierto.
+
+```bash
+email-agent draft ROOT ACCOUNT_ID TO SUBJECT BODY
+email-agent draft show ROOT DRAFT_ID
+email-agent send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO
+```
 
 ## Papelera (borrado reversible)
 

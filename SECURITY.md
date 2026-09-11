@@ -4,6 +4,9 @@
 - El formulario local guarda contraseñas únicamente en el almacén seguro nativo del sistema: Windows Credential Manager, macOS Keychain (vía `security`) o Linux Secret Service/libsecret (vía `secret-tool`, que requiere una sesión de escritorio con el daemon activo). Si el almacén de la plataforma no está disponible, el alta se detiene con un aviso claro que nombra el almacén que falta: no existe alternativa menos segura ni respaldo en texto plano ni en variables de entorno.
 - IMAP se abre en modo de solo lectura y el cursor evita duplicados.
 - El envío es una operación externa y requiere la frase exacta `CONFIRMAR ENVIO`.
+- `draft show` proyecta únicamente `id`, cuenta, destinatarios, asunto, cuerpo y
+  estado; no expone campos adicionales del archivo local. Antes de `send`, la CLI
+  recalcula el ID determinista del borrador y rechaza cualquier contenido alterado.
 - Un resultado SMTP incierto no se reintenta automáticamente.
 - Las notificaciones se evalúan localmente y se deduplican por hash del mensaje.
 - El registro de inicio automático (`startup install`) serializa la línea de comandos sin ejecutar una shell y sin interpolar datos sin escape: Windows construye el valor de `/TR` de `schtasks` con `subprocess.list2cmdline` (una ruta con espacios, comillas o contrabarra final no parte el comando), macOS escribe cada valor del plist escapado con reglas XML (markup en la ruta no rompe el XML ni agrega claves) y Linux cita cada argumento de `ExecStart` con el escapado de systemd (`\\`, `\"`, `%%`, sin expansión de especificadores). Los caracteres de control en la raíz se rechazan antes de escribir cualquier archivo: un salto de línea no puede inyectar directivas nuevas en la unidad.
