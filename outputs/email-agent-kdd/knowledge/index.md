@@ -93,3 +93,5 @@
 * [Contrato del Objetivo 38](contracts/sprint38-plugin-setup-language.md) - Sintaxis documentada y compatible.
 * [Informe del primer sync del plugin](../../SPRINT39-PLUGIN-FIRST-SYNC-REPORT.md) - Continuidad desde onboarding.
 * [Contrato del Objetivo 39](contracts/sprint39-plugin-first-sync.md) - Uso de metadatos públicos sin credenciales.
+* [Informe de sync paginado del plugin](../../SPRINT40-PLUGIN-SYNC-PAGINATION-REPORT.md) - Primer lote limitado y cursor.
+* [Contrato del Objetivo 40](contracts/sprint40-plugin-sync-pagination.md) - Paginación documentada para agentes.
