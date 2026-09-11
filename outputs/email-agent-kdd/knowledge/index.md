@@ -59,3 +59,5 @@
 * [Contrato del Objetivo 21](contracts/sprint21-first-use.md) - Onboarding sin degradar seguridad.
 * [Informe de errores del onboarding](../../SPRINT22-ONBOARDING-ERRORS-REPORT.md) - Cancelación y siguientes pasos.
 * [Contrato del Objetivo 22](contracts/sprint22-onboarding-errors.md) - Resultados accionables y seguros.
+* [Informe de onboarding multilingüe](../../SPRINT23-ONBOARDING-I18N-REPORT.md) - Mensajes del primer uso en tres idiomas.
+* [Contrato del Objetivo 23](contracts/sprint23-onboarding-i18n.md) - Idioma efectivo y comandos estables.

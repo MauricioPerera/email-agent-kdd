@@ -1377,14 +1377,25 @@ def _run_onboard(argv):
     if len(argv) != 2:
         return _fail(["error: onboard requiere ROOT", USAGE])
     root = argv[1]
+    language = load_language(root)
     result = run_diagnostics(root)
     if result["status"] != "ready":
-        print(json.dumps({"status": result["status"], "checks": result["checks"], "next": result["next"], "action": "email-agent doctor --fix"}, sort_keys=True))
+        next_steps = {
+            "es": "Corrige los checks marcados como error y vuelve a ejecutar doctor",
+            "en": "Fix the checks marked as errors and run doctor again",
+            "pt": "Corrija as verificações marcadas como erro e execute doctor novamente",
+        }
+        print(json.dumps({"status": result["status"], "checks": result["checks"], "next": next_steps[language], "action": "email-agent doctor --fix", "language": language}, sort_keys=True))
         return 1
     gui_available = any(item["name"] == "gui" and item["status"] == "ok" for item in result["checks"])
     code = _account_setup_gui(["account", "setup-gui", root]) if gui_available else _account_setup(["account", "setup", root])
     if code != 0:
-        _print_stderr(["onboard: configuracion cancelada o incompleta; puedes volver a ejecutar 'email-agent onboard ROOT'"])
+        messages = {
+            "es": "onboard: configuracion cancelada o incompleta; puedes volver a ejecutar 'email-agent onboard ROOT'",
+            "en": "onboard: setup was cancelled or incomplete; you can run 'email-agent onboard ROOT' again",
+            "pt": "onboard: a configuracao foi cancelada ou ficou incompleta; voce pode executar 'email-agent onboard ROOT' novamente",
+        }
+        _print_stderr([messages[language]])
     return code
 
 

@@ -87,3 +87,24 @@ def test_onboard_reports_required_diagnostic_action(monkeypatch, tmp_path, capsy
     assert cli.cli_main(["onboard", str(tmp_path)]) == 1
     payload = json.loads(capsys.readouterr().out)
     assert payload["action"] == "email-agent doctor --fix"
+
+
+def test_onboard_localizes_blocked_result(monkeypatch, tmp_path, capsys):
+    import src.email.cli as cli
+
+    save_language(str(tmp_path), "en")
+    monkeypatch.setattr(cli, "run_diagnostics", lambda root: {"status": "needs_attention", "checks": [], "next": "irrelevant"})
+    assert cli.cli_main(["onboard", str(tmp_path)]) == 1
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["language"] == "en"
+    assert payload["next"] == "Fix the checks marked as errors and run doctor again"
+
+
+def test_onboard_localizes_cancelled_setup(monkeypatch, tmp_path, capsys):
+    import src.email.cli as cli
+
+    save_language(str(tmp_path), "pt")
+    monkeypatch.setattr(cli, "run_diagnostics", lambda root: {"status": "ready", "checks": [{"name": "gui", "status": "ok"}], "next": "ok"})
+    monkeypatch.setattr(cli, "_account_setup_gui", lambda argv: 1)
+    assert cli.cli_main(["onboard", str(tmp_path)]) == 1
+    assert "cancelada" in capsys.readouterr().err
