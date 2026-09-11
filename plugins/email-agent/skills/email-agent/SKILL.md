@@ -31,10 +31,13 @@ The same onboarding flow works on Windows, macOS, and Linux: install, verify, cr
 ## Notifications
 
 - Create a local rule: `notification add ROOT NAME QUERY`.
+- Create or change a rule only after the user explicitly requests that exact rule; do not infer a filter from context or silently add one.
 - For a recipient alias, use `notification add ROOT ventas "para:ventas+cliente@example.com"`; preserve dots and `+tag` exactly as received.
 - Rules are evaluated only after `sync`; do not promise an immediate notification before a synchronization cycle.
 - List rules: `notification list ROOT`.
-- Remove a rule: `notification delete ROOT NAME`.
+- Listing rules is read-only and does not need confirmation.
+- Remove a rule: `notification delete ROOT NAME`, but first show the rule name and exact query, then request and receive explicit confirmation immediately before deletion.
+- Never delete, replace, or broaden a rule merely because a notification was inconvenient; if the requested name or query is ambiguous, stop and ask the user.
 
 Rules are evaluated after synchronization. They can use `para:ADDRESS` and free-text terms such as a subject keyword. Notifications are deduplicated by message hash and emitted through the native desktop mechanism when available. The message text is always passed as data (environment variables on Windows/macOS, an argument after `--` on Linux), never interpolated into a script and never through a shell, so a subject containing quotes, `$()`, or newlines is displayed as text and never executed. A native-mechanism failure is reported generically; already-sent notifications are remembered and failed ones are retried on the next cycle.
 

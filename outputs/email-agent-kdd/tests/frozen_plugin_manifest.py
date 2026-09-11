@@ -183,6 +183,17 @@ def test_skill_documents_notification_retry_boundary():
     assert "failed ones are retried on the next cycle" in text
 
 
+def test_skill_documents_notification_rule_authorization():
+    text = SKILL.read_text(encoding="utf-8")
+    assert "notification add ROOT NAME QUERY" in text
+    assert "only after the user explicitly requests that exact rule" in text
+    assert "notification list ROOT" in text
+    assert "Listing rules is read-only and does not need confirmation" in text
+    assert "notification delete ROOT NAME" in text
+    assert "request and receive explicit confirmation immediately before deletion" in text
+    assert "Never delete, replace, or broaden a rule merely because a notification was inconvenient" in text
+
+
 def test_installers_verify_command_after_install():
     for name in ("install.ps1", "install.sh"):
         text = (REPO / "installers" / name).read_text(encoding="utf-8")

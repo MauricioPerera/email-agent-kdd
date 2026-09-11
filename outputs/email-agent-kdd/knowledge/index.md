@@ -107,3 +107,5 @@
 * [Contrato del Objetivo 45](contracts/sprint45-plugin-notification-safety.md) - Asuntos sin shell ni interpolación.
 * [Informe de reintentos de notificación](../../SPRINT46-PLUGIN-NOTIFICATION-RETRY-REPORT.md) - Avisos deduplicados y controlados.
 * [Contrato del Objetivo 46](contracts/sprint46-plugin-notification-retry.md) - Frontera entre avisos y correo.
+* [Informe de autorización de reglas de notificación](../../SPRINT47-PLUGIN-NOTIFICATION-AUTH-REPORT.md) - Mutaciones con intención explícita.
+* [Contrato del Objetivo 47](contracts/sprint47-plugin-notification-auth.md) - Lectura sin confirmación y cambios autorizados.
