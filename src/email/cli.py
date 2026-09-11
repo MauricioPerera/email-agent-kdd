@@ -1372,6 +1372,19 @@ def _run_attachment(argv):
     return 0
 
 
+def _run_onboard(argv):
+    """Diagnostica y dirige el primer uso al formulario adecuado."""
+    if len(argv) != 2:
+        return _fail(["error: onboard requiere ROOT", USAGE])
+    root = argv[1]
+    result = run_diagnostics(root)
+    if result["status"] != "ready":
+        print(json.dumps({"status": result["status"], "checks": result["checks"], "next": result["next"]}, sort_keys=True))
+        return 1
+    gui_available = any(item["name"] == "gui" and item["status"] == "ok" for item in result["checks"])
+    return _account_setup_gui(["account", "setup-gui", root]) if gui_available else _account_setup(["account", "setup", root])
+
+
 def cli_main(argv: list) -> int:
     if argv and argv[0] in ("-h", "--help"):
         print(USAGE)
@@ -1407,6 +1420,7 @@ def cli_main(argv: list) -> int:
         print("  doctor [ROOT] [--fix] [--lang es|en|pt] [--format json|text] [--report FILE]  diagnóstico seguro")
         print("  language set ROOT es|en|pt  guarda la preferencia local")
         print("  language get ROOT  muestra la preferencia efectiva")
+        print("  onboard ROOT  revisa requisitos y abre el flujo de primer uso")
         print("  draft ROOT ACCOUNT_ID TO SUBJECT BODY")
         print("  send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO")
         return 0
@@ -1415,7 +1429,7 @@ def cli_main(argv: list) -> int:
         return _fail([
             "error: subcomando invalido (se esperaba 'query', 'search', "
             "'read', 'account', 'contact', 'message', 'attachment', 'sync', "
-            "'draft', 'send' o 'doctor')",
+            "'draft', 'send', 'doctor' o 'onboard')",
             USAGE,
         ])
 
@@ -1490,6 +1504,8 @@ def cli_main(argv: list) -> int:
         result["language"] = language
         print(json.dumps(result, sort_keys=True))
         return 0 if result["status"] == "ready" else 1
+    if argv[0] == "onboard":
+        return _run_onboard(argv)
     if argv[0] == "language":
         if len(argv) < 3 or argv[1] not in ("set", "get"):
             return _fail(["error: language requiere set o get y ROOT", USAGE])

@@ -57,3 +57,13 @@ def test_language_preference_is_local_and_used_by_doctor(tmp_path, capsys):
     assert load_language(str(tmp_path)) == "en"
     assert cli_main(["doctor", str(tmp_path), "--format", "text", "--report", str(tmp_path / "report.txt")]) == 0
     assert "Status:" in (tmp_path / "report.txt").read_text(encoding="utf-8")
+
+
+def test_onboard_runs_diagnostics_before_selecting_setup(monkeypatch, tmp_path):
+    import src.email.cli as cli
+
+    calls = []
+    monkeypatch.setattr(cli, "run_diagnostics", lambda root: {"status": "ready", "checks": [{"name": "gui", "status": "ok"}], "next": "ok"})
+    monkeypatch.setattr(cli, "_account_setup_gui", lambda argv: calls.append(argv) or 0)
+    assert cli.cli_main(["onboard", str(tmp_path)]) == 0
+    assert calls == [["account", "setup-gui", str(tmp_path)]]
