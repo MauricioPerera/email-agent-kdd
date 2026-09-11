@@ -7,6 +7,24 @@ import shutil
 import sys
 from pathlib import Path
 
+LANGUAGES = {"es", "en", "pt"}
+
+_LABELS = {
+    "es": {"title": "Diagnóstico de Email Agent", "status": "Estado", "checks": "Comprobaciones", "next": "Siguiente paso", "ready": "Listo", "needs_attention": "Requiere atención", "ok": "Correcto", "warning": "Advertencia", "error": "Error", "yes": "sí", "no": "no"},
+    "en": {"title": "Email Agent diagnostics", "status": "Status", "checks": "Checks", "next": "Next step", "ready": "Ready", "needs_attention": "Needs attention", "ok": "OK", "warning": "Warning", "error": "Error", "yes": "yes", "no": "no"},
+    "pt": {"title": "Diagnóstico do Email Agent", "status": "Status", "checks": "Verificações", "next": "Próximo passo", "ready": "Pronto", "needs_attention": "Requer atenção", "ok": "Correto", "warning": "Aviso", "error": "Erro", "yes": "sim", "no": "não"},
+}
+
+_DETAILS = {
+    "platform": {"ok": {"es": "sistema operativo soportado", "en": "supported operating system", "pt": "sistema operacional compatível"}, "error": {"es": "sistema operativo sin almacén nativo soportado", "en": "operating system has no supported native store", "pt": "sistema operacional sem armazenamento nativo compatível"}},
+    "python": {"ok": {"es": "Python 3.10 o superior", "en": "Python 3.10 or newer", "pt": "Python 3.10 ou superior"}, "error": {"es": "se requiere Python 3.10 o superior", "en": "Python 3.10 or newer is required", "pt": "é necessário Python 3.10 ou superior"}},
+    "pip": {"ok": {"es": "pip disponible", "en": "pip available", "pt": "pip disponível"}, "error": {"es": "pip no está disponible para este Python", "en": "pip is not available for this Python", "pt": "pip não está disponível para este Python"}},
+    "gui": {"ok": {"es": "formulario gráfico disponible", "en": "graphical form available", "pt": "formulário gráfico disponível"}, "warning": {"es": "Tkinter no está disponible; se puede usar el asistente de terminal", "en": "Tkinter is unavailable; the terminal wizard can be used", "pt": "Tkinter não está disponível; o assistente de terminal pode ser usado"}},
+    "credential_manager": {"ok": {"es": "Credential Manager se comprobará al guardar la cuenta", "en": "Credential Manager will be checked when saving the account", "pt": "o Credential Manager será verificado ao salvar a conta"}},
+    "keychain": {"ok": {"es": "Keychain disponible", "en": "Keychain available", "pt": "Keychain disponível"}, "error": {"es": "falta el comando security", "en": "the security command is missing", "pt": "o comando security está ausente"}},
+    "secretservice": {"ok": {"es": "Secret Service disponible", "en": "Secret Service available", "pt": "Secret Service disponível"}, "error": {"es": "falta secret-tool; se requiere libsecret y una sesión de escritorio", "en": "secret-tool is missing; libsecret and a desktop session are required", "pt": "secret-tool está ausente; libsecret e uma sessão de desktop são necessárias"}},
+}
+
 
 def _check(name, status, detail, required=True):
     return {"name": name, "status": status, "detail": detail, "required": required}
@@ -86,19 +104,39 @@ def run_diagnostics(root=None, repair=False):
 
 
 def write_diagnostic_report(path, result):
-    """Escribe un reporte JSON atómico sin incluir un ROOT ni secretos."""
+    """Escribe un reporte local y atómico sin incluir un ROOT ni secretos."""
+    return _write_diagnostic_report(path, result, "es", "json")
+
+
+def _localized_detail(item, language):
+    return _DETAILS.get(item["name"], {}).get(item["status"], {}).get(language, item["detail"])
+
+
+def _write_diagnostic_report(path, result, language, report_format):
     if not isinstance(path, str) or not path.strip():
         raise ValueError("ruta de reporte invalida")
     target = Path(path)
     if target.name in {"", ".", ".."}:
         raise ValueError("ruta de reporte invalida")
+    if language not in LANGUAGES:
+        raise ValueError("idioma invalido")
+    if report_format not in {"json", "text"}:
+        raise ValueError("formato invalido")
+    labels = _LABELS[language]
+    localized_checks = [
+        {**{key: item[key] for key in ("name", "status", "required")}, "detail": _localized_detail(item, language)}
+        for item in result.get("checks", [])
+    ]
+    next_step = result.get("next")
+    if language == "en":
+        next_step = "You can open account setup-gui or account setup" if result.get("status") == "ready" else "Fix the checks marked as errors and run doctor again"
+    elif language == "pt":
+        next_step = "Você pode abrir account setup-gui ou account setup" if result.get("status") == "ready" else "Corrija as verificações marcadas como erro e execute doctor novamente"
     safe = {
+        "language": language,
         "status": result.get("status"),
-        "checks": [
-            {key: item[key] for key in ("name", "status", "detail", "required")}
-            for item in result.get("checks", [])
-        ],
-        "next": result.get("next"),
+        "checks": localized_checks,
+        "next": next_step,
     }
     if "repair" in result:
         safe["repair"] = {
@@ -108,7 +146,14 @@ def write_diagnostic_report(path, result):
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_name(target.name + ".tmp")
     try:
-        temporary.write_text(json.dumps(safe, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        if report_format == "json":
+            output = json.dumps(safe, ensure_ascii=False, indent=2) + "\n"
+        else:
+            lines = [labels["title"], "=" * len(labels["title"]), "", f"{labels['status']}: {labels[safe['status']]}", "", f"{labels['checks']}:"]
+            lines.extend(f"- {item['name']}: {labels[item['status']]} — {item['detail']}" for item in localized_checks)
+            lines.extend(["", f"{labels['next']}: {safe['next']}"])
+            output = "\n".join(lines) + "\n"
+        temporary.write_text(output, encoding="utf-8")
         os.replace(temporary, target)
     except Exception:
         try:

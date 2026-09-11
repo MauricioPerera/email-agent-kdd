@@ -51,3 +51,5 @@
 * [Contrato del Objetivo 17](contracts/sprint17-doctor-repair.md) - Reparación guiada segura.
 * [Informe de reporte seguro](../../SPRINT18-DIAGNOSTIC-REPORT-REPORT.md) - Exportación sin datos sensibles.
 * [Contrato del Objetivo 18](contracts/sprint18-diagnostic-report.md) - Reporte local y atómico.
+* [Informe de reportes multilingües](../../SPRINT19-MULTILINGUAL-REPORT-REPORT.md) - JSON y texto en tres idiomas.
+* [Contrato del Objetivo 19](contracts/sprint19-multilingual-reports.md) - Formatos legibles y estables.

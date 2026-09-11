@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 from src.email.cli import cli_main
-from src.email.diagnostics import run_diagnostics, write_diagnostic_report
+from src.email.diagnostics import run_diagnostics, write_diagnostic_report, _write_diagnostic_report
 
 
 def test_diagnostics_is_local_and_has_safe_checks():
@@ -17,7 +17,7 @@ def test_diagnostics_is_local_and_has_safe_checks():
 
 def test_doctor_help_is_documented_and_accepts_optional_root(capsys, tmp_path):
     assert cli_main(["--help"]) == 0
-    assert "doctor [ROOT] [--fix] [--report FILE]" in capsys.readouterr().out
+    assert "doctor [ROOT] [--fix] [--lang es|en|pt] [--format json|text] [--report FILE]" in capsys.readouterr().out
     assert cli_main(["doctor", str(tmp_path)]) in {0, 1}
     payload = json.loads(capsys.readouterr().out)
     assert payload["checks"]
@@ -39,3 +39,13 @@ def test_diagnostic_report_excludes_root_and_is_atomic(tmp_path):
     assert "password" not in text.lower()
     assert "credential_ref" not in text.lower()
     assert not (tmp_path / "diagnostic.json.tmp").exists()
+
+
+def test_diagnostic_report_supports_english_and_portuguese_text(tmp_path):
+    result = run_diagnostics()
+    english = tmp_path / "doctor-en.txt"
+    portuguese = tmp_path / "doctor-pt.json"
+    assert _write_diagnostic_report(str(english), result, "en", "text") is True
+    assert _write_diagnostic_report(str(portuguese), result, "pt", "json") is True
+    assert "Email Agent diagnostics" in english.read_text(encoding="utf-8")
+    assert json.loads(portuguese.read_text(encoding="utf-8"))["language"] == "pt"
