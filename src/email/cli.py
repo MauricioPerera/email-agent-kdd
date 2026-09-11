@@ -1378,6 +1378,10 @@ def _run_onboard(argv):
         return _fail(["error: onboard requiere ROOT", USAGE])
     root = argv[1]
     language = load_language(root)
+    try:
+        before_ids = {item["account_id"] for item in load_email_accounts(root)}
+    except (ValueError, RuntimeError):
+        before_ids = set()
     result = run_diagnostics(root)
     if result["status"] != "ready":
         next_steps = {
@@ -1396,6 +1400,19 @@ def _run_onboard(argv):
             "pt": "onboard: a configuracao foi cancelada ou ficou incompleta; voce pode executar 'email-agent onboard ROOT' novamente",
         }
         _print_stderr([messages[language]])
+        return code
+    try:
+        accounts = load_email_accounts(root)
+    except (ValueError, RuntimeError):
+        accounts = []
+    candidates = [item for item in accounts if item["account_id"] not in before_ids]
+    account = candidates[-1] if candidates else (accounts[-1] if accounts else None)
+    public_account = None if account is None else {
+        "account_id": account["account_id"],
+        "provider": account["provider"],
+        "email": account["email"],
+    }
+    print(json.dumps({"status": "configured", "language": language, "account": public_account}, sort_keys=True))
     return code
 
 

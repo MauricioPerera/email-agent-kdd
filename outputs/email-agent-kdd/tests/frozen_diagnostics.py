@@ -109,3 +109,26 @@ def test_onboard_localizes_cancelled_setup(monkeypatch, tmp_path, capsys):
     monkeypatch.setattr(cli, "_account_setup_gui", lambda argv: 1)
     assert cli.cli_main(["onboard", str(tmp_path)]) == 1
     assert "cancelada" in capsys.readouterr().err
+
+
+def test_onboard_reports_safe_public_account_summary(monkeypatch, tmp_path, capsys):
+    import src.email.cli as cli
+
+    account = {
+        "account_id": "personal",
+        "provider": "gmail",
+        "email": "user@example.test",
+        "credential_ref": "wincred://private-label",
+        "status": "disconnected",
+    }
+    monkeypatch.setattr(cli, "run_diagnostics", lambda root: {"status": "ready", "checks": [{"name": "gui", "status": "ok"}], "next": "ok"})
+    monkeypatch.setattr(cli, "_account_setup_gui", lambda argv: 0)
+    monkeypatch.setattr(cli, "load_email_accounts", lambda root: [account])
+    assert cli.cli_main(["onboard", str(tmp_path)]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload == {
+        "account": {"account_id": "personal", "email": "user@example.test", "provider": "gmail"},
+        "language": "es",
+        "status": "configured",
+    }
+    assert "credential_ref" not in payload

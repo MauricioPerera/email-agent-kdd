@@ -61,3 +61,5 @@
 * [Contrato del Objetivo 22](contracts/sprint22-onboarding-errors.md) - Resultados accionables y seguros.
 * [Informe de onboarding multilingüe](../../SPRINT23-ONBOARDING-I18N-REPORT.md) - Mensajes del primer uso en tres idiomas.
 * [Contrato del Objetivo 23](contracts/sprint23-onboarding-i18n.md) - Idioma efectivo y comandos estables.
+* [Informe de resumen del onboarding](../../SPRINT24-ONBOARDING-SUMMARY-REPORT.md) - Confirmación pública y segura del alta.
+* [Contrato del Objetivo 24](contracts/sprint24-onboarding-summary.md) - Resumen sin referencias de credencial.
