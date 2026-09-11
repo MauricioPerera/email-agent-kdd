@@ -47,6 +47,26 @@ def send_email_request():
     }
 
 
+def extract_attachment_request():
+    """Construye una solicitud LSFA de extracción sin incluir bytes ni rutas reales."""
+    return {
+        "operation": "extract_attachment",
+        "purpose": "Guardar localmente un adjunto seleccionado por el usuario",
+        "risk": "medium",
+        "initiator": "agent",
+        "presentation": "auto",
+        "fields": [
+            {"name": "account_ref", "type": "opaque_reference", "sensitivity": "private", "required": True},
+            {"name": "message_ref", "type": "opaque_reference", "sensitivity": "private", "required": True},
+            {"name": "attachment_ref", "type": "opaque_reference", "sensitivity": "private", "required": True},
+            {"name": "destination", "type": "safe_local_path", "sensitivity": "private", "required": True},
+        ],
+        "validation": {"preflight": "attachment_reference_and_destination"},
+        "confirmation": {"method": "user_accept", "required": True, "single_use": True},
+        "expires_in_seconds": 300,
+    }
+
+
 def validate_lsfa_request(request):
     """Valida el subconjunto LSFA usado por el CLI sin ejecutar efectos externos."""
     required = {"operation", "purpose", "fields", "validation", "expires_in_seconds"}

@@ -4,6 +4,7 @@ import pytest
 
 from src.email.lsfa_bridge import (
     connect_email_request,
+    extract_attachment_request,
     send_email_request,
     validate_lsfa_request,
 )
@@ -44,3 +45,12 @@ def test_validator_rejects_secret_values_and_reusable_confirmation():
     request["confirmation"]["single_use"] = False
     with pytest.raises(ValueError, match="single-use"):
         validate_lsfa_request(request)
+
+
+def test_extract_attachment_request_does_not_cross_bytes_boundary():
+    request = extract_attachment_request()
+    assert request["operation"] == "extract_attachment"
+    assert request["validation"]["preflight"] == "attachment_reference_and_destination"
+    assert request["confirmation"]["single_use"] is True
+    assert all("value" not in field for field in request["fields"])
+    assert validate_lsfa_request(request) is True

@@ -15,6 +15,7 @@ no descarga mensajes, no envía correo y no carga credenciales.
 | Confirmación humana | `user_accept` / `pin` | Compatible |
 | Confirmación de un solo uso | `single_use: true` | Compatible |
 | Resultado sin secretos | Contrato LSFA del cliente | Obligatorio al ejecutar |
+| Extracción de adjuntos | `extract_attachment_request` | Compatible con extensión LSFA |
 
 ## Límites actuales
 
@@ -22,8 +23,8 @@ no descarga mensajes, no envía correo y no carga credenciales.
   formulario ni al almacén seguro.
 - La comprobación real de IMAP/SMTP ocurre únicamente durante el flujo de
   configuración del usuario y no forma parte de esta prueba estática.
-- La integración todavía no define un contrato LSFA específico para adjuntos;
-  el CLI los trata mediante su política propia de autorización y presupuesto.
+- La extracción usa la extensión `specs/lsfa-attachments.md`; el CLI conserva
+  su política de autorización, tipo, hash y presupuesto.
 
 ## Reproducir
 
