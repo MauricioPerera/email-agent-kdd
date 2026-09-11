@@ -13,7 +13,9 @@ MAX_OUTPUT_BYTES = 4 * 1024 * 1024
 def main():
     content = sys.stdin.buffer.read()
     try:
-        reader = PdfReader(BytesIO(content), strict=True)
+        # Toleramos variaciones menores de xref producidas por clientes de
+        # correo; los limites y el manejo fail-closed siguen aplicando.
+        reader = PdfReader(BytesIO(content), strict=False)
         if reader.is_encrypted:
             raise ValueError("encrypted")
         if len(reader.pages) > MAX_PAGES:
