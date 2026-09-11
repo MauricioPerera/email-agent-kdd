@@ -163,3 +163,5 @@
 * [Contrato del Objetivo 75](contracts/sprint75-safe-text-extraction.md) - Sin ejecución de contenido activo.
 * [Informe del gate antivirus](../../SPRINT76-ANTIVIRUS-GATE-REPORT.md) - Escaneo fail-closed antes de extraer.
 * [Contrato del Objetivo 76](contracts/sprint76-antivirus-gate.md) - Estados y adaptador ClamAV.
+* [Informe del worker PDF](../../SPRINT77-PDF-WORKER-REPORT.md) - Extracción aislada y limitada.
+* [Contrato del Objetivo 77](contracts/sprint77-pdf-worker.md) - PDF sin red ni contenido activo.

@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [{name = "Email Agent contributors"}]
-dependencies = []
+dependencies = ["pypdf>=4,<7"]
 
 [project.scripts]
 email-agent = "src.email.cli:main"

@@ -5,6 +5,28 @@ import importlib
 import json
 
 
+def _pdf_bytes():
+    stream = b"BT /F1 12 Tf 72 720 Td (Texto PDF de prueba) Tj ET\n"
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+        b"<< /Length " + str(len(stream)).encode() + b" >>\nstream\n" + stream + b"endstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+    output = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+    for index, obj in enumerate(objects, 1):
+        offsets.append(len(output))
+        output.extend(f"{index} 0 obj\n".encode() + obj + b"\nendobj\n")
+    xref = len(output)
+    output.extend(f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode())
+    for offset in offsets[1:]:
+        output.extend(f"{offset:010d} 00000 n \n".encode())
+    output.extend(f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode())
+    return bytes(output)
+
+
 def _node(root, content, *, content_type="text/plain", stored=True):
     digest = hashlib.sha256(content).hexdigest()
     node = root / "store" / "mail.md"
@@ -62,3 +84,34 @@ def test_attachment_extract_rechaza_tipo_no_soportado(tmp_path, capsys):
     assert not (tmp_path / "out.txt").exists()
     assert digest in cli.blob_path(str(tmp_path), digest).name
     assert "traceback" not in capsys.readouterr().err.lower()
+
+
+def test_attachment_extracta_pdf_despues_del_gate(tmp_path, monkeypatch):
+    cli = importlib.import_module("src.email.cli")
+    attachments = importlib.import_module("src.email.attachments")
+    content = _pdf_bytes()
+    digest = _node(tmp_path, content, content_type="application/pdf")
+    _blob(cli, tmp_path, content)
+    result = attachments.extract_text_from_blob(
+        str(tmp_path),
+        {"sha256": digest, "filename": "source.pdf", "content_type": "application/pdf"},
+        scanner=lambda _: "clean",
+    )
+    assert "Texto PDF de prueba" in result["text"]
+
+
+def test_attachment_extract_rechaza_pdf_corrupto_despues_del_gate(tmp_path):
+    attachments = importlib.import_module("src.email.attachments")
+    content = b"%PDF-corrupto"
+    digest = _node(tmp_path, content, content_type="application/pdf")
+    _blob(importlib.import_module("src.email.cli"), tmp_path, content)
+    try:
+        attachments.extract_text_from_blob(
+            str(tmp_path),
+            {"sha256": digest, "filename": "broken.pdf", "content_type": "application/pdf"},
+            scanner=lambda _: "clean",
+        )
+    except attachments.AttachmentError as exc:
+        assert exc.code == "pdf-rejected"
+    else:
+        raise AssertionError("un PDF corrupto debe rechazarse")

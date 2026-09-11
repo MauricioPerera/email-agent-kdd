@@ -11,6 +11,8 @@ import hashlib
 import json
 import os
 import re
+import subprocess
+import sys
 from datetime import datetime, timezone
 from email import policy
 from email.parser import BytesParser
@@ -21,6 +23,7 @@ from src.email.antivirus import scan_bytes
 
 MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
 MAX_EXTRACTED_TEXT_BYTES = 2 * 1024 * 1024
+MAX_PDF_BYTES = 25 * 1024 * 1024
 _TEXT_TYPES = frozenset(
     {"text/plain", "text/csv", "text/markdown", "application/json"}
 )
@@ -420,26 +423,50 @@ def list_node_attachments(root, rel_path):
 def extract_text_from_blob(root, entry, max_bytes=MAX_EXTRACTED_TEXT_BYTES, scanner=None):
     """Lee solo blobs almacenados y los convierte con parsers de texto inertes.
 
-    No interpreta HTML, PDF, documentos ofimaticos ni formatos ejecutables:
-    esos formatos requieren una etapa futura con sandbox y antivirus externo.
+    PDF se delega a un worker sin red despues del gate antivirus. HTML,
+    documentos ofimaticos y formatos ejecutables siguen rechazados.
     """
     data = dict(entry or {})
     content_type = str(data.get("content_type") or "").split(";", 1)[0].lower()
     filename = str(data.get("filename") or "")
-    if content_type not in _TEXT_TYPES or not is_type_allowed(content_type, filename):
+    is_pdf = content_type == "application/pdf" and filename.lower().endswith(".pdf")
+    if (content_type not in _TEXT_TYPES and not is_pdf) or not is_type_allowed(content_type, filename):
         raise AttachmentError("type-not-supported", "tipo no soportado para texto")
     sha256 = _normalize_sha256(data.get("sha256"))
     blob = blob_path(root, sha256)
     if not blob.is_file():
         raise AttachmentError("not-stored", "el adjunto no esta almacenado")
     content = blob.read_bytes()
-    if len(content) > int(max_bytes):
+    input_limit = MAX_PDF_BYTES if is_pdf else max_bytes
+    if len(content) > int(input_limit):
         raise AttachmentError("size-limit-exceeded", "texto extraido demasiado grande")
     if hashlib.sha256(content).hexdigest() != sha256:
         raise AttachmentError("hash-mismatch", "blob corrupto")
     scan_status = scan_bytes(content, scanner)
     if scan_status != "clean":
         raise AttachmentError("antivirus-" + scan_status, "escaneo antivirus no aprobado")
+    if is_pdf:
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", "src.email.pdf_worker"],
+                input=content,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                timeout=15,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise AttachmentError("pdf-parser-error", "parser PDF no disponible") from exc
+        if result.returncode != 0:
+            raise AttachmentError("pdf-rejected", "PDF cifrado, corrupto o fuera de limites")
+        try:
+            payload = json.loads(result.stdout.decode("utf-8"))
+            text = payload["text"]
+        except (UnicodeDecodeError, KeyError, TypeError, ValueError) as exc:
+            raise AttachmentError("pdf-parser-error", "salida PDF invalida") from exc
+        if not isinstance(text, str) or len(text.encode("utf-8")) > 4 * 1024 * 1024:
+            raise AttachmentError("size-limit-exceeded", "texto extraido demasiado grande")
+        return {"sha256": sha256, "content_type": content_type, "text": text}
     if b"\x00" in content:
         raise AttachmentError("unsafe-content", "contenido no textual")
     try:

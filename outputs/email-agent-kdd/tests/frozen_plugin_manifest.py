@@ -272,7 +272,7 @@ def test_pyproject_declares_entry_point():
     data = PYPROJECT.read_text(encoding="utf-8")
     assert 'email-agent = "src.email.cli:main"' in data
     assert 'requires-python = ">=3.10"' in data
-    assert "dependencies = []" in data
+    assert 'dependencies = ["pypdf>=4,<7"]' in data
 
 
 def main() -> int:
