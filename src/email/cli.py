@@ -846,8 +846,25 @@ def _run_notification(argv):
                 ])
             print(json.dumps({"deleted": delete_notification_rule(argv[2], argv[3])}))
             return 0
-        if len(argv) != 5:
-            return _fail(["error: notification add requiere ROOT NAME QUERY", USAGE])
+        if len(argv) not in (5, 7):
+            return _fail([
+                "error: notification add requiere ROOT NAME QUERY y, al "
+                "reemplazar, CONFIRMAR REGLA",
+                USAGE,
+            ])
+        confirmation = " ".join(argv[5:]) if len(argv) == 7 else None
+        existing = next(
+            (rule for rule in list_notification_rules(argv[2]) if rule.get("name") == argv[3]),
+            None,
+        )
+        if existing is not None and confirmation != _NOTIFICATION_DELETE_CONFIRMATION:
+            return _fail([
+                "error: la regla ya existe; muestra su consulta y solicita "
+                "CONFIRMAR REGLA antes de reemplazarla",
+                USAGE,
+            ])
+        if len(argv) == 7 and confirmation != _NOTIFICATION_DELETE_CONFIRMATION:
+            return _fail(["error: confirmacion requerida: CONFIRMAR REGLA", USAGE])
         save_notification_rule(argv[2], argv[3], argv[4])
         print(json.dumps({"saved": argv[3]}, sort_keys=True))
         return 0

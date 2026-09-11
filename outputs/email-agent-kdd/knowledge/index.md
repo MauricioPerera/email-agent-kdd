@@ -111,3 +111,5 @@
 * [Contrato del Objetivo 47](contracts/sprint47-plugin-notification-auth.md) - Lectura sin confirmación y cambios autorizados.
 * [Informe del CLI para reglas de notificación](../../SPRINT48-CLI-NOTIFICATION-AUTH-REPORT.md) - Confirmación ejecutable antes de borrar.
 * [Contrato del Objetivo 48](contracts/sprint48-cli-notification-auth.md) - Frase literal para mutaciones destructivas.
+* [Informe de reemplazo de reglas](../../SPRINT49-CLI-NOTIFICATION-REPLACE-REPORT.md) - Cambios protegidos por confirmación.
+* [Contrato del Objetivo 49](contracts/sprint49-cli-notification-replace.md) - No sobrescribir reglas silenciosamente.

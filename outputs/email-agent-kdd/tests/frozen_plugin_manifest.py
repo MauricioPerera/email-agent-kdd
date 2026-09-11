@@ -187,6 +187,8 @@ def test_skill_documents_notification_rule_authorization():
     text = SKILL.read_text(encoding="utf-8")
     assert "notification add ROOT NAME QUERY" in text
     assert "only after the user explicitly requests that exact rule" in text
+    assert "notification add ROOT NAME QUERY CONFIRMAR REGLA" in text
+    assert "first show its stored query" in text
     assert "notification list ROOT" in text
     assert "Listing rules is read-only and does not need confirmation" in text
     assert "notification delete ROOT NAME CONFIRMAR REGLA" in text
