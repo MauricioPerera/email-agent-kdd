@@ -5,6 +5,51 @@ on:
   pull_request:
 
 jobs:
+  hygiene:
+    name: Repo hygiene (no data, build artifacts or secrets tracked)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if git tracks local data, build artifacts or secrets
+        run: |
+          python3 - <<'PY'
+          import fnmatch, subprocess, sys
+
+          files = subprocess.run(
+              ["git", "ls-files", "-z"], check=True,
+              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+          ).stdout.decode("utf-8", "surrogateescape").split("\0")
+          files = [f for f in files if f]
+
+          # Rutas que nunca deben estar trackeadas (datos locales, artefactos)
+          # ni archivos de credenciales/secretos. Solo se informa el patron y el
+          # conteo: jamas la ruta ni el contenido, para no exponer nada sensible.
+          patterns = [
+              "store/*", "work/*", "drafts/*", ".email-agent/*",
+              "build/*", "*.egg-info/*", "*/*.egg-info/*",
+              "*.key", "*.pem", "*.p12", "*.pfx",
+              ".env", ".env.*", "*.env",
+              "credentials*.json", "*credentials*.json",
+              "secret*", ".secrets/*",
+              "id_rsa*", "*.ppk", "*_rsa", "auth.json", "*.crt",
+          ]
+
+          offenders = {}
+          for f in files:
+              parts = f.lower().replace("\\", "/")
+              for p in patterns:
+                  if fnmatch.fnmatch(parts, p.lower()):
+                      offenders.setdefault(p, 0)
+                      offenders[p] += 1
+                      break
+
+          if offenders:
+              for p in sorted(offenders):
+                  print(f"FORBIDDEN: {offenders[p]} tracked file(s) match pattern: {p}")
+              sys.exit(1)
+          print("OK: no tracked local data, build artifacts or secret-like files")
+          PY
+
   test:
     strategy:
       matrix:
@@ -20,3 +65,29 @@ jobs:
       - run: python -m pip install pytest
       - run: python -m compileall -q src
       - run: python -m pytest -q
+      - run: python -m pip install .
+      - name: Entry point smoke test
+        run: email-agent --help
+        shell: bash
+
+  build:
+    name: Packaging validation
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install build
+      - name: Build sdist and wheel (build isolation, reproducible)
+        run: python -m build
+        shell: bash
+      - name: Verify artifacts exist (no upload)
+        run: |
+          test -f dist/*.tar.gz
+          test -f dist/*.whl
+        shell: bash

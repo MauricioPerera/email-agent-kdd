@@ -76,7 +76,55 @@ def _raw_message(result):
     return bytes(payload)
 
 
-def fetch_imap_messages(account: dict, config: dict, connection_factory=None) -> list:
+def fetch_raw_message_by_uid(
+    account: dict, config: dict, uid: int, connection_factory=None
+) -> bytes:
+    """Fetch RFC822 readonly de UN mensaje por UID: devuelve los bytes crudos.
+
+    Reutiliza la validacion (`_validate`), la limpieza de conexion (`finally`)
+    y la sanitizacion de password de `fetch_imap_messages`. Solo lectura: no
+    muta el cursor ni el mailbox.
+    """
+    if not isinstance(uid, int) or isinstance(uid, bool) or uid < 1:
+        raise ValueError("uid debe ser int no bool >= 1")
+    mailbox, _limit, _since_uid = _validate(account, config)
+    account_id = account["account_id"]
+    host = config["host"]
+    port = int(config.get("port", DEFAULT_PORT))
+    if connection_factory is None:
+        connection_factory = imaplib.IMAP4_SSL
+    connection = connection_factory(host, port)
+    try:
+        connection.login(config["username"], config["password"])
+        connection.select(mailbox, readonly=True)
+        typ, data = connection.fetch(str(uid), "(RFC822)")
+        return _raw_message((typ, data))
+    except Exception as exc:
+        message = type(exc).__name__ + ": " + str(exc)
+        password = config["password"]
+        if password and password in message:
+            message = message.replace(password, "***")
+        raise RuntimeError(
+            "IMAP fallo para " + account_id + " en " + host + ": " + message
+        ) from exc
+    finally:
+        for action in ("close", "logout"):
+            try:
+                getattr(connection, action)()
+            except Exception:
+                pass
+
+
+def fetch_imap_messages(
+    account: dict, config: dict, connection_factory=None, include_raw=False
+) -> list:
+    """Sincroniza el buzon; con `include_raw=True` cada record lleva el RFC822.
+
+    `include_raw` es opt-in (solo `sync --attachments`): adjunta el RFC822 ya
+    descargado en `record["raw_message"]` para que la extraccion de adjuntos
+    reutilice esos bytes sin re-fetch. Por defecto (False) el record queda
+    exactamente igual que antes y los bytes se descartan.
+    """
     mailbox, limit, since_uid = _validate(account, config)
     account_id = account["account_id"]
     host = config["host"]
@@ -96,8 +144,11 @@ def fetch_imap_messages(account: dict, config: dict, connection_factory=None) ->
         records = []
         for message_id in ids:
             typ, data = connection.fetch(str(message_id), "(RFC822)")
-            record = parse_raw_email(_raw_message((typ, data)), account_id)
+            raw = _raw_message((typ, data))
+            record = parse_raw_email(raw, account_id)
             record["imap_uid"] = message_id
+            if include_raw:
+                record["raw_message"] = raw
             records.append(record)
         return records
     except Exception as exc:

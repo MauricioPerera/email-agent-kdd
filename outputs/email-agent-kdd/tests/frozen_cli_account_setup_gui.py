@@ -59,10 +59,23 @@ HOST_PATTERN = re.compile(r"^[a-z0-9]([a-z0-9._-]{0,251}[a-z0-9])?$")
 PASSWORD_MASK = 'show="*"'
 COMMAND = "account setup-gui ROOT"
 
-STOP_MESSAGE = (
-    "PARAR: el almacenamiento seguro de Windows no esta disponible en "
-    "este sistema; no existe alternativa segura"
-)
+def _stop_message(platform=None):
+    """Modelo del mensaje de PARAR: el almacen nativo, nombrado por OS."""
+    import sys
+
+    system = sys.platform if platform is None else platform
+    if system.startswith("win"):
+        name = "Windows (Credential Manager)"
+    elif system == "darwin":
+        name = "macOS (Keychain)"
+    elif system.startswith("linux"):
+        name = "Linux (Secret Service)"
+    else:
+        name = "de este sistema"
+    return (
+        "PARAR: el almacenamiento seguro de " + name + " no esta "
+        "disponible en este sistema; no existe alternativa segura"
+    )
 GENERIC_ERROR = "error generico: no se pudo guardar la cuenta"
 EMPTY_FIELDS = "error generico: escriba su correo y su contrasena"
 INCOMPLETE = "error generico: faltan datos del servidor de correo"
@@ -306,7 +319,7 @@ class SetupModel:
                 self.window.password_value,
             )
         except RuntimeError:
-            self._terminal("warning", STOP_MESSAGE)
+            self._terminal("warning", _stop_message())
             return
         except Exception:
             self._terminal("error", GENERIC_ERROR)
@@ -356,7 +369,7 @@ def test_contract_structure():
     assert PASSWORD_MASK in body, "el contrato no exige show=\"*\" en el password"
     assert "discover_mail_servers" in body, "falta el discovery congelado"
     assert "store_mail_server_config" in body, "falta la persistencia de servidores"
-    assert "provision_windows_email_account" in body, "falta la delegacion conceptual"
+    assert "provision_email_account" in body, "falta la delegacion conceptual"
     assert '"custom"' in body, "falta la etiqueta publica del proveedor"
     assert "email-" in body, "falta la derivacion determinista del label"
     assert "57" in body, "falta la truncacion que mantiene el label <= 64"

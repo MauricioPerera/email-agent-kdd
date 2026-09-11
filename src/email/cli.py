@@ -3,35 +3,80 @@
 Interpreta `argv` (sin el nombre del programa): `--help`/`-h`, el subcomando
 `query ROOT INSTRUCTION`, el subcomando `search ROOT QUERY`, el subcomando
 `account` (`setup ROOT` guiado, `add ROOT ACCOUNT_ID PROVIDER EMAIL
-CREDENTIAL_REF` y `list ROOT`) o el subcomando `sync ROOT ACCOUNT_ID [HOST] [--limit N]`. Los datos van a stdout; usage
+CREDENTIAL_REF` y `list ROOT`), el subcomando `sync ROOT ACCOUNT_ID [HOST]
+[--limit N] [--unread] [--attachments CONFIRMAR EXTRACCION]` (con
+`--attachments` guarda los blobs de adjuntos permitidos reutilizando el
+RFC822 ya descargado, con presupuesto por sync; sin la frase literal aborta
+antes de conectar, y sin la opcion jamas se persiste un byte) o el subcomando
+`message` (`delete ROOT REL_PATH`, `restore ROOT TRASH_REL_PATH`,
+`trash ROOT`, `purge ROOT TRASH_REL_PATH CONFIRMAR BORRADO PERMANENTE`
+que delega el borrado reversible en deletion, y los comandos remotos
+`remote-delete`, `remote-restore` y `remote-purge` que delegan en
+imap_deletion) y el subcomando `attachment` (`list ROOT REL_PATH`, solo
+metadatos, y `download ROOT REL_PATH INDEX DEST CONFIRMAR EXTRACCION` que
+re-fetchea el mensaje por UID readonly, guarda el blob content-addressed con
+`authorize=True` y copia bajo ROOT, delegando en attachments e imap_reader). Los datos van a stdout; usage
 y errores a stderr, siempre genericos
 (sin `credential_ref` ni secretos ni tracebacks). Codigos: 0 exito/ayuda,
 1 fallo de operacion, 2 error de argumentos. La lectura de cuentas, la
 resolucion de credenciales, la carga de servidores guardados, el fetch IMAP,
 la orquestacion, la persistencia OKF y la extraccion/almacen de contactos no
-se reimplementan: se delega en account, account_store, search, credentials,
-mail_server_store, imap_reader, sync, persist_at, contacts, contact_store,
-outgoing_contacts y cursor_store.
+se reimplementan: se delega en account, account_store, attachments, search, credentials,
+mail_server_store, imap_reader, imap_deletion, sync, persist_at, contacts,
+contact_store, outgoing_contacts y cursor_store.
 """
 
+import hashlib
 import json
 import os
 import subprocess
 import sys
 import time
+from builtins import input
+from pathlib import Path
 
 from src.email.account import create_email_account
-from src.email.account_store import load_email_accounts, remove_email_account, save_email_account
+from src.email.account_store import load_email_accounts, save_email_account
+from src.email.attachments import (
+    AttachmentError,
+    GC_CONFIRMATION,
+    MAX_ATTACHMENT_BYTES,
+    blob_path,
+    extract_attachment_bytes,
+    gc_execute,
+    gc_scan,
+    is_type_allowed,
+    legacy_attachment_block,
+    list_node_attachments,
+    mark_attachment_stored,
+    read_attachment_entries,
+    read_download_target,
+    sanitize_display_name,
+    store_attachment_bytes,
+    store_record_attachments,
+    write_node_text_atomic,
+)
 from src.email.confirm import confirm_email_draft
 from src.email.contacts import extract_contacts
 from src.email.contact_store import load_email_contacts, store_email_contacts
 from src.email.cursor_store import load_sync_cursor, save_sync_cursor
+from src.email.deletion import (
+    list_trash,
+    purge,
+    restore,
+    soft_delete,
+)
 from src.email.draft import create_email_draft
 from src.email.smtp_send import send_smtp_message
 from src.email.conversation_index import persist_conversation_index
 from src.email.credentials import resolve_credential
-from src.email.mail_server_store import load_mail_server_config, remove_mail_server_config
-from src.email.imap_reader import fetch_imap_messages
+from src.email.mail_server_store import load_mail_server_config
+from src.email.imap_reader import (
+    DEFAULT_MAILBOX,
+    fetch_imap_messages,
+    fetch_raw_message_by_uid,
+)
+from src.email.imap_deletion import ImapDeletionProvider
 from src.email.node import read_email_node
 from src.email.outgoing_contacts import extract_outgoing_contacts
 from src.email.persist_at import persist_email_okf_at
@@ -42,27 +87,45 @@ from src.email.sync import sync_email_account
 from src.email.notifications import notify_new_records
 from src.email.notifications import delete_notification_rule, list_notification_rules, save_notification_rule
 from src.email.autostart import install_startup, remove_startup, startup_status
-from src.email.wincred import delete_windows_credential
+from src.email.unlink import unlink_email_account
 
 USAGE = (
-    "usage: email-cli [--help] | email-cli query ROOT INSTRUCTION | "
-    "email-cli search ROOT QUERY | "
-    "email-cli read ROOT REL_PATH | "
-    "email-cli account add ROOT ACCOUNT_ID PROVIDER EMAIL CREDENTIAL_REF | "
-    "email-cli account setup ROOT | "
-    "email-cli account setup-gui ROOT | "
-    "email-cli account remove ROOT ACCOUNT_ID CONFIRMAR DESVINCULAR | "
-    "email-cli account list ROOT | email-cli contact list ROOT | "
-    "email-cli sync ROOT ACCOUNT_ID [HOST] [--limit N] [--unread] | "
-    "email-cli watch ROOT ACCOUNT_ID [--every N] [--limit N] [--unread] | "
-    "email-cli notification add|list|delete ROOT ... | "
-    "email-cli startup install|status|remove ROOT ACCOUNT_ID ... | "
-    "email-cli draft ROOT ACCOUNT_ID TO SUBJECT BODY | "
-    "email-cli send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO"
+    "usage: email-agent [--help] | email-agent query ROOT INSTRUCTION | "
+    "email-agent search ROOT QUERY | "
+    "email-agent read ROOT REL_PATH | "
+    "email-agent account add ROOT ACCOUNT_ID PROVIDER EMAIL CREDENTIAL_REF | "
+    "email-agent account setup ROOT | "
+    "email-agent account setup-gui ROOT | "
+    "email-agent account remove ROOT ACCOUNT_ID CONFIRMAR DESVINCULAR | "
+    "email-agent account list ROOT | email-agent contact list ROOT | "
+    "email-agent sync ROOT ACCOUNT_ID [HOST] [--limit N] [--unread] "
+    "[--attachments CONFIRMAR EXTRACCION] | "
+    "email-agent watch ROOT ACCOUNT_ID [--every N] [--limit N] [--unread] | "
+    "email-agent notification add|list|delete ROOT ... | "
+    "email-agent startup install|status|remove ROOT ACCOUNT_ID ... | "
+    "email-agent message delete ROOT REL_PATH | "
+    "email-agent message restore ROOT TRASH_REL_PATH | "
+    "email-agent message trash ROOT | "
+    "email-agent message purge ROOT TRASH_REL_PATH CONFIRMAR BORRADO PERMANENTE | "
+    "email-agent message remote-delete ROOT ACCOUNT_ID UID TRASH_MAILBOX | "
+    "email-agent message remote-restore ROOT ACCOUNT_ID UID TRASH_MAILBOX "
+    "ORIGINAL_MAILBOX | "
+    "email-agent message remote-purge ROOT ACCOUNT_ID UID MAILBOX "
+    "CONFIRMAR BORRADO PERMANENTE | "
+    "email-agent attachment list ROOT REL_PATH | "
+    "email-agent attachment download ROOT REL_PATH INDEX DEST "
+    "CONFIRMAR EXTRACCION | "
+    "email-agent attachment gc ROOT [CONFIRMAR BORRADO ADJUNTOS] | "
+    "email-agent draft ROOT ACCOUNT_ID TO SUBJECT BODY | "
+    "email-agent send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO"
 )
 SYNC_USAGE = (
-    "  sync ROOT ACCOUNT_ID [HOST] [--limit N] [--unread]  "
-    "sincroniza una cuenta guardada (paginacion, default 50)"
+    "  sync ROOT ACCOUNT_ID [HOST] [--limit N] [--unread] "
+    "[--attachments CONFIRMAR EXTRACCION]  "
+    "sincroniza una cuenta guardada (paginacion, default 50); con "
+    "--attachments (frase literal) guarda los blobs de adjuntos permitidos "
+    "reutilizando el RFC822 ya descargado, con presupuesto total por sync de "
+    "SYNC_ATTACHMENT_BUDGET_MB (default 100 MB)"
 )
 WATCH_USAGE = (
     "  watch ROOT ACCOUNT_ID [--every N] [--limit N] [--unread]  "
@@ -75,6 +138,13 @@ _PUBLIC_KEYS = ("account_id", "provider", "email", "status")
 _SMTP_PROVIDER_HOSTS = {"gmail": "smtp.gmail.com", "outlook": "smtp.office365.com"}
 _DEFAULT_SMTP_PORT = 587
 _CONFIRMATION_PHRASE = "CONFIRMAR ENVIO"
+_PURGE_CONFIRMATION = "CONFIRMAR BORRADO PERMANENTE"
+_UNLINK_CONFIRMATION = "CONFIRMAR DESVINCULAR"
+_EXTRACTION_CONFIRMATION = "CONFIRMAR EXTRACCION"
+# Presupuesto total por sync --attachments, en MB (default 100 MB). Un valor
+# invalido de la env var aborta con error de argumentos antes de conectar.
+_SYNC_ATTACHMENT_BUDGET_ENV = "SYNC_ATTACHMENT_BUDGET_MB"
+_SYNC_ATTACHMENT_BUDGET_MB_DEFAULT = 100
 _ATTACHMENT_KEYS = ("attachments", "adjuntos", "attachment")
 _SETUP_INTRO = (
     "Configuracion guiada de cuenta "
@@ -99,6 +169,24 @@ def _print_stderr(lines):
 def _fail(lines):
     _print_stderr(lines)
     return 2
+
+
+def _write_stdout(text):
+    """Escribe `text` a stdout como UTF-8 en Windows (evita UnicodeEncodeError
+    bajo cp1252) y con el write normal en el resto de plataformas."""
+    if sys.platform == "win32":
+        buffer = getattr(sys.stdout, "buffer", None)
+        if buffer is not None:
+            buffer.write(text.encode("utf-8"))
+            buffer.flush()
+            return
+        reconfigure = getattr(sys.stdout, "reconfigure", None)
+        if reconfigure is not None:
+            try:
+                reconfigure(encoding="utf-8")
+            except (OSError, ValueError):
+                pass
+    sys.stdout.write(text)
 
 
 def _account_add(argv):
@@ -283,7 +371,7 @@ def _run_read(argv):
             "error: la lectura fallo (nodo inexistente o fallo de E/S)",
         ])
         return 1
-    sys.stdout.write(text)
+    _write_stdout(text)
     return 0
 
 
@@ -476,6 +564,42 @@ def _pop_sync_limit(argv):
     return rest, limit
 
 
+def _pop_sync_attachments(argv):
+    """Extrae `--attachments CONFIRMAR EXTRACCION` de argv.
+
+    Devuelve (resto, True) si la frase literal es exacta, (resto, False) si la
+    opcion no aparece y (None, None) si `--attachments` no va seguida de la
+    frase exacta, para que el llamador aborte ANTES de conectar.
+    """
+    rest = list(argv)
+    authorized = False
+    while "--attachments" in rest:
+        index = rest.index("--attachments")
+        if " ".join(rest[index + 1:index + 3]) != _EXTRACTION_CONFIRMATION:
+            return None, None
+        del rest[index:index + 3]
+        authorized = True
+    return rest, authorized
+
+
+def _sync_attachment_budget():
+    """Presupuesto total en bytes para `sync --attachments` (default 100 MB).
+
+    Configurable con la env var `SYNC_ATTACHMENT_BUDGET_MB` (entero >= 1);
+    un valor invalido devuelve None para que el llamador falle antes de conectar.
+    """
+    raw = os.environ.get(_SYNC_ATTACHMENT_BUDGET_ENV)
+    if raw is None:
+        return _SYNC_ATTACHMENT_BUDGET_MB_DEFAULT * 1024 * 1024
+    try:
+        megabytes = int(raw)
+    except ValueError:
+        return None
+    if megabytes < 1:
+        return None
+    return megabytes * 1024 * 1024
+
+
 def _run_sync(argv):
     rest, limit = _pop_sync_limit(argv)
     if rest is None:
@@ -484,6 +608,23 @@ def _run_sync(argv):
             USAGE,
             SYNC_USAGE,
         ])
+    rest, attachments_mode = _pop_sync_attachments(rest)
+    if rest is None:
+        _print_stderr([
+            "error: confirmacion explicita requerida para extraer adjuntos "
+            "(frase literal CONFIRMAR EXTRACCION)",
+        ])
+        return 1
+    budget = None
+    if attachments_mode:
+        budget = _sync_attachment_budget()
+        if budget is None:
+            return _fail([
+                "error: la env var SYNC_ATTACHMENT_BUDGET_MB debe ser un "
+                "entero >= 1",
+                USAGE,
+                SYNC_USAGE,
+            ])
     unread = "--unread" in rest
     rest = [item for item in rest if item != "--unread"]
     if len(rest) not in (3, 4):
@@ -544,13 +685,39 @@ def _run_sync(argv):
         config["port"] = servers["imap_port"]
     fetched = []
 
+    # Mailbox efectivo de la sesion de sync: config["mailbox"] si existiera,
+    # o INBOX; se estampa en cada record antes de persistir para que el nodo
+    # quede re-descargable por UID (sin credenciales).
+    mailbox = config.get("mailbox") or DEFAULT_MAILBOX
+
     def fetch(_account):
         nonlocal fetched
-        fetched = fetch_imap_messages(_account, config)
+        if attachments_mode:
+            # Opt-in: el RFC822 ya descargado viaja en el record para extraer
+            # adjuntos sin re-fetch. La ruta por defecto no cambia la firma.
+            fetched = fetch_imap_messages(_account, config, include_raw=True)
+        else:
+            fetched = fetch_imap_messages(_account, config)
+        for record in fetched:
+            record["mailbox"] = mailbox
         return fetched
+
+    attachment_stats = {"stored": 0, "skipped": 0, "errors": 0}
 
     def persist(record):
         rel_path = "store/emails/" + record["raw_sha256"] + ".md"
+        if attachments_mode:
+            # Extraccion autorizada: reutiliza el RFC822 ya descargado en esta
+            # sync (sin re-fetch). Cada fallo por adjunto se degrada a
+            # `skipped` en el frontmatter: nunca aborta ni rompe el cursor.
+            entries, stats = store_record_attachments(root, record, budget)
+            attachment_stats["stored"] += stats["stored"]
+            attachment_stats["skipped"] += stats["skipped"]
+            attachment_stats["errors"] += stats["errors"]
+            prepared = dict(record)
+            prepared["attachments"] = entries
+            prepared.pop("raw_message", None)
+            record = prepared
         path = persist_email_okf_at(record, root, rel_path)
         persist_conversation_index(root, record, rel_path)
         persist_topic_index(root, record, rel_path)
@@ -561,6 +728,10 @@ def _run_sync(argv):
     except Exception:
         _print_stderr(["error: la sincronizacion fallo (cuenta o almacen invalido)"])
         return 1
+    if attachments_mode:
+        summary["attachments_stored"] = attachment_stats["stored"]
+        summary["attachments_skipped"] = attachment_stats["skipped"]
+        summary["attachments_errors"] = attachment_stats["errors"]
     if fetched:
         try:
             save_sync_cursor(
@@ -579,23 +750,18 @@ def _run_sync(argv):
 
 
 def _account_remove(argv):
-    """Desvincular una cuenta tras una confirmacion literal del usuario."""
-    if len(argv) != 5:
+    """Desvincular una cuenta tras la confirmacion literal CONFIRMAR DESVINCULAR."""
+    if len(argv) < 5:
         return _fail(["error: account remove requiere ROOT, ACCOUNT_ID y confirmacion", USAGE])
-    if argv[4] != "DESVINCULAR":
+    if " ".join(argv[4:]) != _UNLINK_CONFIRMATION:
         _print_stderr(["error: confirmacion explicita requerida para desvincular"])
         return 1
     try:
-        records = load_email_accounts(argv[2])
-        record = next((item for item in records if item["account_id"] == argv[3]), None)
-        if record is None:
-            _print_stderr(["error: cuenta no encontrada"])
-            return 1
-        if record["credential_ref"].startswith("wincred://"):
-            delete_windows_credential(record["credential_ref"])
-        removed = remove_email_account(argv[2], argv[3])
-        remove_mail_server_config(argv[2], argv[3])
-    except (ValueError, RuntimeError, LookupError, OSError):
+        removed = unlink_email_account(argv[2], argv[3])
+    except LookupError:
+        _print_stderr(["error: cuenta no encontrada"])
+        return 1
+    except (ValueError, RuntimeError, OSError):
         _print_stderr(["error: no se pudo desvincular la cuenta"])
         return 1
     print(json.dumps({"account_id": removed["account_id"], "status": "unlinked"}, sort_keys=True))
@@ -703,6 +869,505 @@ def _run_startup(argv):
         return 1
 
 
+_MESSAGE_ACTION_USAGE = (
+    "  message delete ROOT REL_PATH  mueve un nodo .md a root/.trash",
+    "  message restore ROOT TRASH_REL_PATH  devuelve un nodo desde .trash",
+    "  message trash ROOT  lista los manifiestos de root/.trash",
+    "  message purge ROOT TRASH_REL_PATH CONFIRMAR BORRADO PERMANENTE",
+    "  message remote-delete ROOT ACCOUNT_ID UID TRASH_MAILBOX  "
+    "mueve el mensaje remoto a Trash (COPY + Deleted, sin expunge)",
+    "  message remote-restore ROOT ACCOUNT_ID UID TRASH_MAILBOX ORIGINAL_MAILBOX  "
+    "devuelve el mensaje desde Trash",
+    "  message remote-purge ROOT ACCOUNT_ID UID MAILBOX "
+    "CONFIRMAR BORRADO PERMANENTE  expurga solo con UIDPLUS",
+)
+
+
+def _parse_uid(raw):
+    """UID como int >= 1 desde argv; None si no es valido (sin signos ni espacios)."""
+    if not isinstance(raw, str) or not raw.isdigit() or not int(raw) >= 1:
+        return None
+    return int(raw)
+
+
+def _run_remote_message(argv, action):
+    """Capa fina sobre ImapDeletionProvider: cuenta/config/UID resueltos del store."""
+    if action == "remote-restore":
+        if len(argv) != 7:
+            return _fail([
+                "error: message remote-restore requiere ROOT, ACCOUNT_ID, "
+                "UID, TRASH_MAILBOX y ORIGINAL_MAILBOX",
+                USAGE,
+            ])
+        root, account_id, raw_uid, mailbox, original = argv[2:7]
+    elif action == "remote-delete":
+        if len(argv) != 6:
+            return _fail([
+                "error: message remote-delete requiere ROOT, ACCOUNT_ID, "
+                "UID y TRASH_MAILBOX",
+                USAGE,
+            ])
+        root, account_id, raw_uid, mailbox = argv[2:6]
+        original = None
+    else:
+        if len(argv) < 7:
+            return _fail([
+                "error: message remote-purge requiere ROOT, ACCOUNT_ID, UID, "
+                "MAILBOX y la confirmacion literal CONFIRMAR BORRADO PERMANENTE",
+                USAGE,
+            ])
+        root, account_id, raw_uid, mailbox = argv[2], argv[3], argv[4], argv[5]
+        if " ".join(argv[6:]) != _PURGE_CONFIRMATION:
+            _print_stderr([
+                "error: confirmacion explicita requerida para el borrado permanente",
+            ])
+            return 1
+        original = None
+    uid = _parse_uid(raw_uid)
+    if uid is None:
+        return _fail(["error: UID debe ser un entero positivo", USAGE])
+    try:
+        accounts = load_email_accounts(root)
+    except Exception:
+        _print_stderr(["error: el store de cuentas es ilegible"])
+        return 1
+    account = next(
+        (item for item in accounts if item.get("account_id") == account_id),
+        None,
+    )
+    if account is None:
+        _print_stderr(["error: cuenta no encontrada"])
+        return 1
+    try:
+        servers = load_mail_server_config(root, account_id)
+    except Exception:
+        _print_stderr(["error: la configuracion de servidores es ilegible"])
+        return 1
+    try:
+        secret = resolve_credential(account["credential_ref"])
+    except Exception:
+        _print_stderr(["error: credencial irresoluble"])
+        return 1
+    host = (
+        servers["imap_host"]
+        if servers is not None
+        else _PROVIDER_HOSTS.get(account.get("provider"))
+    )
+    if not host:
+        _print_stderr(["error: provider sin host por defecto"])
+        return 1
+    config = {"host": host, "username": account["email"], "password": secret}
+    if servers is not None:
+        config["port"] = servers["imap_port"]
+    provider = ImapDeletionProvider()
+    try:
+        if action == "remote-delete":
+            # TRASH_MAILBOX va como parametro explicito; el mailbox origen lo
+            # resuelve el provider (config["mailbox"] si existiera, o INBOX).
+            receipt = provider.soft_delete(account, config, uid, mailbox)
+        elif action == "remote-restore":
+            receipt = provider.restore(account, config, mailbox, uid, original)
+        else:
+            receipt = provider.permanent_delete(
+                account, config, mailbox, uid, _PURGE_CONFIRMATION
+            )
+    except ValueError:
+        _print_stderr([
+            "error: la operacion remota fallo (cuenta o datos invalidos)",
+        ])
+        return 1
+    except Exception:
+        _print_stderr(["error: la operacion IMAP fallo (sin cambios seguros)"])
+        return 1
+    print(json.dumps(receipt, sort_keys=True))
+    return 0
+
+
+def _run_message(argv):
+    """Capa fina de presentacion sobre deletion (local .trash y remoto IMAP)."""
+    if len(argv) < 2 or argv[1] not in (
+        "delete", "restore", "trash", "purge",
+        "remote-delete", "remote-restore", "remote-purge",
+    ):
+        return _fail([
+            "error: message requiere 'delete', 'restore', 'trash', 'purge', "
+            "'remote-delete', 'remote-restore' o 'remote-purge'",
+            USAGE,
+        ] + list(_MESSAGE_ACTION_USAGE))
+    action = argv[1]
+    if action in ("remote-delete", "remote-restore", "remote-purge"):
+        return _run_remote_message(argv, action)
+    if action == "trash":
+        if len(argv) != 3:
+            return _fail(["error: message trash requiere exactamente ROOT", USAGE])
+        try:
+            manifests = list_trash(argv[2])
+        except (ValueError, RuntimeError, OSError):
+            _print_stderr(["error: la papelera no se pudo leer (raiz invalida)"])
+            return 1
+        for manifest in manifests:
+            print(json.dumps(manifest, sort_keys=True))
+        return 0
+    if action == "delete":
+        if len(argv) != 4:
+            return _fail(["error: message delete requiere ROOT y REL_PATH", USAGE])
+        try:
+            manifest = soft_delete(argv[2], argv[3])
+        except ValueError:
+            _print_stderr([
+                "error: rel_path invalido o el elemento ya esta en .trash",
+            ])
+            return 1
+        except (FileNotFoundError, OSError):
+            _print_stderr(["error: el nodo no existe"])
+            return 1
+        print(json.dumps(manifest, sort_keys=True))
+        return 0
+    if action == "restore":
+        if len(argv) != 4:
+            return _fail([
+                "error: message restore requiere ROOT y TRASH_REL_PATH",
+                USAGE,
+            ])
+        try:
+            manifest = restore(argv[2], argv[3])
+        except ValueError:
+            _print_stderr([
+                "error: la restauracion fallo (ruta fuera de .trash, "
+                "manifiesto invalido o destino ya existe)",
+            ])
+            return 1
+        except (FileNotFoundError, OSError):
+            _print_stderr(["error: el elemento o su manifiesto no existe en .trash"])
+            return 1
+        print(json.dumps(manifest, sort_keys=True))
+        return 0
+    if len(argv) < 5:
+        return _fail([
+            "error: message purge requiere ROOT, TRASH_REL_PATH y la "
+            "confirmacion literal CONFIRMAR BORRADO PERMANENTE",
+            USAGE,
+        ])
+    if " ".join(argv[4:]) != _PURGE_CONFIRMATION:
+        _print_stderr([
+            "error: confirmacion explicita requerida para el borrado permanente",
+        ])
+        return 1
+    try:
+        removed = purge(argv[2], argv[3], _PURGE_CONFIRMATION)
+    except ValueError:
+        _print_stderr([
+            "error: la ruta no es un elemento valido dentro de .trash",
+        ])
+        return 1
+    except (FileNotFoundError, OSError):
+        _print_stderr(["error: el elemento no esta en .trash"])
+        return 1
+    print(json.dumps(removed, sort_keys=True))
+    return 0
+
+
+def _resolve_dest_path(root, dest):
+    """DEST como ruta segura bajo ROOT (misma politica anti-traversal de nodos)."""
+    if not isinstance(dest, str) or not dest.strip():
+        raise ValueError("dest debe ser str no vacio")
+    portable = dest.replace("\\", "/")
+    if (
+        portable.startswith("~")
+        or Path(portable).is_absolute()
+        or (len(portable) >= 3 and portable[1:3] == ":/")
+    ):
+        raise ValueError("dest insegura (absoluta, ~ o unidad): " + repr(dest))
+    if any(part in ("", ".", "..") for part in portable.split("/")):
+        raise ValueError("dest con componente vacio, . o ..: " + repr(dest))
+    root_path = Path(root).resolve()
+    target = (root_path / Path(portable)).resolve()
+    if target != root_path and root_path not in target.parents:
+        raise ValueError("dest resuelve fuera de la raiz: " + repr(dest))
+    return target
+
+
+def _run_attachment_download(argv):
+    """Extraccion autorizada: re-fetch RFC822 por UID, blob content-addressed y copia.
+
+    Valida la frase literal y el nodo ANTES de conectar o escribir. Resuelve
+    account_id/imap_uid/mailbox del nodo y cuenta/servidor/credencial desde
+    los stores; los nodos legacy (sin imap_uid o account_id) se rechazan.
+    """
+    if len(argv) < 7:
+        return _fail([
+            "error: attachment download requiere ROOT, REL_PATH, INDEX, DEST "
+            "y la confirmacion literal CONFIRMAR EXTRACCION",
+            USAGE,
+        ])
+    root, rel_path, raw_index, dest = argv[2:6]
+    if " ".join(argv[6:]) != _EXTRACTION_CONFIRMATION:
+        _print_stderr([
+            "error: confirmacion explicita requerida para extraer adjuntos",
+        ])
+        return 1
+    try:
+        index = int(raw_index)
+    except ValueError:
+        index = -1
+    if index < 0:
+        return _fail(["error: INDEX debe ser un entero >= 0", USAGE])
+    try:
+        node_text = read_email_node(root, rel_path)
+    except ValueError:
+        _print_stderr([
+            "error: la lectura es invalida (raiz o ruta relativa insegura)",
+        ])
+        return 2
+    except Exception:
+        _print_stderr(["error: el nodo no existe o no se pudo leer"])
+        return 1
+    try:
+        dest_path = _resolve_dest_path(root, dest)
+    except ValueError:
+        _print_stderr([
+            "error: DEST insegura (debe ser relativa y quedar bajo ROOT, "
+            "sin traversal)",
+        ])
+        return 2
+    try:
+        entry = next(
+            (
+                item
+                for item in read_attachment_entries(node_text)
+                if item["part_index"] == index
+            ),
+            None,
+        )
+    except Exception:
+        _print_stderr(["error: el frontmatter del nodo es ilegible"])
+        return 1
+    if entry is None or not entry["sha256"]:
+        _print_stderr(["error: adjunto no encontrado en el nodo (INDEX invalido)"])
+        return 1
+    if legacy_attachment_block(node_text):
+        _print_stderr([
+            "error: nodo legacy con formato antiguo de adjuntos (hashes sueltos): "
+            "no se puede asociar stored sin reescribir el formato "
+            "(re-sincronizar para reintentar)",
+        ])
+        return 1
+    account_id, imap_uid, mailbox = read_download_target(node_text)
+    if not account_id or imap_uid is None:
+        _print_stderr([
+            "error: nodo legacy sin imap_uid o account_id: no es descargable "
+            "(re-sincronizar para reintentar)",
+        ])
+        return 1
+    if not is_type_allowed(entry["content_type"], entry["filename"]):
+        _print_stderr([
+            "error: tipo de adjunto no permitido por defecto (solo metadatos)",
+        ])
+        return 1
+    if int(entry["size"] or 0) > MAX_ATTACHMENT_BYTES:
+        _print_stderr(["error: el adjunto excede el limite de tamano"])
+        return 1
+    try:
+        accounts = load_email_accounts(root)
+    except Exception:
+        _print_stderr(["error: el store de cuentas es ilegible"])
+        return 1
+    account = next(
+        (item for item in accounts if item.get("account_id") == account_id),
+        None,
+    )
+    if account is None:
+        _print_stderr(["error: cuenta no encontrada"])
+        return 1
+    try:
+        servers = load_mail_server_config(root, account_id)
+    except Exception:
+        _print_stderr(["error: la configuracion de servidores es ilegible"])
+        return 1
+    try:
+        secret = resolve_credential(account["credential_ref"])
+    except Exception:
+        _print_stderr(["error: credencial irresoluble"])
+        return 1
+    host = (
+        servers["imap_host"]
+        if servers is not None
+        else _PROVIDER_HOSTS.get(account.get("provider"))
+    )
+    if not host:
+        _print_stderr(["error: provider sin host por defecto"])
+        return 1
+    config = {"host": host, "username": account["email"], "password": secret}
+    if servers is not None:
+        config["port"] = servers["imap_port"]
+    if mailbox:
+        config["mailbox"] = mailbox
+    try:
+        raw = fetch_raw_message_by_uid(account, config, imap_uid)
+    except Exception:
+        _print_stderr(["error: la descarga fallo (servidor o credencial invalidos)"])
+        return 1
+    try:
+        extracted = extract_attachment_bytes(raw, index)
+    except Exception:
+        _print_stderr(["error: el mensaje remoto no se pudo interpretar"])
+        return 1
+    if extracted is None:
+        _print_stderr(["error: adjunto no encontrado en el mensaje remoto"])
+        return 1
+    content, filename, content_type = extracted
+    try:
+        stored = store_attachment_bytes(
+            root,
+            entry["sha256"],
+            content,
+            {"filename": filename, "content_type": content_type, "part_index": index},
+            authorize=True,
+        )
+    except AttachmentError as exc:
+        _print_stderr([
+            "error: " + exc.code + " (el adjunto no se pudo verificar o escribir)",
+        ])
+        return 1
+    except Exception:
+        _print_stderr(["error: el adjunto no se pudo almacenar"])
+        return 1
+    if not stored.get("stored"):
+        _print_stderr([
+            "error: extraccion omitida (" + str(stored.get("skipped") or "motivo") + ")",
+        ])
+        return 1
+    try:
+        payload = blob_path(root, entry["sha256"]).read_bytes()
+        if hashlib.sha256(payload).hexdigest() != entry["sha256"]:
+            raise OSError("blob no coincide con el sha256 declarado")
+        if dest_path.is_dir():
+            raise OSError("el destino es un directorio")
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = dest_path.with_name(dest_path.name + ".tmp")
+        tmp.write_bytes(payload)
+        os.replace(tmp, dest_path)
+        if hashlib.sha256(dest_path.read_bytes()).hexdigest() != entry["sha256"]:
+            raise OSError("copia en destino no coincide con el sha256 declarado")
+    except Exception:
+        _print_stderr(["error: la copia al destino fallo (hash o E/S invalidos)"])
+        return 1
+    try:
+        updated = mark_attachment_stored(node_text, index)
+        if updated != node_text:
+            write_node_text_atomic(root, rel_path, updated)
+    except Exception:
+        # La asociacion fallo: el nodo queda intacto (escritura atomica) y la
+        # copia en DEST se retira para no reportar un exito sin asociacion.
+        try:
+            if dest_path.exists() and dest_path.read_bytes() == payload:
+                dest_path.unlink()
+        except OSError:
+            pass
+        _print_stderr([
+            "error: la asociacion stored en el nodo fallo (nodo intacto, "
+            "copia en DEST retirada)",
+        ])
+        return 1
+    print(json.dumps(
+        {
+            "sha256": entry["sha256"],
+            "sha256_short": entry["sha256"][:12],
+            "size": len(payload),
+            "blob": str(stored.get("path") or ""),
+            "dest": str(dest_path.relative_to(Path(root).resolve())).replace("\\", "/"),
+            "display": sanitize_display_name(entry["filename"], index),
+            "idempotent": bool(stored.get("idempotent")),
+        },
+        sort_keys=True,
+    ))
+    return 0
+
+
+def _run_attachment_gc(argv):
+    """GC de blobs: listado en seco sin borrar; borrado solo con frase literal.
+
+    `attachment gc ROOT` lista candidatos (JSON, exit 0, cero mutaciones).
+    `attachment gc ROOT CONFIRMAR BORRADO ADJUNTOS` valida la frase ANTES de
+    mutar y elimina blobs (y su .meta) sin referencia; un blob corrupto o no
+    reconocido nunca se borra y ante el primer fallo de E/S se detiene todo.
+    La salida lista candidatos y eliminados; sin rutas absolutas ni secretos.
+    """
+    if len(argv) not in (3, 6):
+        return _fail([
+            "error: attachment gc requiere ROOT (listado en seco) o ROOT y la "
+            "confirmacion literal " + GC_CONFIRMATION,
+            USAGE,
+        ])
+    root = argv[2]
+    execute = len(argv) == 6
+    if execute and " ".join(argv[3:]) != GC_CONFIRMATION:
+        _print_stderr([
+            "error: confirmacion literal requerida para borrar blobs sin referencia",
+        ])
+        return 1
+    try:
+        root_path = Path(root).resolve()
+        if not root_path.is_dir():
+            raise ValueError("root no existe o no es directorio")
+    except Exception:
+        _print_stderr(["error: ROOT no existe o no es un directorio"])
+        return 2
+    try:
+        result = gc_execute(root, GC_CONFIRMATION) if execute else gc_scan(root)
+    except AttachmentError:
+        _print_stderr([
+            "error: el escaneo aborto (store ausente o nodo ilegible): "
+            "no se borro nada",
+        ])
+        return 1
+    except (OSError, ValueError):
+        _print_stderr(["error: el escaneo fallo (E/S invalida): no se borro nada"])
+        return 1
+    payload = {
+        "mode": "executed" if execute else "dry-run",
+        "nodes_scanned": result["nodes_scanned"],
+        "referenced_count": result["referenced_count"],
+        "candidates": result["candidates"],
+        "corrupt": result["corrupt"],
+        "unrecognized": result["unrecognized"],
+        "deleted": result.get("deleted", []),
+        "failed": result.get("failed", []),
+    }
+    print(json.dumps(payload, sort_keys=True))
+    return 1 if payload["failed"] else 0
+
+
+def _run_attachment(argv):
+    """Capa fina de presentacion sobre attachments (metadatos y descarga)."""
+    if len(argv) < 2 or argv[1] not in ("list", "download", "gc"):
+        return _fail([
+            "error: attachment requiere 'list', 'download' o 'gc'",
+            USAGE,
+        ])
+    if argv[1] == "download":
+        return _run_attachment_download(argv)
+    if argv[1] == "gc":
+        return _run_attachment_gc(argv)
+    if len(argv) != 4:
+        return _fail(["error: attachment list requiere ROOT y REL_PATH", USAGE])
+    try:
+        rows = list_node_attachments(argv[2], argv[3])
+    except ValueError:
+        _print_stderr([
+            "error: la lectura es invalida (raiz o ruta relativa insegura)",
+        ])
+        return 2
+    except Exception:
+        _print_stderr([
+            "error: la lista de adjuntos fallo (nodo inexistente o fallo de E/S)",
+        ])
+        return 1
+    for row in rows:
+        print(json.dumps(row, sort_keys=True))
+    return 0
+
+
 def cli_main(argv: list) -> int:
     if argv and argv[0] in ("-h", "--help"):
         print(USAGE)
@@ -714,6 +1379,21 @@ def cli_main(argv: list) -> int:
         print("  contact list ROOT  lista la libreta de contactos")
         print("  search ROOT QUERY  busca nodos .md que contengan QUERY")
         print("  read ROOT REL_PATH  imprime el texto integro de un nodo .md")
+        print("  attachment list ROOT REL_PATH  lista los adjuntos de un nodo .md")
+        print(
+            "  attachment download ROOT REL_PATH INDEX DEST CONFIRMAR EXTRACCION"
+            "  extrae un adjunto (requiere confirmacion literal)"
+        )
+        print(
+            "  attachment gc ROOT  lista en seco los blobs sin referencia (JSON, "
+            "sin borrar)"
+        )
+        print(
+            "  attachment gc ROOT CONFIRMAR BORRADO ADJUNTOS  elimina blobs (y "
+            ".meta) sin referencia (requiere confirmacion literal)"
+        )
+        for line in _MESSAGE_ACTION_USAGE:
+            print(line)
         print(SYNC_USAGE)
         print(WATCH_USAGE)
         print("  notification add ROOT NAME QUERY  crea una regla local")
@@ -727,10 +1407,15 @@ def cli_main(argv: list) -> int:
     if not argv:
         return _fail([
             "error: subcomando invalido (se esperaba 'query', 'search', "
-            "'read', 'account', 'contact', 'sync', 'draft' o 'send')",
+            "'read', 'account', 'contact', 'message', 'attachment', 'sync', "
+            "'draft' o 'send')",
             USAGE,
         ])
 
+    if argv[0] == "message":
+        return _run_message(argv)
+    if argv[0] == "attachment":
+        return _run_attachment(argv)
     if argv[0] == "query":
         return _run_query(argv)
     if argv[0] == "account":
@@ -756,11 +1441,13 @@ def cli_main(argv: list) -> int:
 
     return _fail([
         "error: subcomando invalido (se esperaba 'query', 'search', "
-        "'read', 'account', 'contact', 'sync', 'draft' o 'send')",
+        "'read', 'account', 'contact', 'message', 'attachment', 'sync', "
+        "'draft' o 'send')",
         USAGE,
         "  search ROOT QUERY  busca nodos .md que contengan QUERY",
         "  read ROOT REL_PATH  imprime el texto integro de un nodo .md",
-    ])
+        "  attachment list ROOT REL_PATH  lista los adjuntos de un nodo .md",
+    ] + list(_MESSAGE_ACTION_USAGE))
 
 
 def main() -> int:

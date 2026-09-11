@@ -19,6 +19,3 @@ email-agent = "src.email.cli:main"
 where = ["."]
 include = ["src", "src.*"]
 
-[tool.pytest.ini_options]
-testpaths = ["outputs/email-agent-kdd/tests"]
-

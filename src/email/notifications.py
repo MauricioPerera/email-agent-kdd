@@ -1,5 +1,6 @@
 """Reglas y notificaciones locales para correos sincronizados."""
 
+import base64
 import json
 import os
 import platform
@@ -80,16 +81,41 @@ def notification_matches(record, query):
     return True
 
 
+# Scripts CONSTANTES: el texto del correo jamas se interpola en ellos. En
+# Windows y macOS el asunto viaja por variables de entorno (datos, nunca
+# codigo parseado); en Linux notify-send lo recibe como argumento tras "--".
+_WINDOWS_SCRIPT = (
+    "$ws = New-Object -ComObject WScript.Shell; "
+    "[void]$ws.Popup($env:EMAIL_AGENT_NOTIFY_BODY, 5, $env:EMAIL_AGENT_NOTIFY_TITLE, 64)"
+)
+_MACOS_SCRIPT = (
+    'display notification (system attribute "EMAIL_AGENT_NOTIFY_BODY") '
+    'with title (system attribute "EMAIL_AGENT_NOTIFY_TITLE")'
+)
+_ENV_TITLE = "EMAIL_AGENT_NOTIFY_TITLE"
+_ENV_BODY = "EMAIL_AGENT_NOTIFY_BODY"
+
+
+def _data_env(title, body):
+    env = dict(os.environ)
+    env[_ENV_TITLE] = title
+    env[_ENV_BODY] = body
+    return env
+
+
 def _desktop_notify(title, body):
     system = platform.system()
     if system == "Windows":
-        script = "$ws=New-Object -ComObject WScript.Shell; $ws.Popup($args[1],5,$args[0],64)"
-        subprocess.Popen(["powershell", "-NoProfile", "-Command", script, title, body])
+        encoded = base64.b64encode(_WINDOWS_SCRIPT.encode("utf-16-le")).decode("ascii")
+        subprocess.Popen(
+            ["powershell", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded],
+            env=_data_env(title, body),
+        )
         return "windows"
     if system == "Darwin":
-        subprocess.Popen(["osascript", "-e", "display notification %r with title %r" % (body, title)])
+        subprocess.Popen(["osascript", "-e", _MACOS_SCRIPT], env=_data_env(title, body))
         return "macos"
-    subprocess.Popen(["notify-send", title, body])
+    subprocess.Popen(["notify-send", "--", title, body])
     return "linux"
 
 
@@ -99,14 +125,24 @@ def notify_new_records(root, records, notifier=None):
     sent = set(state.get("sent", [])) if isinstance(state, dict) else set()
     notifier = notifier or _desktop_notify
     notified = 0
+    failures = 0
     for record in records:
+        if not isinstance(record, dict):
+            continue
         identity = str(record.get("raw_sha256", ""))
         if not identity or identity in sent:
             continue
         if not any(notification_matches(record, rule.get("query", "")) for rule in rules):
             continue
-        notifier("Email Agent", str(record.get("subject", "Nuevo correo")) or "Nuevo correo")
+        subject = str(record.get("subject", "")) or "Nuevo correo"
+        try:
+            notifier("Email Agent", subject)
+        except Exception:
+            failures += 1
+            continue
         sent.add(identity)
         notified += 1
     _write(_path(root, _STATE), {"sent": sorted(sent)[-5000:]})
+    if failures:
+        raise RuntimeError("fallo al emitir notificaciones")
     return notified

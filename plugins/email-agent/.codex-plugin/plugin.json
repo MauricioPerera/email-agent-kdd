@@ -1,18 +1,38 @@
 {
   "name": "email-agent",
   "version": "0.1.0",
-  "description": "Safe local email synchronization, search, and confirmed sending for agents.",
+  "description": "Local, agent-friendly email CLI: IMAP sync, OKF Markdown knowledge store, search, attachments and send-only-after-confirmation.",
   "author": {
-    "name": "Local developer"
+    "name": "Mauricio Perera"
   },
-  "skills": "./skills/",
+  "repository": "https://github.com/MauricioPerera/email-agent-kdd",
+  "license": "MIT",
+  "keywords": [
+    "email",
+    "imap",
+    "cli",
+    "knowledge",
+    "attachments"
+  ],
+  "skills": "./skills",
   "interface": {
     "displayName": "Email Agent",
-    "shortDescription": "Operate a local email agent safely.",
-    "longDescription": "Provides agent guidance for paginated sync, delivery-recipient search, platform watchers, and confirmation-gated sending.",
-    "developerName": "Local developer",
+    "shortDescription": "Sync, search, read and draft email locally; sending and deletion require explicit literal confirmations.",
+    "longDescription": "Provides agent guidance for paginated read-only sync, delivery-recipient search, trash/restore lifecycle, attachment metadata and authorized extraction, platform watchers, and confirmation-gated sending and deletion.",
+    "developerName": "Mauricio Perera",
     "category": "Productivity",
-    "capabilities": [],
-    "defaultPrompt": "Use Email Agent to synchronize and search my local mailbox safely."
+    "capabilities": [
+      "Paginated read-only IMAP sync",
+      "Search and query over the local knowledge store",
+      "Trash, restore and permanent deletion lifecycle",
+      "Attachment listing, extraction and garbage collection",
+      "Notification watchers and startup integration",
+      "Confirmation-gated sending and deletion"
+    ],
+    "defaultPrompt": [
+      "Synchronize my inbox with email-agent sync and report new messages",
+      "Search my mail with email-agent query for a topic",
+      "Install email-agent using installers/ and verify with email-agent --help"
+    ]
   }
 }

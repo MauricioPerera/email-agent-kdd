@@ -9,21 +9,24 @@ usuario jamas introduce `account_id` ni elige proveedor. El
 servidores se muestra una confirmacion publica y se continua; si no,
 la MISMA ventana revela una seccion avanzada amigable (servidor de
 entrada/salida y puerto) validada con las reglas del almacen. Con los
-servidores resueltos se llama `provision_windows_email_account` (el
-secreto viaja DIRECTAMENTE en memoria desde el widget; jamas se
-imprime, registra, escribe, retorna ni envia) y despues
-`store_mail_server_config`: la referencia `wincred://` va solo a
+servidores resueltos se llama `provision_email_account` (el secreto
+viaja DIRECTAMENTE en memoria desde el widget; jamas se imprime,
+registra, escribe, retorna ni envia), que elige el almacen NATIVO por
+plataforma: Credential Manager en Windows, Keychain en macOS y Secret
+Service en Linux; despues `store_mail_server_config`: la referencia
+publica (`wincred://`/`keychain://`/`secretservice://`) va solo a
 `accounts.json` y los hosts solo a `.email-agent/mail-servers.json`.
 Cancelar no escribe nada; todo fallo limpia el password y muestra un
-mensaje generico; si Credential Manager no esta disponible PARAR claro
-sin ofrecer fallback inseguro.
+mensaje generico; si el almacen nativo de la plataforma no esta
+disponible PARAR claro (mensaje por OS) sin ofrecer fallback inseguro.
 """
 
 import re
+import sys
 
 from src.email.discover_mail_servers import discover_mail_servers
 from src.email.mail_server_store import store_mail_server_config
-from src.email.provision_account import provision_windows_email_account
+from src.email.provision_account import provision_email_account
 from src.email.connection_check import verify_email_connection
 
 _LABEL_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
@@ -33,10 +36,6 @@ _DASH_RUNS = re.compile(r"-{2,}")
 # "email-" + account_id <= 64 (limite de la etiqueta wincred).
 _ACCOUNT_ID_MAX = 57
 _PROVIDER = "custom"
-_STOP_MESSAGE = (
-    "PARAR: el almacenamiento seguro de Windows no esta disponible en "
-    "este sistema; no existe alternativa segura"
-)
 _GENERIC_ERROR = "error generico: no se pudo guardar la cuenta"
 _EMPTY_FIELDS = "error generico: escriba su correo y su contrasena"
 _ADVANCED_TITLE = "Configuracion avanzada del servidor de correo"
@@ -50,6 +49,28 @@ _DISCOVERY_CONFIRMED = (
 _INCOMPLETE = "error generico: faltan datos del servidor de correo"
 _VERIFYING = "comprobando conexion IMAP y SMTP; no se enviara ningun correo..."
 _VERIFY_FAILED = "no pudimos validar la conexion. Revisa los datos e intentalo de nuevo."
+
+
+def _platform_stop_message(platform=None) -> str:
+    """Mensaje de PARAR del almacen nativo, nombrado por OS.
+
+    La GUI corre en cualquiera de los tres OS soportados; el mensaje
+    dice CUAL almacen no esta disponible y que NO existe alternativa
+    segura (nunca se ofrece fallback).
+    """
+    system = sys.platform if platform is None else platform
+    if system.startswith("win"):
+        name = "Windows (Credential Manager)"
+    elif system == "darwin":
+        name = "macOS (Keychain)"
+    elif system.startswith("linux"):
+        name = "Linux (Secret Service)"
+    else:
+        name = "de este sistema"
+    return (
+        "PARAR: el almacenamiento seguro de " + name + " no esta "
+        "disponible en este sistema; no existe alternativa segura"
+    )
 
 
 def _derive_account_id(email: str) -> str:
@@ -234,7 +255,7 @@ class _SetupForm:
             self._finish(1)
             return
         try:
-            record = provision_windows_email_account(
+            record = provision_email_account(
                 self.root,
                 account_id,
                 _PROVIDER,
@@ -243,7 +264,7 @@ class _SetupForm:
                 self.password.get(),
             )
         except RuntimeError:
-            self._show(_STOP_MESSAGE, "warning")
+            self._show(_platform_stop_message(), "warning")
         except Exception:
             self._show(_GENERIC_ERROR, "error")
         else:

@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+from src.email.attachments import render_attachment_front_lines
+
 _FRONT_FIELDS = (
     ("type", "Email Message"),
     ("account_id", "account_id"),
@@ -50,10 +52,16 @@ def _render(record):
                 "delivered_to: "
                 + ", ".join(str(addr) for addr in record["delivered_to"])
             )
+    # Identidad de re-descarga por UID: solo cuando el record la trae; los
+    # records legacy (sin imap_uid/mailbox) se renderizan igual que antes.
+    for key in ("imap_uid", "mailbox"):
+        value = record.get(key)
+        if value is not None and value != "":
+            lines.append(key + ": " + str(value))
     if record.get("attachments"):
         lines.append("attachments:")
         for attachment in record["attachments"]:
-            lines.append("  - " + _scalar(attachment.get("sha256", "")))
+            lines.extend(render_attachment_front_lines(attachment))
     return "\n".join(lines) + "\n---\n" + str(record["body"])
 
 

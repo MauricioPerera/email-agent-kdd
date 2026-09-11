@@ -3,10 +3,13 @@
 Determinista: recorre `root`, considera solo archivos con extension final
 `.md`, y devuelve las rutas relativas cuyo contenido contiene TODOS los
 terminos del query (insensible a mayusculas), ordenadas lexicograficamente
-con separador `/`.
+con separador `/`. Los archivos bajo `root/.trash` (papelera de soft_delete)
+se excluyen y nunca se leen.
 """
 
 from pathlib import Path
+
+TRASH_DIRNAME = ".trash"
 
 
 def search_email_nodes(root: str, query: str) -> list:
@@ -22,6 +25,8 @@ def search_email_nodes(root: str, query: str) -> list:
     matches = []
     for path in root_path.rglob("*"):
         if not path.is_file() or path.suffix.lower() != ".md":
+            continue
+        if path.relative_to(root_path).parts[0] == TRASH_DIRNAME:
             continue
         try:
             content = path.read_text(encoding="utf-8")
