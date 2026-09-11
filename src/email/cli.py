@@ -162,6 +162,11 @@ _SETUP_PROMPTS = (
     "4) Nombre de la variable de entorno que guarda tu clave de aplicacion "
     "(ej. GMAIL_APP_PASSWORD; nunca la clave en si): ",
 )
+_SETUP_TEXT = {
+    "es": {"intro": _SETUP_INTRO, "prompts": _SETUP_PROMPTS, "cancel_eof": "error: configuracion cancelada (entrada terminada)", "cancel_user": "error: configuracion cancelada por el usuario", "empty": "error: la respuesta no puede estar vacia", "provider": "error: proveedor no admitido (solo se admiten gmail u outlook)", "env": "error: nombre de variable de entorno invalido", "save": "error: no se pudo guardar la cuenta (datos o almacenamiento invalidos)"},
+    "en": {"intro": "Guided account setup (type 'cancel' at any step to abort):", "prompts": ("1) Account identifier (e.g. personal): ", "2) Provider (gmail or outlook): ", "3) Email address: ", "4) Name of the environment variable holding your app password (e.g. GMAIL_APP_PASSWORD; never the password itself): "), "cancel_eof": "error: setup cancelled (input ended)", "cancel_user": "error: setup cancelled by the user", "empty": "error: the answer cannot be empty", "provider": "error: unsupported provider (only gmail or outlook are supported)", "env": "error: invalid environment variable name", "save": "error: account could not be saved (invalid data or storage)"},
+    "pt": {"intro": "Configuracao guiada da conta (digite 'cancelar' em qualquer etapa para abortar):", "prompts": ("1) Identificador da conta (ex. pessoal): ", "2) Provedor (gmail ou outlook): ", "3) Endereco de email: ", "4) Nome da variavel de ambiente que guarda sua senha de aplicativo (ex. GMAIL_APP_PASSWORD; nunca a senha): "), "cancel_eof": "erro: configuracao cancelada (entrada encerrada)", "cancel_user": "erro: configuracao cancelada pelo usuario", "empty": "erro: a resposta nao pode ficar vazia", "provider": "erro: provedor nao suportado (somente gmail ou outlook)", "env": "erro: nome de variavel de ambiente invalido", "save": "erro: nao foi possivel salvar a conta (dados ou armazenamento invalidos)"},
+}
 _SETUP_ENV_NAME_HEAD = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
 _SETUP_ENV_NAME_TAIL = _SETUP_ENV_NAME_HEAD + "0123456789"
 
@@ -241,34 +246,39 @@ def _setup_cancel(message):
 
 
 def _account_setup(argv):
-    if len(argv) != 3:
+    if len(argv) not in (3, 5) or (len(argv) == 5 and argv[3] != "--lang"):
         return _fail([
             "error: account setup requiere exactamente ROOT",
             USAGE,
         ])
-    print(_SETUP_INTRO)
+    language = "es"
+    if len(argv) == 5:
+        try:
+            language = normalize_language(argv[4])
+        except ValueError:
+            return _fail(["error: account setup acepta --lang es|en|pt", USAGE])
+    text = _SETUP_TEXT[language]
+    print(text["intro"])
     answers = []
-    for prompt in _SETUP_PROMPTS:
+    for prompt in text["prompts"]:
         print(prompt, end="")
         try:
             answer = input().strip()
         except (EOFError, KeyboardInterrupt):
-            return _setup_cancel("error: configuracion cancelada (entrada terminada)")
+            return _setup_cancel(text["cancel_eof"])
         if answer.lower() in ("cancelar", "cancel"):
-            return _setup_cancel("error: configuracion cancelada por el usuario")
+            return _setup_cancel(text["cancel_user"])
         if not answer:
-            return _setup_cancel("error: la respuesta no puede estar vacia")
+            return _setup_cancel(text["empty"])
         answers.append(answer)
     account_id, provider, email, env_name = answers
     if provider.lower() not in ("gmail", "outlook"):
-        _print_stderr([
-            "error: proveedor no admitido (solo se admiten gmail u outlook)",
-        ])
+        _print_stderr([text["provider"]])
         return 1
     if env_name[0] not in _SETUP_ENV_NAME_HEAD or any(
         char not in _SETUP_ENV_NAME_TAIL for char in env_name[1:]
     ):
-        _print_stderr(["error: nombre de variable de entorno invalido"])
+        _print_stderr([text["env"]])
         return 1
     try:
         account = create_email_account(
@@ -276,10 +286,7 @@ def _account_setup(argv):
         )
         save_email_account(argv[2], account)
     except (ValueError, RuntimeError):
-        _print_stderr([
-            "error: no se pudo guardar la cuenta "
-            "(datos o almacenamiento invalidos)",
-        ])
+        _print_stderr([text["save"]])
         return 1
     print("account saved: " + account["account_id"])
     return 0
@@ -1415,7 +1422,10 @@ def _run_onboard(argv):
         _print_stderr(["onboard: el formulario grafico no esta disponible; usa --terminal"])
         return 1
     use_gui = requested_mode == "--gui" or (requested_mode is None and gui_available)
-    code = _account_setup_gui(["account", "setup-gui", root]) if use_gui else _account_setup(["account", "setup", root])
+    setup_argv = ["account", "setup", root]
+    if not use_gui and requested_language is not None:
+        setup_argv += ["--lang", language]
+    code = _account_setup_gui(["account", "setup-gui", root]) if use_gui else _account_setup(setup_argv)
     if code != 0:
         messages = {
             "es": "onboard: configuracion cancelada o incompleta; puedes volver a ejecutar 'email-agent onboard ROOT'",

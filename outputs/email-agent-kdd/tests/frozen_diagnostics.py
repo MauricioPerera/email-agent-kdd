@@ -147,6 +147,16 @@ def test_onboard_can_force_terminal_flow(monkeypatch, tmp_path):
     assert calls == [["account", "setup", str(tmp_path)]]
 
 
+def test_onboard_passes_explicit_language_to_terminal_setup(monkeypatch, tmp_path):
+    import src.email.cli as cli
+
+    calls = []
+    monkeypatch.setattr(cli, "run_diagnostics", lambda root: {"status": "ready", "checks": [{"name": "gui", "status": "warning"}], "next": "ok"})
+    monkeypatch.setattr(cli, "_account_setup", lambda argv: calls.append(argv) or 1)
+    assert cli.cli_main(["onboard", str(tmp_path), "--terminal", "--lang", "pt"]) == 1
+    assert calls == [["account", "setup", str(tmp_path), "--lang", "pt"]]
+
+
 def test_onboard_rejects_forced_gui_when_unavailable(monkeypatch, tmp_path, capsys):
     import src.email.cli as cli
 

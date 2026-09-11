@@ -95,6 +95,14 @@ def test_setup_success_writes_env_ref_only_in_store(run_setup, capsys):
     )
 
 
+def test_setup_accepts_explicit_portuguese_language(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(cli, "input", _FakeInput(["personal"]))
+    assert cli.cli_main(["account", "setup", str(tmp_path), "--lang", "pt"]) == 1
+    out, err = _caps(capsys)
+    assert out.startswith("Configuracao guiada da conta")
+    assert "configuracao cancelada" in err
+
+
 def test_setup_cancel_persists_nothing(run_setup, capsys):
     code, _, store_exists = run_setup(
         ["personal", "cancelar", "yo@example.com", "GMAIL_APP_PASSWORD"]
