@@ -327,14 +327,34 @@ def _run_account(argv):
 
 
 def _run_query(argv):
-    if len(argv) != 3:
+    if len(argv) not in (3, 5, 7):
         return _fail([
-            "error: query requiere exactamente ROOT e INSTRUCTION "
-            "(citada como un solo argumento)",
+            "error: query requiere ROOT, INSTRUCTION y opciones --offset/--limit",
             USAGE,
         ])
+    root, instruction = argv[1], argv[2]
+    offset, limit = 0, None
+    options = argv[3:]
+    if len(options) % 2:
+        return _fail(["error: query requiere pares --offset N y --limit N", USAGE])
+    for index in range(0, len(options), 2):
+        flag, raw = options[index:index + 2]
+        if flag not in ("--offset", "--limit"):
+            return _fail(["error: query solo acepta --offset N y --limit N", USAGE])
+        try:
+            value = int(raw)
+        except ValueError:
+            return _fail(["error: --offset/--limit requiere un entero", USAGE])
+        if flag == "--offset":
+            if value < 0:
+                return _fail(["error: --offset debe ser >= 0", USAGE])
+            offset = value
+        else:
+            if not 1 <= value <= LIMIT_MAX:
+                return _fail(["error: --limit debe estar entre 1 y 100", USAGE])
+            limit = value
     try:
-        matches = query_email(argv[1], argv[2])
+        matches = query_email(root, instruction)
     except ValueError:
         _print_stderr([
             "error: la consulta es invalida (raiz inexistente o "
@@ -344,7 +364,7 @@ def _run_query(argv):
     except Exception:
         _print_stderr(["error: la consulta fallo"])
         return 1
-    for path in matches:
+    for path in matches[offset:offset + limit if limit is not None else None]:
         print(path)
     return 0
 

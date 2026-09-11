@@ -135,3 +135,5 @@
 * [Contrato del Objetivo 59](contracts/sprint59-contact-show.md) - Consulta de solo lectura.
 * [Informe de candidatos de contacto](../../SPRINT60-CONTACT-FIND-REPORT.md) - Resolución asistida sin suposiciones.
 * [Contrato del Objetivo 60](contracts/sprint60-contact-find.md) - Candidatos antes de elegir.
+* [Informe de paginación de búsquedas](../../SPRINT61-QUERY-PAGINATION-REPORT.md) - Resultados locales por lotes.
+* [Contrato del Objetivo 61](contracts/sprint61-query-pagination.md) - Offset y límite deterministas.

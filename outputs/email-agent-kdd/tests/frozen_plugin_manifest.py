@@ -163,6 +163,7 @@ def test_skill_documents_conservative_contact_resolution():
     assert "contact show ROOT EMAIL" in text
     assert "contact find ROOT TEXT" in text
     assert "ask the user to choose" in text
+    assert 'query ROOT "INSTRUCTION" --offset N --limit N' in text
 
 
 def test_skill_documents_startup_confirmation_boundary():
