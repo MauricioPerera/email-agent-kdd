@@ -172,6 +172,11 @@ El presupuesto total por sync es de 100 MB, configurable con la env var `SYNC_AT
 
 El listado es solo lectura: imprime una línea JSON por adjunto con nombre de display saneado, tipo, tamaño, hash y estado `stored|not-stored` (según el frontmatter del nodo); nunca abre blobs ni conecta a IMAP.
 
+Los blobs ya almacenados de texto UTF-8 pueden extraerse localmente con
+`email-agent attachment extract ROOT REL_PATH INDEX DEST CONFIRMAR EXTRACCION`.
+Solo se aceptan formatos inertes de texto; PDF, HTML, documentos ofimáticos y
+ejecutables requieren una futura etapa con sandbox y antivirus.
+
 ```bash
 email-agent attachment list ROOT REL_PATH
 ```

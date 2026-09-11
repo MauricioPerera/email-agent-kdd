@@ -43,6 +43,7 @@ CONFIRMATION_PHRASES = [
 CLI_COMMAND_TOKENS = [
     "attachment list",
     "attachment download",
+    "attachment extract",
     "attachment gc",
     "message delete",
     "message trash",

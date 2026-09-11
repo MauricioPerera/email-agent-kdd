@@ -19,6 +19,10 @@ from pathlib import Path
 from src.email.node import read_email_node
 
 MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
+MAX_EXTRACTED_TEXT_BYTES = 2 * 1024 * 1024
+_TEXT_TYPES = frozenset(
+    {"text/plain", "text/csv", "text/markdown", "application/json"}
+)
 
 _BLOCKED_TYPES = frozenset(
     {"application/x-msdownload", "application/x-sh"}
@@ -410,6 +414,35 @@ def list_node_attachments(root, rel_path):
     """Lista los adjuntos de un nodo del store: lee el nodo, nunca los blobs."""
     rows = list_attachments(read_attachment_entries(read_email_node(root, rel_path)))
     return rows
+
+
+def extract_text_from_blob(root, entry, max_bytes=MAX_EXTRACTED_TEXT_BYTES):
+    """Lee solo blobs almacenados y los convierte con parsers de texto inertes.
+
+    No interpreta HTML, PDF, documentos ofimaticos ni formatos ejecutables:
+    esos formatos requieren una etapa futura con sandbox y antivirus externo.
+    """
+    data = dict(entry or {})
+    content_type = str(data.get("content_type") or "").split(";", 1)[0].lower()
+    filename = str(data.get("filename") or "")
+    if content_type not in _TEXT_TYPES or not is_type_allowed(content_type, filename):
+        raise AttachmentError("type-not-supported", "tipo no soportado para texto")
+    sha256 = _normalize_sha256(data.get("sha256"))
+    blob = blob_path(root, sha256)
+    if not blob.is_file():
+        raise AttachmentError("not-stored", "el adjunto no esta almacenado")
+    content = blob.read_bytes()
+    if len(content) > int(max_bytes):
+        raise AttachmentError("size-limit-exceeded", "texto extraido demasiado grande")
+    if hashlib.sha256(content).hexdigest() != sha256:
+        raise AttachmentError("hash-mismatch", "blob corrupto")
+    if b"\x00" in content:
+        raise AttachmentError("unsafe-content", "contenido no textual")
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise AttachmentError("decode-error", "texto no UTF-8 valido") from exc
+    return {"sha256": sha256, "content_type": content_type, "text": text}
 
 
 def extract_attachment_bytes(raw_message, part_index):

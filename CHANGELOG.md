@@ -9,6 +9,13 @@ es `0.1.0`, y coincide con `pyproject.toml` (`email-agent-cli`) y con
 
 ## [Unreleased]
 
+### Añadido (Sprint 75 — 2026-09-11)
+
+- `attachment extract` convierte localmente blobs almacenados de tipos textuales
+  seguros después de la confirmación literal, verificando hash y tamaño.
+- Formatos activos y ejecutables continúan rechazados hasta disponer de sandbox y
+  antivirus.
+
 ### Cambios de distribución (Sprint 74 — 2026-09-11)
 
 - Los instaladores descargan el wheel de `v0.1.0` y verifican su SHA-256 antes de

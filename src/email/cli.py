@@ -43,6 +43,7 @@ from src.email.attachments import (
     MAX_ATTACHMENT_BYTES,
     blob_path,
     extract_attachment_bytes,
+    extract_text_from_blob,
     gc_execute,
     gc_scan,
     is_type_allowed,
@@ -119,6 +120,8 @@ USAGE = (
     "CONFIRMAR BORRADO PERMANENTE | "
     "email-agent attachment list ROOT REL_PATH | "
     "email-agent attachment download ROOT REL_PATH INDEX DEST "
+    "CONFIRMAR EXTRACCION | "
+    "email-agent attachment extract ROOT REL_PATH INDEX DEST "
     "CONFIRMAR EXTRACCION | "
     "email-agent attachment gc ROOT [CONFIRMAR BORRADO ADJUNTOS] | "
     "email-agent draft ROOT ACCOUNT_ID TO SUBJECT BODY | "
@@ -1554,15 +1557,51 @@ def _run_attachment_gc(argv):
 
 def _run_attachment(argv):
     """Capa fina de presentacion sobre attachments (metadatos y descarga)."""
-    if len(argv) < 2 or argv[1] not in ("list", "download", "gc"):
+    if len(argv) < 2 or argv[1] not in ("list", "download", "extract", "gc"):
         return _fail([
-            "error: attachment requiere 'list', 'download' o 'gc'",
+            "error: attachment requiere 'list', 'download', 'extract' o 'gc'",
             USAGE,
         ])
     if argv[1] == "download":
         return _run_attachment_download(argv)
     if argv[1] == "gc":
         return _run_attachment_gc(argv)
+    if argv[1] == "extract":
+        if len(argv) < 7 or " ".join(argv[6:]) != _EXTRACTION_CONFIRMATION:
+            return _fail([
+                "error: attachment extract requiere ROOT, REL_PATH, INDEX, DEST "
+                "y CONFIRMAR EXTRACCION",
+                USAGE,
+            ])
+        root, rel_path, raw_index, dest = argv[2:6]
+        try:
+            index = int(raw_index)
+            dest_path = _resolve_dest_path(root, dest)
+            node_text = read_email_node(root, rel_path)
+            entry = next(
+                item for item in read_attachment_entries(node_text)
+                if item["part_index"] == index
+            )
+            if not entry.get("stored"):
+                raise AttachmentError("not-stored", "adjunto no almacenado")
+            extracted = extract_text_from_blob(root, entry)
+            if dest_path.exists() and dest_path.is_dir():
+                raise OSError("destino es directorio")
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = dest_path.with_name(dest_path.name + ".tmp")
+            tmp.write_text(extracted["text"], encoding="utf-8")
+            os.replace(tmp, dest_path)
+        except (ValueError, StopIteration):
+            _print_stderr(["error: nodo o destino invalido"])
+            return 2
+        except AttachmentError as exc:
+            _print_stderr(["error: " + exc.code + " (extraccion no permitida)"])
+            return 1
+        except Exception:
+            _print_stderr(["error: la extraccion de texto fallo"])
+            return 1
+        print(json.dumps({"index": index, "dest": dest, "sha256": extracted["sha256"], "size": len(extracted["text"].encode("utf-8"))}, sort_keys=True))
+        return 0
     if len(argv) != 4:
         return _fail(["error: attachment list requiere ROOT y REL_PATH", USAGE])
     try:
@@ -1673,6 +1712,10 @@ def cli_main(argv: list) -> int:
         print(
             "  attachment download ROOT REL_PATH INDEX DEST CONFIRMAR EXTRACCION"
             "  extrae un adjunto (requiere confirmacion literal)"
+        )
+        print(
+            "  attachment extract ROOT REL_PATH INDEX DEST CONFIRMAR EXTRACCION"
+            "  extrae texto local (requiere confirmacion literal)"
         )
         print(
             "  attachment gc ROOT  lista en seco los blobs sin referencia (JSON, "
