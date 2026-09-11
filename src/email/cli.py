@@ -521,17 +521,16 @@ def _make_update_contacts(root):
 
 
 def _run_contact(argv):
-    if len(argv) < 2 or argv[1] != "list":
+    if len(argv) < 2 or argv[1] not in ("list", "show"):
         return _fail([
-            "error: contact requiere el subcomando 'list'",
+            "error: contact requiere el subcomando 'list' o 'show'",
             USAGE,
             "  contact list ROOT  lista la libreta de contactos",
         ])
-    if len(argv) != 3:
-        return _fail([
-            "error: contact list requiere exactamente ROOT",
-            USAGE,
-        ])
+    if argv[1] == "list" and len(argv) != 3:
+        return _fail(["error: contact list requiere exactamente ROOT", USAGE])
+    if argv[1] == "show" and len(argv) != 4:
+        return _fail(["error: contact show requiere ROOT y EMAIL", USAGE])
     try:
         contacts = load_email_contacts(argv[2])
     except (ValueError, RuntimeError):
@@ -539,6 +538,14 @@ def _run_contact(argv):
             "error: no se pudieron leer los contactos (almacenamiento invalido)",
         ])
         return 1
+    if argv[1] == "show":
+        email = argv[3].strip().lower()
+        contact = next((item for item in contacts if item["email"] == email), None)
+        if contact is None:
+            _print_stderr(["error: contacto no encontrado"])
+            return 1
+        print(json.dumps(contact, sort_keys=True))
+        return 0
     for record in contacts:
         print(json.dumps(
             {"name": record["name"], "email": record["email"]},

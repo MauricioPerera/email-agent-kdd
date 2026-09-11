@@ -131,3 +131,5 @@
 * [Contrato del Objetivo 57](contracts/sprint57-notification-rule-limit.md) - Máximo de 100 reglas.
 * [Informe de consultas naturales por contacto](../../SPRINT58-NATURAL-CONTACT-QUERY-REPORT.md) - Resolución sin suposiciones.
 * [Contrato del Objetivo 58](contracts/sprint58-natural-contact-query.md) - Dirección clara o aclaración.
+* [Informe de consulta exacta de contactos](../../SPRINT59-CONTACT-SHOW-REPORT.md) - Confirmación por email.
+* [Contrato del Objetivo 59](contracts/sprint59-contact-show.md) - Consulta de solo lectura.

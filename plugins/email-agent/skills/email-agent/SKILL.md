@@ -23,6 +23,7 @@ The same onboarding flow works on Windows, macOS, and Linux: install, verify, cr
 ## Read and synchronize
 
 - List configured accounts: `account list ROOT`.
+- Inspect one exact contact without changing the address book: `contact show ROOT EMAIL`.
 - Synchronize one page: `sync ROOT ACCOUNT_ID --limit 50`.
 - Synchronize only unread messages: add `--unread`.
 - Continue monitoring: `watch ROOT ACCOUNT_ID --every 300 --limit 50`.

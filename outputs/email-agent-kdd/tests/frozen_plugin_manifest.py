@@ -160,6 +160,7 @@ def test_skill_documents_conservative_contact_resolution():
     assert "natural-language request about a person" in text
     assert "contact:EMAIL" in text
     assert "instead of guessing" in text
+    assert "contact show ROOT EMAIL" in text
 
 
 def test_skill_documents_startup_confirmation_boundary():
