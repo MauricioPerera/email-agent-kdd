@@ -38,10 +38,30 @@ def _write(path, value):
     os.replace(temporary, path)
 
 
+def _valid_query(query):
+    if not isinstance(query, str) or not query.strip():
+        return False
+    normalized = query.strip()
+    if any(ord(char) < 32 or ord(char) == 127 for char in normalized):
+        return False
+    return all(not token.casefold().startswith("para:") or bool(token[5:])
+               for token in normalized.split())
+
+
+def _valid_rule(rule):
+    return (
+        isinstance(rule, dict)
+        and isinstance(rule.get("name"), str)
+        and _NAME_RE.fullmatch(rule["name"]) is not None
+        and _valid_query(rule.get("query"))
+        and isinstance(rule.get("enabled", True), bool)
+    )
+
+
 def list_notification_rules(root):
     value = _read(_path(root, _RULES), {"rules": []})
     rules = value.get("rules") if isinstance(value, dict) else None
-    if not isinstance(rules, list):
+    if not isinstance(rules, list) or not all(_valid_rule(rule) for rule in rules):
         raise RuntimeError("almacen de notificaciones invalido")
     return rules
 
@@ -49,14 +69,9 @@ def list_notification_rules(root):
 def save_notification_rule(root, name, query, enabled=True):
     if not isinstance(name, str) or not _NAME_RE.fullmatch(name):
         raise ValueError("nombre de regla invalido")
-    if not isinstance(query, str) or not query.strip():
+    if not _valid_query(query):
         raise ValueError("filtro invalido")
     normalized_query = query.strip()
-    if any(ord(char) < 32 or ord(char) == 127 for char in normalized_query):
-        raise ValueError("filtro invalido")
-    for token in normalized_query.split():
-        if token.casefold().startswith("para:") and not token[5:]:
-            raise ValueError("filtro invalido")
     if not isinstance(enabled, bool):
         raise ValueError("enabled invalido")
     rules = [rule for rule in list_notification_rules(root) if rule.get("name") != name]

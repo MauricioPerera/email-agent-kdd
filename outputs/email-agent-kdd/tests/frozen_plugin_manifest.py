@@ -168,6 +168,8 @@ def test_skill_documents_delivery_filter_notifications():
     assert 'notification add ROOT ventas "para:ventas+cliente@example.com"' in text
     assert "Filters are validated before saving" in text
     assert "empty `para:` token" in text
+    assert "If the local rule store is corrupt" in text
+    assert "do not rewrite it" in text
     assert "Rules are evaluated only after `sync`" in text
 
 

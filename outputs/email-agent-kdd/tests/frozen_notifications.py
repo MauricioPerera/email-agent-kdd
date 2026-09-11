@@ -203,6 +203,17 @@ def test_invalid_notification_filters_are_rejected_before_storage(tmp_path):
     assert not (Path(tmp_path) / ".email-agent" / "notification-rules.json").exists()
 
 
+def test_corrupt_rule_store_is_rejected_before_notification(tmp_path):
+    path = Path(tmp_path) / ".email-agent" / "notification-rules.json"
+    path.parent.mkdir()
+    path.write_text(json.dumps({"rules": [{"name": "ventas", "query": "para:"}]}))
+    with pytest.raises(RuntimeError, match="almacen de notificaciones invalido"):
+        notifications.list_notification_rules(str(tmp_path))
+    with pytest.raises(RuntimeError, match="almacen de notificaciones invalido"):
+        notifications.notify_new_records(str(tmp_path), [{"raw_sha256": "h1"}])
+    assert not (Path(tmp_path) / ".email-agent" / "notification-state.json").exists()
+
+
 def test_subject_fallback_when_empty(tmp_path):
     _save_rule(tmp_path, "todo", "marcador")
     seen = _Sink()
