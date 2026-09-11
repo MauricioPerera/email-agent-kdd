@@ -114,6 +114,7 @@ def test_onboard_localizes_cancelled_setup(monkeypatch, tmp_path, capsys):
 def test_onboard_reports_safe_public_account_summary(monkeypatch, tmp_path, capsys):
     import src.email.cli as cli
 
+    save_language(str(tmp_path), "es")
     account = {
         "account_id": "personal",
         "provider": "gmail",
