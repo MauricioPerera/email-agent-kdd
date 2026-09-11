@@ -589,7 +589,7 @@ def _run_contact(argv):
         return _fail(["error: contact list requiere exactamente ROOT", USAGE])
     if argv[1] == "show" and len(argv) != 4:
         return _fail(["error: contact show requiere ROOT y EMAIL", USAGE])
-    if argv[1] == "find" and len(argv) != 4:
+    if argv[1] == "find" and len(argv) not in (4, 5):
         return _fail(["error: contact find requiere ROOT y TEXT", USAGE])
     try:
         contacts = load_email_contacts(argv[2])
@@ -610,8 +610,16 @@ def _run_contact(argv):
         query = argv[3].strip().casefold()
         if not query:
             return _fail(["error: contact find requiere TEXT no vacio", USAGE])
-        for contact in contacts:
-            if query in contact["name"].casefold() or query in contact["email"]:
+        if len(argv) == 5 and argv[4] != "--json":
+            return _fail(["error: contact find solo acepta --json", USAGE])
+        matches = [
+            contact for contact in contacts
+            if query in contact["name"].casefold() or query in contact["email"]
+        ]
+        if len(argv) == 5:
+            print(json.dumps({"results": matches, "total": len(matches)}, sort_keys=True))
+        else:
+            for contact in matches:
                 print(json.dumps(contact, sort_keys=True))
         return 0
     for record in contacts:
