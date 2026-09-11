@@ -18,7 +18,7 @@ def connect_email_request():
             {"name": "smtp_port", "type": "integer", "sensitivity": "public", "default": 465},
         ],
         "validation": {"preflight": "imap_auth_and_smtp_auth", "on_failure": "do_not_store"},
-        "confirmation": {"method": "user_accept", "required": True},
+        "confirmation": {"method": "user_accept", "required": True, "single_use": True},
         "expires_in_seconds": 600,
     }
 
@@ -37,6 +37,27 @@ def send_email_request():
             {"name": "body", "type": "multiline", "sensitivity": "private", "required": True},
         ],
         "validation": {"preflight": "recipient_and_draft_review"},
-        "confirmation": {"method": "pin", "required": True, "summary": ["to", "subject"]},
+        "confirmation": {
+            "method": "pin",
+            "required": True,
+            "summary": ["to", "subject"],
+            "single_use": True,
+        },
         "expires_in_seconds": 300,
     }
+
+
+def validate_lsfa_request(request):
+    """Valida el subconjunto LSFA usado por el CLI sin ejecutar efectos externos."""
+    required = {"operation", "purpose", "fields", "validation", "expires_in_seconds"}
+    missing = required.difference(request)
+    if missing:
+        raise ValueError("LSFA request missing required fields")
+    if not request["fields"]:
+        raise ValueError("LSFA request must declare fields")
+    if any("value" in field for field in request["fields"]):
+        raise ValueError("LSFA request must not include field values")
+    confirmation = request.get("confirmation")
+    if confirmation and confirmation.get("required") and confirmation.get("single_use") is not True:
+        raise ValueError("LSFA confirmation must be single-use")
+    return True
