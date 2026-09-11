@@ -9,6 +9,11 @@ es `0.1.0`, y coincide con `pyproject.toml` (`email-agent-cli`) y con
 
 ## [Unreleased]
 
+### Cambios de distribución (Sprint 74 — 2026-09-11)
+
+- Los instaladores descargan el wheel de `v0.1.0` y verifican su SHA-256 antes de
+  instalar; el modo desde repositorio queda explícito para desarrollo.
+
 ### Cambios posteriores a la publicación (Sprint 73 — 2026-09-11)
 
 - Los instaladores usan la referencia estable `v0.1.0` por defecto y permiten

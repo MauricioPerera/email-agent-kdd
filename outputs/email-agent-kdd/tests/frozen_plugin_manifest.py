@@ -256,6 +256,17 @@ def test_installers_point_to_origin_repository():
         assert "git+" in content and "@" in content
 
 
+def test_installers_verify_release_wheel_before_pip():
+    ps1 = (REPO / "installers" / "install.ps1").read_text(encoding="utf-8")
+    sh = (REPO / "installers" / "install.sh").read_text(encoding="utf-8")
+    for content in (ps1, sh):
+        assert "SHA256SUMS.txt" in content
+        assert "email_agent_cli-0.1.0-py3-none-any.whl" in content
+        assert "sha256" in content.lower()
+        assert "--no-index" in content
+    assert "FromSource" in ps1 and "--source" in sh
+
+
 def test_pyproject_declares_entry_point():
     data = PYPROJECT.read_text(encoding="utf-8")
     assert 'email-agent = "src.email.cli:main"' in data

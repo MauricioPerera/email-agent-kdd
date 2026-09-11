@@ -1,4 +1,5 @@
 param(
+  [switch]$FromSource,
   [string]$Source = "https://github.com/MauricioPerera/email-agent-kdd.git",
   [string]$Ref = "v0.1.0"
 )
@@ -15,9 +16,30 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
   throw "Python esta instalado, pero falta pip. Repara la instalacion de Python y vuelve a intentarlo."
 }
-Write-Host "Instalando Email Agent. Puede tardar unos minutos; no cierres esta ventana."
-python -m pip install --upgrade pip
-python -m pip install "git+$Source@$Ref"
+$ReleaseBase = "https://github.com/MauricioPerera/email-agent-kdd/releases/download/v0.1.0"
+$TempRoot = Join-Path ([IO.Path]::GetTempPath()) ("email-agent-install-" + [guid]::NewGuid().ToString("N"))
+try {
+  Write-Host "Instalando Email Agent. Puede tardar unos minutos; no cierres esta ventana."
+  if ($FromSource) {
+    Write-Host "Modo desarrollo: instalando desde $Source@$Ref"
+    python -m pip install "git+$Source@$Ref"
+  } else {
+    New-Item -ItemType Directory -Path $TempRoot | Out-Null
+    $Wheel = Join-Path $TempRoot "email_agent_cli-0.1.0-py3-none-any.whl"
+    $Sums = Join-Path $TempRoot "SHA256SUMS.txt"
+    Invoke-WebRequest -UseBasicParsing "$ReleaseBase/email_agent_cli-0.1.0-py3-none-any.whl" -OutFile $Wheel
+    Invoke-WebRequest -UseBasicParsing "$ReleaseBase/SHA256SUMS.txt" -OutFile $Sums
+    $Expected = ((Get-Content $Sums | Where-Object { $_ -match "  email_agent_cli-0\.1\.0-py3-none-any\.whl$" }) -split "\s+")[0].ToLowerInvariant()
+    $Actual = (Get-FileHash $Wheel -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ([string]::IsNullOrWhiteSpace($Expected) -or $Actual -ne $Expected) {
+      throw "La verificacion de integridad del instalador fallo. No se instalara el paquete."
+    }
+    python -m pip install --no-index $Wheel
+  }
+  if ($LASTEXITCODE -ne 0) { throw "La instalacion fallo. Revisa el mensaje anterior de pip y vuelve a intentarlo." }
+} finally {
+  if (Test-Path -LiteralPath $TempRoot) { Remove-Item -LiteralPath $TempRoot -Recurse -Force }
+}
 if ($LASTEXITCODE -ne 0) { throw "La instalacion fallo. Revisa el mensaje anterior de pip y vuelve a intentarlo." }
 Write-Host "Instalado. Comprobando que el programa responde (email-agent --help)..."
 email-agent --help

@@ -157,3 +157,5 @@
 * [Contrato del Objetivo 70](contracts/sprint70-draft-integrity.md) - Verificación antes de SMTP.
 * [Informe de instaladores de release](../../SPRINT73-RELEASE-INSTALLERS-REPORT.md) - Instalación fijada a `v0.1.0`.
 * [Contrato del Objetivo 73](contracts/sprint73-release-installers.md) - Distribución sin rama mutable por defecto.
+* [Informe de instalador verificado](../../SPRINT74-VERIFIED-RELEASE-INSTALLER-REPORT.md) - Wheel validado antes de pip.
+* [Contrato del Objetivo 74](contracts/sprint74-verified-release-installer.md) - Instalación segura desde release.
