@@ -65,3 +65,6 @@ email-agent startup remove ROOT ACCOUNT_ID
 `startup install` modifica la configuración de inicio del sistema y requiere confirmación directa del usuario. El contenido se procesa localmente y los adjuntos se conservan como metadatos hasta que el usuario solicite extracción.
 
 Consulta [SECURITY.md](SECURITY.md) y [docs/RELEASE.md](docs/RELEASE.md) antes de publicar una release.
+
+La propuesta experimental de formularios locales seguros para agentes está en
+[docs/LSFA-PROPOSAL.md](docs/LSFA-PROPOSAL.md).
