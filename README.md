@@ -6,6 +6,8 @@ CLI local y orientada a agentes para sincronizar correo por IMAP, guardar conoci
 
 Consulta la [matriz de plataformas](PLATFORM-MATRIX.md) para conocer los
 requisitos de tu sistema y el camino recomendado si no tienes interfaz gráfica.
+Los instaladores detectan automáticamente si falta Python 3.10+ o `pip` y se
+detienen con una instrucción clara antes de modificar el entorno.
 
 Necesitas Python 3.10 o superior instalado en tu equipo. Los mismos pasos valen en los tres sistemas: instala, comprueba y crea tu cuenta.
 

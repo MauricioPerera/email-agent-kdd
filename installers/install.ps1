@@ -2,6 +2,18 @@ param(
   [string]$Source = "https://github.com/MauricioPerera/email-agent-kdd.git"
 )
 $ErrorActionPreference = "Stop"
+$PythonCommand = Get-Command python -ErrorAction SilentlyContinue
+if ($null -eq $PythonCommand) {
+  throw "No se encontro Python. Instala Python 3.10 o superior y vuelve a ejecutar este instalador."
+}
+$PythonVersionOk = & python -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)"
+if ($LASTEXITCODE -ne 0) {
+  throw "Se encontro Python, pero necesitas Python 3.10 o superior."
+}
+& python -m pip --version *> $null
+if ($LASTEXITCODE -ne 0) {
+  throw "Python esta instalado, pero falta pip. Repara la instalacion de Python y vuelve a intentarlo."
+}
 Write-Host "Instalando Email Agent. Puede tardar unos minutos; no cierres esta ventana."
 python -m pip install --upgrade pip
 python -m pip install "git+$Source"

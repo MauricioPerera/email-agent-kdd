@@ -154,6 +154,15 @@ def test_installers_verify_command_after_install():
         assert "email-agent --help" in text
 
 
+def test_installers_check_python_and_pip_before_installing():
+    ps1 = (REPO / "installers" / "install.ps1").read_text(encoding="utf-8")
+    sh = (REPO / "installers" / "install.sh").read_text(encoding="utf-8")
+    assert "3.10" in ps1 and "python -m pip --version" in ps1
+    assert "3, 10" in ps1
+    assert "python3" in sh and "-m pip --version" in sh
+    assert "3, 10" in sh
+
+
 def test_installers_point_to_origin_repository():
     text = (REPO / "installers" / "install.ps1").read_text(encoding="utf-8")
     sh = (REPO / "installers" / "install.sh").read_text(encoding="utf-8")

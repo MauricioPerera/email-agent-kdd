@@ -43,3 +43,5 @@
 * [Contrato: CLI sync con pagina limitada](contracts/cli-sync-limit.md) - Anade la opcion `--limit N` (1..100) al subcomando `sync` para procesar una pagina IMAP limitada por ejecucion, continuando buzones grandes en ejecuciones posteriores via el cursor UID sin duplicados y sin alterar el uso actual.
 * [Matriz de plataformas](../../PLATFORM-MATRIX.md) - Instalación y capacidades por sistema operativo.
 * [Contrato del Objetivo 14](contracts/sprint14-platform-matrix.md) - Guía multiplataforma para usuarios finales.
+* [Informe de instaladores guiados](../../SPRINT15-INSTALLER-REPORT.md) - Detección de Python y pip antes de instalar.
+* [Contrato del Objetivo 15](contracts/sprint15-installers.md) - Requisitos y mensajes accionables del instalador.
