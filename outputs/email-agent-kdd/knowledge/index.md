@@ -75,3 +75,5 @@
 * [Contrato del Objetivo 29](contracts/sprint29-native-store-message.md) - Detención sin fallback inseguro.
 * [Informe de idioma explícito](../../SPRINT30-ONBOARDING-LANGUAGE-REPORT.md) - Selección de idioma en primer uso.
 * [Contrato del Objetivo 30](contracts/sprint30-onboarding-language.md) - Preferencia local antes del setup.
+* [Informe de seguridad del idioma](../../SPRINT31-ONBOARDING-LANGUAGE-SAFETY-REPORT.md) - Rechazo sin efectos secundarios.
+* [Contrato del Objetivo 31](contracts/sprint31-onboarding-language-safety.md) - Validación previa del idioma.

@@ -163,3 +163,15 @@ def test_onboard_can_set_language_for_entire_flow(monkeypatch, tmp_path, capsys)
     payload = json.loads(capsys.readouterr().out)
     assert payload["language"] == "pt"
     assert load_language(str(tmp_path)) == "pt"
+
+
+def test_onboard_rejects_invalid_language_before_writing_or_setup(monkeypatch, tmp_path, capsys):
+    import src.email.cli as cli
+
+    called = []
+    monkeypatch.setattr(cli, "run_diagnostics", lambda root: called.append("diagnostics") or {"status": "ready", "checks": [], "next": "ok"})
+    monkeypatch.setattr(cli, "_account_setup", lambda argv: called.append("setup") or 0)
+    assert cli.cli_main(["onboard", str(tmp_path), "--lang", "xx"]) == 2
+    assert called == []
+    assert not (tmp_path / ".email-agent" / "preferences.json").exists()
+    assert "--lang es|en|pt" in capsys.readouterr().err
