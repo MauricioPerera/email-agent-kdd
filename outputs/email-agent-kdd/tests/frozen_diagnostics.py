@@ -134,3 +134,22 @@ def test_onboard_reports_safe_public_account_summary(monkeypatch, tmp_path, caps
         "status": "configured",
     }
     assert "credential_ref" not in payload
+
+
+def test_onboard_can_force_terminal_flow(monkeypatch, tmp_path):
+    import src.email.cli as cli
+
+    calls = []
+    monkeypatch.setattr(cli, "run_diagnostics", lambda root: {"status": "ready", "checks": [{"name": "gui", "status": "ok"}], "next": "ok"})
+    monkeypatch.setattr(cli, "_account_setup", lambda argv: calls.append(argv) or 0)
+    monkeypatch.setattr(cli, "_account_setup_gui", lambda argv: 1)
+    assert cli.cli_main(["onboard", str(tmp_path), "--terminal"]) == 0
+    assert calls == [["account", "setup", str(tmp_path)]]
+
+
+def test_onboard_rejects_forced_gui_when_unavailable(monkeypatch, tmp_path, capsys):
+    import src.email.cli as cli
+
+    monkeypatch.setattr(cli, "run_diagnostics", lambda root: {"status": "ready", "checks": [{"name": "gui", "status": "warning"}], "next": "ok"})
+    assert cli.cli_main(["onboard", str(tmp_path), "--gui"]) == 1
+    assert "--terminal" in capsys.readouterr().err

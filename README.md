@@ -22,6 +22,8 @@ Si cancelas o falta un requisito, recibirás el siguiente paso y podrás repetir
 el comando sin dejar una contraseña en la salida.
 Cuando termine correctamente, el resumen te indicará el comando `sync` para
 iniciar la descarga de correo.
+Puedes forzar el formulario gráfico con `email-agent onboard ROOT --gui` o el
+asistente de terminal con `email-agent onboard ROOT --terminal`.
 
 Necesitas Python 3.10 o superior instalado en tu equipo. Los mismos pasos valen en los tres sistemas: instala, comprueba y crea tu cuenta.
 

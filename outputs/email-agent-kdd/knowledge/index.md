@@ -65,3 +65,5 @@
 * [Contrato del Objetivo 24](contracts/sprint24-onboarding-summary.md) - Resumen sin referencias de credencial.
 * [Informe del siguiente paso](../../SPRINT25-ONBOARDING-NEXT-STEP-REPORT.md) - Recomendación de primer sync.
 * [Contrato del Objetivo 25](contracts/sprint25-onboarding-next-step.md) - Continuidad accionable y localizada.
+* [Informe de selección de flujo](../../SPRINT26-ONBOARDING-FLOW-REPORT.md) - GUI o terminal bajo demanda.
+* [Contrato del Objetivo 26](contracts/sprint26-onboarding-flow.md) - Selección explícita y segura.

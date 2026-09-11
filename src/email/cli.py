@@ -107,6 +107,7 @@ USAGE = (
     "email-agent startup install|status|remove ROOT ACCOUNT_ID ... | "
     "email-agent doctor [ROOT] [--fix] [--lang es|en|pt] [--format json|text] [--report FILE] | "
     "email-agent language set|get ROOT [es|en|pt] | "
+    "email-agent onboard ROOT [--gui|--terminal] | "
     "email-agent message delete ROOT REL_PATH | "
     "email-agent message restore ROOT TRASH_REL_PATH | "
     "email-agent message trash ROOT | "
@@ -1374,9 +1375,10 @@ def _run_attachment(argv):
 
 def _run_onboard(argv):
     """Diagnostica y dirige el primer uso al formulario adecuado."""
-    if len(argv) != 2:
-        return _fail(["error: onboard requiere ROOT", USAGE])
+    if len(argv) not in (2, 3) or (len(argv) == 3 and argv[2] not in ("--gui", "--terminal")):
+        return _fail(["error: onboard requiere ROOT y acepta --gui o --terminal", USAGE])
     root = argv[1]
+    requested_mode = argv[2] if len(argv) == 3 else None
     language = load_language(root)
     try:
         before_ids = {item["account_id"] for item in load_email_accounts(root)}
@@ -1392,7 +1394,11 @@ def _run_onboard(argv):
         print(json.dumps({"status": result["status"], "checks": result["checks"], "next": next_steps[language], "action": "email-agent doctor --fix", "language": language}, sort_keys=True))
         return 1
     gui_available = any(item["name"] == "gui" and item["status"] == "ok" for item in result["checks"])
-    code = _account_setup_gui(["account", "setup-gui", root]) if gui_available else _account_setup(["account", "setup", root])
+    if requested_mode == "--gui" and not gui_available:
+        _print_stderr(["onboard: el formulario grafico no esta disponible; usa --terminal"])
+        return 1
+    use_gui = requested_mode == "--gui" or (requested_mode is None and gui_available)
+    code = _account_setup_gui(["account", "setup-gui", root]) if use_gui else _account_setup(["account", "setup", root])
     if code != 0:
         messages = {
             "es": "onboard: configuracion cancelada o incompleta; puedes volver a ejecutar 'email-agent onboard ROOT'",
@@ -1457,7 +1463,7 @@ def cli_main(argv: list) -> int:
         print("  doctor [ROOT] [--fix] [--lang es|en|pt] [--format json|text] [--report FILE]  diagnóstico seguro")
         print("  language set ROOT es|en|pt  guarda la preferencia local")
         print("  language get ROOT  muestra la preferencia efectiva")
-        print("  onboard ROOT  revisa requisitos y abre el flujo de primer uso")
+        print("  onboard ROOT [--gui|--terminal]  revisa requisitos y abre el flujo de primer uso")
         print("  draft ROOT ACCOUNT_ID TO SUBJECT BODY")
         print("  send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO")
         return 0
