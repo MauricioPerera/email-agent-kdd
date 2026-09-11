@@ -22,7 +22,13 @@ def _validate_root(root: str) -> Path:
 def _resolve_rel_path(root: Path, rel_path: str) -> Path:
     text = str(rel_path)
     portable_text = text.replace("\\", "/")
-    if not text or Path(portable_text).is_absolute() or portable_text.startswith("~"):
+    windows_absolute = len(portable_text) >= 3 and portable_text[1:3] == ":/"
+    if (
+        not text
+        or Path(portable_text).is_absolute()
+        or windows_absolute
+        or portable_text.startswith("~")
+    ):
         raise ValueError("rel_path insegura: absoluta o fuera de la raiz: " + text)
     if ".." in portable_text.split("/"):
         raise ValueError("rel_path insegura: segmento '..' no permitido: " + text)
