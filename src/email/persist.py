@@ -45,6 +45,11 @@ def _render(record):
     for label, key in _FRONT_FIELDS:
         value = "Email Message" if label == "type" else record.get(key)
         lines.append(label + ": " + _scalar(value))
+        if label == "to" and record.get("delivered_to"):
+            lines.append(
+                "delivered_to: "
+                + ", ".join(str(addr) for addr in record["delivered_to"])
+            )
     if record.get("attachments"):
         lines.append("attachments:")
         for attachment in record["attachments"]:

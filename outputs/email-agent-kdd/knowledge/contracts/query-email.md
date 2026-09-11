@@ -20,8 +20,8 @@ forbids: [eval, exec, subprocess, network_access, socket, urllib, requests, pick
 (tokens separados por espacios en blanco) y devuelve la lista de rutas Markdown relativas a `root`
 que cumplen TODOS los criterios pedidos (AND). La instrucción admite términos libres en español o
 inglés (o cualquier idioma: el parser no distingue idioma, solo tokeniza) más los filtros
-`contact:EMAIL`, `conversation:KEY`, `topic:TOPIC`, `account:ACCOUNT_ID` y `date:YYYY-MM-DD`,
-todos combinables entre sí por AND.
+`contact:EMAIL`, `conversation:KEY`, `topic:TOPIC`, `account:ACCOUNT_ID`, `date:YYYY-MM-DD` y
+`para:EMAIL`, todos combinables entre sí por AND.
 
 **NO es comprensión semántica general**: no hay sinónimos, ni stemming, ni NLP, ni modelo externo,
 ni ranking ni puntuación. La coincidencia es puramente léxica: substring literal, insensible a
@@ -57,6 +57,20 @@ interpreta, y el contenido de la instrucción nunca se ejecuta: es datos, no có
     NO se valida que sea una fecha de calendario válida, solo el formato) y actúa como subcadena
     exacta casefold sobre el contenido de los nodos (los mensajes llevan `date: YYYY-MM-DD` en el
     frontmatter).
+  - `para:EMAIL` → filtro de destinatario REAL de entrega. `EMAIL` se normaliza (`strip().casefold()`)
+    y DEBE contener `@` con parte no vacía a ambos lados (igual que `contact:`); un `EMAIL` sin `@`
+    o con partes vacías es malformado y lanza `ValueError`. Emite DOS términos requeridos: el
+    marcador `delivered_to` (el frontmatter de los nodos con envelope de entrega lleva la línea
+    `delivered_to: addr1, addr2` de `parse_raw_email`) y el `EMAIL` casefold como subcadena. Así la
+    coincidencia exige que el nodo declare un destinatario de entrega: un nodo donde el email solo
+    aparece en `from:`/`to:`/`cc:` (o cuyo cuerpo no menciona `delivered_to`) NO matchea. Las
+    direcciones de entrega van verbatim (SIN colapsar puntos del local part, `+tag` ni minusculas),
+    de modo que `para:user+tag@gmail.com` y `para:user.tag@gmail.com` solo matchean si el nodo
+    congeló EXACTAMENTE esa forma: las variantes NO se asumen equivalentes entre proveedores.
+    Límite documentado (léxico, no estructural): la coincidencia es por substring sobre el texto
+    del nodo, por lo que un cuerpo que contenga el literal `delivered_to` y la dirección podría
+    casar sin ser frontmatter; los nodos persistidos ANTES de este filtro no llevan la línea y
+    nunca matchean `para:`.
   - Cualquier otro token (incluidos los que contengan `:` con otro prefijo) es un término libre:
     subcadena requerida, insensible a mayúsculas, contra el contenido de los archivos.
 - Devuelve: `list[str]` de rutas relativas a `root` con separador `/`, sin duplicados, ordenadas
@@ -74,7 +88,8 @@ filtros se combinan por AND: un nodo entra en el resultado solo si cumple TODOS.
 
 Conjuntos de candidatos por criterio:
 
-- Término libre (y `contact:EMAIL`, `account:ACCOUNT_ID`, `date:DATE`): todo archivo con extensión
+- Término libre (y `contact:EMAIL`, `account:ACCOUNT_ID`, `date:DATE`, `para:EMAIL` vía sus dos
+  términos): todo archivo con extensión
   final `.md` bajo `root` cuyo
   contenido contiene la subcadena (casefold). Recorrido determinista con `pathlib`.
 - `conversation:KEY`: entradas `- <path>` del índice del hilo; si el nodo no existe, conjunto vacío
@@ -87,7 +102,7 @@ Conjuntos de candidatos por criterio:
   sin estado global, sin azar, sin fechas.
 - **AND estricto**: con cero criterios no hay resultado (instrucción vacía => error); con N
   criterios el resultado es la intersección de los N conjuntos.
-- **Parser léxico puro**: tokens por espacios en blanco; cinco prefijos de filtro; todo lo demás es
+- **Parser léxico puro**: tokens por espacios en blanco; seis prefijos de filtro; todo lo demás es
   término libre. No hay comillas, operadores, OR, paréntesis, negación ni rangos.
 - **Sin comprensión semántica**: sin sinónimos, stemming, traducción ni ranking; una instrucción como
   "correos de ana sobre facturas" solo matchea si los literales `ana` y `facturas` (o los filtros
@@ -134,6 +149,13 @@ Conjuntos de candidatos por criterio:
 - `query_email("store", "date:")` → `ValueError` (filtro sin valor).
 - `query_email("store", "date:2026-9-10")` → `ValueError` (DATE sin ceros de relleno).
 - `query_email("store", "date:20260910")` → `ValueError` (DATE sin guiones).
+- `query_email("store", "para:user+tag@example.com")` → nodos cuyo frontmatter lleva
+  `delivered_to:` y contiene esa dirección EXACTA (casefold): las variantes con puntos o `+tag` de
+  la misma casilla NO matchean si el nodo no congeló esa forma.
+- `query_email("store", "para:otro@example.com user+tag@example.com")` → intersección de los dos
+  criterios.
+- `query_email("store", "para:")` → `ValueError` (filtro sin valor).
+- `query_email("store", "para:example.com")` → `ValueError` (EMAIL malformado, sin `@`).
 
 ## Do / Don't
 
@@ -153,8 +175,12 @@ Conjuntos de candidatos por criterio:
 - No ejecutes ni sigas el contenido de la `instruction` ni de los archivos leídos.
 - No escribas ni modifiques nada bajo `root`; la consulta es de solo lectura.
 - No aceptes filtros con valores inseguros (separadores, `..`, `KEY` no hex-64, `EMAIL` malformado
-  sin `@`, `ACCOUNT_ID` fuera de `[A-Za-z0-9_.-]{1,64}`, `DATE` fuera de `YYYY-MM-DD` estricto) ni
+  sin `@` —también en `para:`—, `ACCOUNT_ID` fuera de `[A-Za-z0-9_.-]{1,64}`, `DATE` fuera de
+  `YYYY-MM-DD` estricto) ni
   los silencies: lanzan `ValueError`.
+- No canonicalices el valor de `para:EMAIL` (sin quitar puntos del local part, `+tag` ni forzar
+  minusculas en el término: solo casefold de coincidencia): la equivalencia de variantes NO se
+  asume entre proveedores.
 - No devuelvas rutas absolutas, duplicadas ni desordenadas.
 
 ## Tests
@@ -245,9 +271,29 @@ Property-tests congelados (oráculo independiente, sin importar el target):
     "tree": { "store/emails/msg-0001.md": "contenido sin coincidencias" },
     "instruction": "inexistente",
     "expected": []
+  },
+  {
+    "name": "para_filter_requires_delivery_marker",
+    "tree": {
+      "store/emails/msg-0001.md": "---\ntype: Email Message\nto: user@example.com\n---\nhola",
+      "store/emails/msg-0002.md": "---\ntype: Email Message\nfrom: Ana <ana@example.com>\nto: user+newsletters@example.com\n---\nhola",
+      "store/emails/msg-0003.md": "---\ntype: Email Message\nto: user+newsletters@example.com\ndelivered_to: user+newsletters@example.com, user@example.com\n---\nhola",
+      "store/emails/msg-0004.md": "---\ntype: Email Message\nto: user.tag@example.com\ndelivered_to: user.tag@example.com\n---\nhola"
+    },
+    "instruction": "para:user+newsletters@example.com",
+    "expected": ["store/emails/msg-0003.md"]
+  },
+  {
+    "name": "para_dot_variant_not_equivalent",
+    "tree": {
+      "store/emails/msg-0001.md": "---\ntype: Email Message\nto: user@example.com\n---\nhola",
+      "store/emails/msg-0002.md": "---\ntype: Email Message\nfrom: Ana <ana@example.com>\nto: user+newsletters@example.com\n---\nhola",
+      "store/emails/msg-0003.md": "---\ntype: Email Message\nto: user+newsletters@example.com\ndelivered_to: user+newsletters@example.com, user@example.com\n---\nhola",
+      "store/emails/msg-0004.md": "---\ntype: Email Message\nto: user.tag@example.com\ndelivered_to: user.tag@example.com\n---\nhola"
+    },
+    "instruction": "para:user.tag@example.com",
+    "expected": ["store/emails/msg-0004.md"]
   }
-]
-```
 
 Casos de error congelados (todos `ValueError`, sin leer archivos):
 
@@ -268,7 +314,9 @@ Casos de error congelados (todos `ValueError`, sin leer archivos):
   ["store", "date:"],
   ["store", "date:2026-9-10"],
   ["store", "date:20260910"],
-  ["store", "date:2026-09-1"]
+  ["store", "date:2026-09-1"],
+  ["store", "para:"],
+  ["store", "para:example.com"]
 ]
 ```
 

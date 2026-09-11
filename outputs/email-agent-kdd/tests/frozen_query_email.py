@@ -130,8 +130,10 @@ def test_contract_has_sections_filters_and_stop_phrase():
         "topic:TOPIC",
         "account:ACCOUNT_ID",
         "date:DATE",
+        "para:EMAIL",
     ):
         assert filter_decl in text, "filtro ausente: " + filter_decl
+    assert "delivered_to" in text, "marcador delivered_to no declarado"
     assert "^[0-9a-f]{64}$" in text, "invariante hex-64 del KEY ausente"
     assert "^\\w{1,64}$" in text, "invariante de TOPIC seguro ausente"
     assert "^[A-Za-z0-9_.-]{1,64}$" in text, "invariante de ACCOUNT_ID seguro ausente"
@@ -358,6 +360,49 @@ def test_frozen_cases_no_match_returns_empty():
     assert case["expected"] == []
 
 
+def _model_query(case):
+    """Modelo de referencia del parser: AND de terminos + marcador para:."""
+    tokens = case["instruction"].split()
+    free = [t.casefold() for t in tokens if ":" not in t]
+    para = [
+        ("delivered_to", token[len("para:"):].strip().casefold())
+        for token in tokens
+        if token.lower().startswith("para:")
+    ]
+    matches = set()
+    for path, content in case["tree"].items():
+        lowered = content.casefold()
+        if all(t in lowered for t in free) and all(
+            marker in lowered and value in lowered for marker, value in para
+        ):
+            matches.add(path)
+    return sorted(matches)
+
+
+def test_frozen_cases_para_filter_requires_delivery_marker():
+    case = _case("para_filter_requires_delivery_marker")
+    assert _model_query(case) == case["expected"]
+    # msg-0002 tiene la direccion en `to:` pero SIN delivered_to: no matchea.
+    assert "user+newsletters@example.com" in case["tree"]["store/emails/msg-0002.md"]
+    assert "delivered_to" not in case["tree"]["store/emails/msg-0002.md"]
+    assert "store/emails/msg-0002.md" not in case["expected"]
+    assert case["expected"] == ["store/emails/msg-0003.md"]
+
+
+def test_frozen_cases_para_dot_variant_not_equivalent():
+    case = _case("para_dot_variant_not_equivalent")
+    assert _model_query(case) == case["expected"]
+    # user+newsletters con delivered_to NO matchea la forma con punto.
+    assert "user+newsletters@example.com" in case["tree"]["store/emails/msg-0003.md"]
+    assert case["expected"] == ["store/emails/msg-0004.md"]
+
+
+def test_frozen_invalid_includes_para_malformed():
+    invalid = _frozen_invalid()
+    assert ["store", "para:"] in invalid, "para: sin valor"
+    assert ["store", "para:example.com"] in invalid, "para: EMAIL sin @"
+
+
 def test_frozen_invalid_cases_shape_and_values():
     invalid = _frozen_invalid()
     assert len(invalid) >= 15, "el contrato debe congelar los errores pactados"
@@ -397,3 +442,94 @@ def test_frozen_invalid_cases_shape_and_values():
             "DATE fuera del formato estricto: " + bad_date
         )
         assert not re.fullmatch(r"\d{4}-\d{2}-\d{2}", bad_date[len("date:"):])
+
+# ---------------------------------------------------------------------------
+# Casos de target para para:EMAIL (ejercitan src.email.query, no solo el
+# modelo de referencia del oraculo).
+# ---------------------------------------------------------------------------
+
+_TARGET_TREE = {
+    "store/emails/msg-0001.md": (
+        "---\ntype: Email Message\n"
+        "to: USER@example.com\n"
+        "---\nhola"
+    ),
+    "store/emails/msg-0002.md": (
+        "---\ntype: Email Message\n"
+        "to: user+newsletters@example.com\n"
+        "cc: user+newsletters@example.com\n"
+        "---\nhola"
+    ),
+    "store/emails/msg-0003.md": (
+        "---\ntype: Email Message\n"
+        "to: user@example.com\n"
+        "delivered_to: user+newsletters@example.com, USER@example.com\n"
+        "---\nhola"
+    ),
+    "store/emails/msg-0004.md": (
+        "---\ntype: Email Message\n"
+        "delivered_to: user.tag@example.com\n"
+        "---\nmencion de delivered_to en el cuerpo sin la direccion"
+    ),
+    "store/notes/nota.md": "sin frontmatter",
+}
+
+
+def _target_query():
+    from src.email.query import query_email
+
+    return query_email
+
+
+def test_target_para_requires_delivered_to_marker(tmp_path):
+    query_email = _target_query()
+    for path, content in _TARGET_TREE.items():
+        file = tmp_path / path
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_text(content, encoding="utf-8")
+    assert query_email(str(tmp_path), "para:user+newsletters@example.com") == [
+        "store/emails/msg-0003.md"
+    ]
+
+
+def test_target_para_case_insensitive_value(tmp_path):
+    query_email = _target_query()
+    for path, content in _TARGET_TREE.items():
+        file = tmp_path / path
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_text(content, encoding="utf-8")
+    assert query_email(str(tmp_path), "para:USER@example.com") == [
+        "store/emails/msg-0003.md"
+    ]
+
+
+def test_target_para_does_not_match_to_cc_or_bare_body(tmp_path):
+    query_email = _target_query()
+    for path, content in _TARGET_TREE.items():
+        file = tmp_path / path
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_text(content, encoding="utf-8")
+    matched = query_email(str(tmp_path), "para:user.tag@example.com")
+    assert matched == ["store/emails/msg-0004.md"], matched
+
+
+def test_target_para_dot_variant_not_equivalent(tmp_path):
+    query_email = _target_query()
+    for path, content in _TARGET_TREE.items():
+        file = tmp_path / path
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_text(content, encoding="utf-8")
+    assert query_email(str(tmp_path), "para:USER+newsletters@example.com") == [
+        "store/emails/msg-0003.md"
+    ]
+    assert query_email(str(tmp_path), "para:User.Tag@example.com") == [
+        "store/emails/msg-0004.md"
+    ]
+
+
+def test_target_para_malformed_raises(tmp_path):
+    query_email = _target_query()
+    (tmp_path / "store").mkdir(parents=True, exist_ok=True)
+    for instruction in ("para:", "para:example.com", "para:@example.com"):
+        with pytest.raises(ValueError):
+            query_email(str(tmp_path), instruction)

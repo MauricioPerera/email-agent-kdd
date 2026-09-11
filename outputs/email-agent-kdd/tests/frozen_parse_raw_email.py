@@ -1,9 +1,13 @@
 """Oracle congelado e independiente para parse_raw_email.
 
 Los valores esperados (hashes, cuerpos, metadatos) se calculan inline con
-stdlib, sin helpers del target bajo prueba.
+stdlib, sin helpers del target bajo prueba. La lista `delivered_to` esperada
+se deriva del modelo de referencia del oraculo de delivery-recipient
+(getaddresses sobre los headers de envelope, dedup exacta, orden estable),
+reimplementada aqui; jamas se canonicaliza (puntos/+tag/minusculas).
 """
 
+import email.utils
 import hashlib
 
 import pytest
@@ -13,6 +17,20 @@ from src.email.parse import parse_raw_email
 
 def _sha256(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def _model_delivered_to(raw_message):
+    import email
+
+    message = email.message_from_bytes(raw_message)
+    collected = []
+    for name in ("Delivered-To", "X-Original-To", "Envelope-To"):
+        for value in message.get_all(name, []):
+            for _display, addr_spec in email.utils.getaddresses([str(value)]):
+                addr = addr_spec.strip()
+                if addr and "@" in addr:
+                    collected.append(addr)
+    return sorted(set(collected))
 
 
 SIMPLE_RAW = (
@@ -95,6 +113,27 @@ REPLACEMENT_RAW = (
     b"\n"
     b"A\xffB"
 )
+
+DELIVERY_RAW = (
+    b"From: Ana Garcia <ana@example.com>\n"
+    b"To: user@example.com\n"
+    b"Subject: Entrega\n"
+    b"Delivered-To: user+newsletters@example.com\n"
+    b"X-Original-To: user@example.com\n"
+    b"\n"
+    b"Entregado al buzon real."
+)
+
+DELIVERY_NAME_BRACKETS_RAW = (
+    b"From: a@example.com\n"
+    b"To: user@example.com\n"
+    b"Subject: Envelope\n"
+    b"Envelope-To: <U.SER@example.com>\n"
+    b"\n"
+    b"Cuerpo."
+)
+
+NO_DELIVERY_RAW = SIMPLE_RAW
 
 
 def test_rejects_non_bytes_raw_message():
@@ -184,3 +223,37 @@ def test_missing_headers_are_empty_and_serializable():
     json.dumps(record)
     assert record["from"] == ""
     assert record["message_id"] == ""
+
+
+def test_delivery_recipient_captured_verbatim_no_canonicalization():
+    record = parse_raw_email(DELIVERY_RAW, "personal")
+    assert record["delivered_to"] == _model_delivered_to(DELIVERY_RAW)
+    # Las variantes con puntos y +tag NO se colapsan: verbatim cada una.
+    assert record["delivered_to"] == ["user+newsletters@example.com", "user@example.com"]
+    import json
+
+    json.dumps(record)
+
+
+def test_delivery_recipient_from_bracketed_envelope_to():
+    record = parse_raw_email(DELIVERY_NAME_BRACKETS_RAW, "personal")
+    # Verbatim: sin minusculas ni colapso de puntos del local part.
+    assert record["delivered_to"] == ["U.SER@example.com"]
+    assert record["delivered_to"] == _model_delivered_to(DELIVERY_NAME_BRACKETS_RAW)
+
+
+def test_no_delivery_headers_omits_key_for_backward_compat():
+    record = parse_raw_email(NO_DELIVERY_RAW, "personal")
+    assert "delivered_to" not in record, (
+        "la clave debe ausentarse sin headers de entrega (compat de nodos ya persistidos)"
+    )
+
+
+def test_delivery_key_matches_oracle_model():
+    for raw in (DELIVERY_RAW, DELIVERY_NAME_BRACKETS_RAW, THREAD_RAW):
+        record = parse_raw_email(raw, "personal")
+        expected = _model_delivered_to(raw)
+        if expected:
+            assert record["delivered_to"] == expected
+        else:
+            assert "delivered_to" not in record

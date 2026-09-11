@@ -368,6 +368,8 @@ def test_contract_documents_exact_rules():
     assert "message[\"confirmed\"] is True" in text, "confirmacion no estricta"
     assert '"true"' in text and "1" in text, "sin variantes no booleanas rechazadas"
     assert "smtplib.SMTP(host, port)" in text, "fabrica por defecto no documentada"
+    assert "smtplib.SMTP_SSL" in text, "fabrica por defecto 465 no documentada"
+    assert "puerto `465`" in text, "seleccion por puerto no documentada"
     assert "quit()` se ejecuta en un `finally" in text, "cierre no en finally"
     assert "email.message.EmailMessage()" in text, "EmailMessage no documentado"
     assert "`sent` (`True`)" in text, "recibo sin sent True documentado"

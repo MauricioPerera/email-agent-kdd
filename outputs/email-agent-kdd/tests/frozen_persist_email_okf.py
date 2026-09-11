@@ -83,3 +83,18 @@ def test_frozen_example_rejects_unsafe_paths():
             ".." in path.replace("\\", "/").split("/") or path.startswith(("/", "C:\\", "~"))
         ), "ruta insegura mal catalogada: " + path
     assert "ValueError" in text, "el contrato no declara rechazo con ValueError"
+
+
+def test_contract_declares_conditional_delivered_to_line():
+    text = _contract_text()
+    assert "delivered_to:" in text, "linea delivered_to no declarada"
+    assert 'delivered_to: <addr1, addr2>' in text, (
+        "formato de la linea delivered_to no declarado"
+    )
+    assert "despues de `to`" in text or "después de `to`" in text, (
+        "posicion de la linea delivered_to no declarada"
+    )
+    assert "verbatim" in text, "verbatim de direcciones no declarado"
+    assert "+tag" in text and "puntos" in text, (
+        "no canonicalizacion de variantes no declarada"
+    )

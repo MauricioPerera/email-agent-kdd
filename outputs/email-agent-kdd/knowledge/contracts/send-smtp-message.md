@@ -25,7 +25,7 @@ Enviar, y solo si el remitente confirmo explicitamente el envio, un correo por S
 - `account` (obligatorio): dict con `account_id` y `email`, ambos `str` no vacios.
 - `config` (obligatorio): dict con `host`, `username` y `password`, todos `str` no vacios; claves opcionales `port` (`int` de `1` a `65535`, por defecto `587`, los `bool` se rechazan aunque Python los cuente como `int`) y `from_email` (`str` no vacio, por defecto `account["email"]`).
 - `message` (obligatorio): dict con `confirmed` (`bool` que debe ser exactamente `True` por identidad `is True`), `to` (lista no vacia de `str` no vacios, usados tal cual y en orden, sin normalizar), `subject` (`str` no vacio) y `body` (`str` no vacio). Cualquier otra clave se ignora.
-- `connection_factory` (opcional): callable que recibe `(host, port)` y devuelve un objeto conexion con `login`, `send_message` y `quit`. Si es `None`, la funcion construye `smtplib.SMTP(host, port)`.
+- `connection_factory` (opcional): callable que recibe `(host, port)` y devuelve un objeto conexion con `login`, `send_message` y `quit`. Si es `None`, la funcion selecciona la fabrica por defecto segun el puerto resuelto: con `port == 465` construye `smtplib.SMTP_SSL(host, port)` (TLS implicito); con cualquier otro puerto (`587` incluido) construye `smtplib.SMTP(host, port)`.
 - Devuelve: `dict` de recibo serializable a JSON, con exactamente las claves `account_id`, `from_email`, `to` (copia de la lista), `subject` y `sent` (`True`), en ese orden. Sin password, sin el cuerpo y sin objetos no serializables.
 - Lanza: `ValueError` ante cualquier entrada invalida, siempre antes de llamar a la fabrica; `RuntimeError` ante cualquier error de transporte.
 
@@ -35,6 +35,7 @@ Enviar, y solo si el remitente confirmo explicitamente el envio, un correo por S
 - Validacion previa a toda conexion, en orden fijo: (1) `account` dict con `account_id` y `email` utiles, (2) `config` dict con `host`, `username` y `password` utiles, (3) `port` si esta presente dentro de `1..65535` y no es `bool`, (4) `from_email` si esta presente `str` no vacio, (5) `message` dict, (6) `confirmed is True`, (7) `to` lista no vacia de `str` no vacios, (8) `subject` `str` no vacio, (9) `body` `str` no vacio. Cualquier fallo lanza `ValueError` y la fabrica nunca se invoca.
 - Construccion del mensaje: `email.message.EmailMessage()` con `From` = `from_email` resuelto, `To` = `", ".join(to)`, `Subject` = `subject` y `set_content(body)`. La funcion no altera cabeceras extra ni adjunta nada.
 - Secuencia SMTP fija: `connection_factory(host, port)` -> `login(username, password)` -> `send_message(msg)`; `quit()` se ejecuta en un `finally`, tambien cuando la fabrica, el `login` o el `send_message` fallan a mitad del camino.
+- Fabrica por defecto segun puerto (solo cuando `connection_factory is None`): puerto `465` -> `smtplib.SMTP_SSL` (TLS implicito); cualquier otro puerto -> `smtplib.SMTP`. Una fabrica inyectada se usa siempre tal cual, sin importar el puerto.
 - Todo error de transporte (fabrica, `login`, `send_message`) se relanza como `RuntimeError` cuyo mensaje incluye `host` y `account_id` pero nunca la password (ni en claro ni codificada) y nunca el cuerpo del mensaje.
 - Sin disco, sin logs, sin `print`, sin `logging` y sin dependencias externas: la unica red posible es la fabrica inyectada.
 - La entrada no se muta: `account`, `config` y `message` quedan intactos tras la llamada.
@@ -210,6 +211,7 @@ Ejemplo frozen de exito (fabrica inyectada): un solo intento de conexion, una so
 
 - Do: validar toda la entrada (incluida la confirmacion exacta `is True`) antes de llamar a la fabrica.
 - Do: aceptar la fabrica inyectada para toda conexion, de modo que las pruebas no toquen red.
+- Do: con fabrica por defecto, elegir `smtplib.SMTP_SSL` solo para puerto `465` y `smtplib.SMTP` para los demas.
 - Do: cerrar la sesion con `quit()` en un `finally` y devolver un recibo JSON-serializable sin password ni cuerpo.
 - Don't: conectar, loguear o enviar sin `confirmed is True`.
 - Don't: escribir archivos, emitir logs, usar `print`/`logging` ni dependencias externas.
@@ -217,7 +219,7 @@ Ejemplo frozen de exito (fabrica inyectada): un solo intento de conexion, una so
 
 ## Tests
 
-Las propiedades y casos congelados estan en `tests/frozen_send_smtp.py`. Son oracle independiente: no importan el target ni `src.email`; no abren sockets ni escriben disco. Recomputan con un modelo de referencia propio y un fake SMTP las reglas documentadas (orden de validacion, confirmacion estricta `is True`, valores por defecto de `port`/`from_email`, secuencia factory/login/send_message con `quit` en `finally`, envoltura de errores en `RuntimeError` sin password ni cuerpo, recibo de claves exactas) y las contrastan con los casos congelados. La prueba valida ademas que sin confirmacion no se abre ninguna conexion (`factory_calls == 0`) y que el fake captura exactamente una entrega en el caso de exito.
+Las propiedades y casos congelados estan en `tests/frozen_send_smtp.py`. Son oracle independiente: no importan el target ni `src.email`; no abren sockets ni escriben disco. Recomputan con un modelo de referencia propio y un fake SMTP las reglas documentadas (orden de validacion, confirmacion estricta `is True`, valores por defecto de `port`/`from_email`, secuencia factory/login/send_message con `quit` en `finally`, envoltura de errores en `RuntimeError` sin password ni cuerpo, recibo de claves exactas) y las contrastan con los casos congelados. La prueba valida ademas que sin confirmacion no se abre ninguna conexion (`factory_calls == 0`) y que el fake captura exactamente una entrega en el caso de exito. La seleccion de la fabrica por defecto segun puerto (`smtplib.SMTP_SSL` solo para `465`; `smtplib.SMTP` para los demas, incluido `587`) se cubre con la prueba de regresion `tests/frozen_smtp_ssl_port.py`, que sustituye `smtplib.SMTP` y `smtplib.SMTP_SSL` por fakes y por tanto no abre sockets reales.
 
 ## Constraints
 

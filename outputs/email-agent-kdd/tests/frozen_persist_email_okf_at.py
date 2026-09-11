@@ -35,6 +35,14 @@ FROZEN_RECORD = {
     "raw": b"raw-bytes-nunca-escritos",
 }
 
+# Registro con destinatario real de entrega: la linea delivered_to se emite
+# solo si la clave existe (compatibilidad con nodos ya persistidos). Las
+# direcciones van verbatim, sin canonicalizar variantes de puntos/+tag.
+FROZEN_RECORD_DELIVERED = {
+    **FROZEN_RECORD,
+    "delivered_to": ["user+newsletters@example.com", "user@example.com"],
+}
+
 
 def _contract_text():
     return CONTRACT.read_text(encoding="utf-8")
@@ -74,6 +82,14 @@ def _render_expected(record):
             lines.append("type: Email Message")
         else:
             lines.append(label + ": " + _scalar(record.get(key)))
+        # delivered_to: solo si la clave trae lista no vacia; direcciones
+        # verbatim unidas por ", ", SIN canonicalizar, inmediatamente tras `to`.
+        if label == "to":
+            delivered = record.get("delivered_to")
+            if delivered:
+                lines.append(
+                    "delivered_to: " + ", ".join(str(addr) for addr in delivered)
+                )
     if record.get("attachments"):
         lines.append("attachments:")
         for attachment in record["attachments"]:
@@ -232,6 +248,33 @@ def test_target_is_idempotent():
         assert first == second, "idempotencia: rutas distintas"
         assert Path(first).read_bytes() == _render_expected(FROZEN_RECORD).encode(
             "utf-8"
+        )
+
+
+def test_target_writes_delivered_to_line_after_to_verbatim():
+    persist = _target()
+    with tempfile.TemporaryDirectory() as tmp:
+        root = str(Path(tmp) / "store")
+        returned = persist(FROZEN_RECORD_DELIVERED, root, "emails/msg-d.md")
+        content = Path(returned).read_text(encoding="utf-8")
+        assert content == _render_expected(FROZEN_RECORD_DELIVERED)
+        # La linea va despues de `to` y las direcciones van verbatim.
+        frontmatter = content.split("---\n", 2)[1]
+        lines = frontmatter.splitlines()
+        to_index = lines.index("to: user@example.com")
+        assert lines[to_index + 1] == (
+            "delivered_to: user+newsletters@example.com, user@example.com"
+        )
+
+
+def test_target_omits_delivered_to_line_without_key():
+    persist = _target()
+    with tempfile.TemporaryDirectory() as tmp:
+        root = str(Path(tmp) / "store")
+        returned = persist(FROZEN_RECORD, root, "emails/msg-s.md")
+        content = Path(returned).read_text(encoding="utf-8")
+        assert "delivered_to" not in content, (
+            "sin clave delivered_to el nodo se renderiza igual que antes"
         )
 
 

@@ -1,9 +1,10 @@
 """Consulta del store Markdown (contrato query_email).
 
 Parser lexico determinista: tokens por espacios; filtros `contact:EMAIL`,
-`conversation:KEY`, `topic:TOPIC`, `account:ACCOUNT_ID`, `date:YYYY-MM-DD`
-y terminos libres, combinados por AND (substring casefold sobre `.md` y los
-indices). Sin NLP, sin red, sin ejecutar contenido: solo lectura.
+`conversation:KEY`, `topic:TOPIC`, `account:ACCOUNT_ID`, `date:YYYY-MM-DD`,
+`para:EMAIL` (via marcador `delivered_to` del frontmatter) y terminos libres,
+combinados por AND (substring casefold sobre `.md` y los indices). Sin NLP,
+sin red, sin ejecutar contenido: solo lectura.
 """
 
 import re
@@ -57,6 +58,13 @@ def _parse_filters(instruction: str):
             if not _DATE_RE.match(date):
                 raise ValueError("date: DATE fuera del formato estricto YYYY-MM-DD: " + token[5:])
             terms.append(date.casefold())
+        elif lowered.startswith("para:"):
+            recipient = token[5:].strip().casefold()
+            local, _, domain = recipient.partition("@")
+            if not local or not domain:
+                raise ValueError("para: EMAIL malformado (sin @ o partes vacias): " + token[5:])
+            terms.append("delivered_to")
+            terms.append(recipient)
         else:
             terms.append(token.casefold())
     return terms, indexes
@@ -79,18 +87,41 @@ def _resolve_node(root_path: Path, raw: str):
     return None
 
 
+_DELIVERED_RE = re.compile(r"^delivered_to\s*:", re.IGNORECASE)
+
+
+def _delivered_to_match(text: str, value: str) -> bool:
+    """Solo lineas `delivered_to:` del frontmatter; nunca cuerpo ni `to:`/`cc:`."""
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return False
+    closed = False
+    for line in lines[1:]:
+        if line.strip() == "---":
+            closed = True
+            break
+        if _DELIVERED_RE.match(line) and value in line.casefold():
+            return True
+    return closed
+
+
 def _scan_terms(root_path: Path, terms: list) -> set:
-    lowered_terms = [term.casefold() for term in terms]
+    plain = [term.casefold() for term in terms if not term.startswith("para:")]
+    paras = [term[len("para:"):] for term in terms if term.startswith("para:")]
     matches = set()
     for path in sorted(root_path.rglob("*")):
         if not path.is_file() or path.suffix.lower() != ".md":
             continue
         try:
-            lowered = path.read_text(encoding="utf-8").casefold()
+            text = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             raise ValueError("archivo .md no leible como UTF-8: " + str(path))
-        if all(term in lowered for term in lowered_terms):
-            matches.add(path.relative_to(root_path).as_posix())
+        lowered = text.casefold()
+        if not all(term in lowered for term in plain):
+            continue
+        if not all(_delivered_to_match(text, value) for value in paras):
+            continue
+        matches.add(path.relative_to(root_path).as_posix())
     return matches
 
 
