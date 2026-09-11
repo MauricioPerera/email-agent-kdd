@@ -74,6 +74,7 @@ def test_onboard_runs_diagnostics_before_selecting_setup(monkeypatch, tmp_path):
 def test_onboard_explains_cancelled_setup(monkeypatch, tmp_path, capsys):
     import src.email.cli as cli
 
+    save_language(str(tmp_path), "es")
     monkeypatch.setattr(cli, "run_diagnostics", lambda root: {"status": "ready", "checks": [{"name": "gui", "status": "ok"}], "next": "ok"})
     monkeypatch.setattr(cli, "_account_setup_gui", lambda argv: 1)
     assert cli.cli_main(["onboard", str(tmp_path)]) == 1
