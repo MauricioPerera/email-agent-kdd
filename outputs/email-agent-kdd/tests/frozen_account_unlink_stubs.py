@@ -241,7 +241,8 @@ def test_cli_success_prints_unlinked_without_credential_ref(tmp_path, capsys):
 def test_wincred_delete_absent_is_ok():
     class _FakeAdvapi32:
         def CredDeleteW(self, *args):
-            ctypes.set_last_error(1168)  # ERROR_NOT_FOUND
+            setter = getattr(ctypes, "set_last_error", ctypes.set_errno)
+            setter(1168)  # ERROR_NOT_FOUND
             return 0
 
     backend = object.__new__(wincred._WindowsCredentialBackend)
