@@ -146,6 +146,7 @@ _CONFIRMATION_PHRASE = "CONFIRMAR ENVIO"
 _PURGE_CONFIRMATION = "CONFIRMAR BORRADO PERMANENTE"
 _UNLINK_CONFIRMATION = "CONFIRMAR DESVINCULAR"
 _EXTRACTION_CONFIRMATION = "CONFIRMAR EXTRACCION"
+_NOTIFICATION_DELETE_CONFIRMATION = "CONFIRMAR REGLA"
 # Presupuesto total por sync --attachments, en MB (default 100 MB). Un valor
 # invalido de la env var aborta con error de argumentos antes de conectar.
 _SYNC_ATTACHMENT_BUDGET_ENV = "SYNC_ATTACHMENT_BUDGET_MB"
@@ -838,8 +839,11 @@ def _run_notification(argv):
                 print(json.dumps(rule, sort_keys=True))
             return 0
         if action == "delete":
-            if len(argv) != 4:
-                return _fail(["error: notification delete requiere ROOT y NAME", USAGE])
+            if len(argv) != 6 or " ".join(argv[4:]) != _NOTIFICATION_DELETE_CONFIRMATION:
+                return _fail([
+                    "error: notification delete requiere ROOT, NAME y CONFIRMAR REGLA",
+                    USAGE,
+                ])
             print(json.dumps({"deleted": delete_notification_rule(argv[2], argv[3])}))
             return 0
         if len(argv) != 5:

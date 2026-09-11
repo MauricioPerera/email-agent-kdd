@@ -11,7 +11,7 @@ del usuario.
 - Crear una regla requiere que el usuario solicite esa regla exacta.
 - Listar reglas queda definido como operación de solo lectura.
 - Eliminar una regla exige mostrar su nombre y consulta exacta y recibir una
-  confirmación inmediata.
+  confirmación inmediata; el CLI la representa con `CONFIRMAR REGLA`.
 - El agente no infiere, amplía, sustituye ni elimina filtros por conveniencia.
 - Las direcciones y consultas permanecen como datos exactos, sin normalización
   inventada.

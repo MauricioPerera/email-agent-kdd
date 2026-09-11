@@ -109,3 +109,5 @@
 * [Contrato del Objetivo 46](contracts/sprint46-plugin-notification-retry.md) - Frontera entre avisos y correo.
 * [Informe de autorización de reglas de notificación](../../SPRINT47-PLUGIN-NOTIFICATION-AUTH-REPORT.md) - Mutaciones con intención explícita.
 * [Contrato del Objetivo 47](contracts/sprint47-plugin-notification-auth.md) - Lectura sin confirmación y cambios autorizados.
+* [Informe del CLI para reglas de notificación](../../SPRINT48-CLI-NOTIFICATION-AUTH-REPORT.md) - Confirmación ejecutable antes de borrar.
+* [Contrato del Objetivo 48](contracts/sprint48-cli-notification-auth.md) - Frase literal para mutaciones destructivas.

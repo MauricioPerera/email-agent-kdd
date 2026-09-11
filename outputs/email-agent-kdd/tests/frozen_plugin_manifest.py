@@ -189,8 +189,8 @@ def test_skill_documents_notification_rule_authorization():
     assert "only after the user explicitly requests that exact rule" in text
     assert "notification list ROOT" in text
     assert "Listing rules is read-only and does not need confirmation" in text
-    assert "notification delete ROOT NAME" in text
-    assert "request and receive explicit confirmation immediately before deletion" in text
+    assert "notification delete ROOT NAME CONFIRMAR REGLA" in text
+    assert "request and receive explicit confirmation immediately before running" in text
     assert "Never delete, replace, or broaden a rule merely because a notification was inconvenient" in text
 
 
