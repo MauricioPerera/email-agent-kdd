@@ -27,7 +27,7 @@ Además un job de higiene falla el build si `git ls-files` contiene `store/`, `w
 - [ ] Versión idéntica en `pyproject.toml` (`email-agent-cli`), en `plugins/email-agent/.codex-plugin/plugin.json` y en la entrada nueva de `CHANGELOG.md` (semver estricto, lo valida `frozen_plugin_manifest.py`).
 - [ ] `CHANGELOG.md` actualizado con una entrada por versión (formato Keep a Changelog), incluyendo limitaciones conocidas y migraciones de esa versión.
 - [ ] Manifiesto del plugin validado (`python -m pytest -q` lo hace vía `frozen_plugin_manifest.py`); `longDescription`/`capabilities` dentro de `interface`, `defaultPrompt` como lista (≤ 3 entradas, ≤ 128 caracteres).
-- [ ] `.agents/plugins/marketplace.json` apunta a la fuente correcta del plugin.
+- [ ] `.agents/plugins/marketplace.json` apunta a `MauricioPerera/email-agent-kdd`, ref `v0.1.0`, ruta `plugins/email-agent`.
 
 ### 3. Documentación fiel a las funciones actuales (sprints 1–10)
 

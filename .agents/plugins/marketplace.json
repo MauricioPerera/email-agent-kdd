@@ -7,8 +7,10 @@
     {
       "name": "email-agent",
       "source": {
-        "source": "local",
-        "path": "./plugins/email-agent"
+        "source": "github",
+        "repo": "MauricioPerera/email-agent-kdd",
+        "ref": "v0.1.0",
+        "path": "plugins/email-agent"
       },
       "policy": {
         "installation": "AVAILABLE",

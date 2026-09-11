@@ -122,8 +122,11 @@ def test_skill_frontmatter_present():
 def test_marketplace_entry_points_to_plugin():
     data = json.loads(MARKETPLACE.read_text(encoding="utf-8"))
     entry = next(p for p in data["plugins"] if p["name"] == "email-agent")
-    path = entry["source"]["path"]
-    assert (REPO / path.lstrip("./")).is_dir()
+    source = entry["source"]
+    assert source["source"] == "github"
+    assert source["repo"] == "MauricioPerera/email-agent-kdd"
+    assert source["ref"] == "v0.1.0"
+    assert source["path"] == "plugins/email-agent"
 
 
 def test_documented_commands_exist_in_cli():
