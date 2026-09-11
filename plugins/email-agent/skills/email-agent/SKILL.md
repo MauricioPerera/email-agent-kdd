@@ -57,6 +57,7 @@ Synchronization is read-only, paginated, and resumes from the stored UID cursor.
 ## Search and inspect
 
 - Use `query ROOT "para:ADDRESS"` to filter by the actual delivery address.
+- Use `query ROOT "contact:EMAIL"` to match the sender or recipients in message headers; a mention of the address only in the body is not a contact match.
 - Combine `para:`, `contact:`, `conversation:`, `topic:`, `account:` and free terms as supported by the CLI.
 - Paginate large result sets with `query ROOT "INSTRUCTION" --offset N --limit N`; `--offset` starts at 0 and `--limit` accepts 1–100. Continue with the next offset instead of loading all paths at once.
 - The same pagination options work with `search ROOT "QUERY" --offset N --limit N`.

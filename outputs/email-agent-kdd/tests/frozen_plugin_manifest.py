@@ -159,6 +159,7 @@ def test_skill_documents_conservative_contact_resolution():
     text = SKILL.read_text(encoding="utf-8")
     assert "natural-language request about a person" in text
     assert "contact:EMAIL" in text
+    assert "only in the body is not a contact match" in text
     assert "instead of guessing" in text
     assert "contact show ROOT EMAIL" in text
     assert "contact find ROOT TEXT" in text

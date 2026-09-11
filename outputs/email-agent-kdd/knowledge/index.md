@@ -145,3 +145,5 @@
 * [Contrato del Objetivo 64](contracts/sprint64-contact-find-json.md) - Total y candidatos sin mutación.
 * [Informe de paginación de contactos](../../SPRINT65-CONTACT-FIND-PAGINATION-REPORT.md) - Candidatos por lotes.
 * [Contrato del Objetivo 65](contracts/sprint65-contact-find-pagination.md) - Offset y límite para la libreta.
+* [Informe de filtro por encabezados](../../SPRINT66-CONTACT-HEADER-FILTER-REPORT.md) - Menos falsos positivos por contacto.
+* [Contrato del Objetivo 66](contracts/sprint66-contact-header-filter.md) - From, To y Cc como fuente.

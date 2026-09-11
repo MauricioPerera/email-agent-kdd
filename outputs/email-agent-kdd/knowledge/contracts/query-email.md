@@ -36,11 +36,10 @@ interpreta, y el contenido de la instrucción nunca se ejecuta: es datos, no có
   absoluta canónica. Ninguna lectura sale de esa raíz.
 - `instruction`: `str` con la consulta. Se divide por espacios en blanco (`str.split()`); cada token
   se clasifica:
-  - `contact:EMAIL` → filtro de contacto. El email se normaliza (`strip().lower()`) y actúa como
-    término requerido sobre el contenido de los nodos (los nodos de mensaje llevan `from`/`to` en el
-    frontmatter, p. ej. `from: Ana Garcia <ana@example.com>`, así que la coincidencia por substring
-    es determinista). El valor DEBE contener `@` (con parte no vacía a ambos lados); un `EMAIL` sin
-    `@` es malformado y lanza `ValueError`.
+  - `contact:EMAIL` → filtro de contacto. El email se normaliza (`strip().lower()`) y se busca solo
+    en los encabezados `from`, `to` y `cc` del frontmatter, nunca en el cuerpo. El valor DEBE
+    contener `@` (con parte no vacía a ambos lados); un `EMAIL` sin `@` es malformado y lanza
+    `ValueError`.
   - `conversation:KEY` → filtro de hilo. `KEY` se normaliza a minúsculas y DEBE matchear
     `^[0-9a-f]{64}$` (sha256 hex, invariante del contrato `conversation-key`). Se resuelve leyendo el
     índice `root/store/conversations/<KEY>.md`.

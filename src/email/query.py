@@ -40,7 +40,7 @@ def _parse_filters(instruction: str):
             local, _, domain = email.partition("@")
             if not local or not domain:
                 raise ValueError("contact: EMAIL malformado (sin @ o partes vacias): " + token[8:])
-            terms.append(email)
+            terms.append("contact:" + email)
         elif lowered.startswith("conversation:"):
             key = token[13:].strip().lower()
             if not _CONVERSATION_RE.match(key):
@@ -94,6 +94,7 @@ def _resolve_node(root_path: Path, raw: str):
 
 
 _DELIVERED_RE = re.compile(r"^delivered_to\s*:", re.IGNORECASE)
+_CONTACT_HEADER_RE = re.compile(r"^(from|to|cc)\s*:", re.IGNORECASE)
 
 
 def _delivered_to_match(text: str, value: str) -> bool:
@@ -111,9 +112,23 @@ def _delivered_to_match(text: str, value: str) -> bool:
     return closed
 
 
+def _contact_header_match(text: str, value: str) -> bool:
+    """Busca el email solo en From/To/Cc del frontmatter, nunca en cuerpo."""
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return False
+    for line in lines[1:]:
+        if line.strip() == "---":
+            break
+        if _CONTACT_HEADER_RE.match(line) and value in line.casefold():
+            return True
+    return False
+
+
 def _scan_terms(root_path: Path, terms: list) -> set:
-    plain = [term.casefold() for term in terms if not term.startswith("para:")]
+    plain = [term.casefold() for term in terms if not term.startswith(("para:", "contact:"))]
     paras = [term[len("para:"):] for term in terms if term.startswith("para:")]
+    contacts = [term[len("contact:"):] for term in terms if term.startswith("contact:")]
     matches = set()
     for path in sorted(root_path.rglob("*")):
         if not path.is_file() or path.suffix.lower() != ".md":
@@ -128,6 +143,8 @@ def _scan_terms(root_path: Path, terms: list) -> set:
         if not all(term in lowered for term in plain):
             continue
         if not all(_delivered_to_match(text, value) for value in paras):
+            continue
+        if not all(_contact_header_match(text, value) for value in contacts):
             continue
         matches.add(path.relative_to(root_path).as_posix())
     return matches
