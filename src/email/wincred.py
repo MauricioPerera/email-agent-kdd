@@ -118,7 +118,11 @@ class _WindowsCredentialBackend:
     def delete(self, label):
         """Eliminar una credencial; ausente se considera ya desvinculada."""
         if not self._advapi32.CredDeleteW(label, _CRED_TYPE_GENERIC, 0):
-            if ctypes.get_last_error() != 1168:  # ERROR_NOT_FOUND
+            # `get_last_error` solo existe en Windows. El fallback permite
+            # probar el backend con un stub multiplataforma sin cambiar la
+            # semántica real de Windows.
+            last_error = getattr(ctypes, "get_last_error", lambda: 1168)()
+            if last_error != 1168:  # ERROR_NOT_FOUND
                 raise RuntimeError(_NOT_AVAILABLE)
 
 

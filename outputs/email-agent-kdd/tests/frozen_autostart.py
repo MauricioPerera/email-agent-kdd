@@ -92,7 +92,7 @@ def _expected_args(root, unread=False, interval=300, limit=50):
 # --- Windows: /TR citado por list2cmdline --------------------------------
 
 
-def test_windows_install_uses_schtasks_with_quoted_tr(run_stub, monkeypatch):
+def test_windows_install_uses_schtasks_with_quoted_tr(run_stub, monkeypatch, abspath_identity):
     _set_platform(monkeypatch, "Windows")
     monkeypatch.setattr(autostart.sys, "executable", "PY")
     assert install_startup(SPACES_ROOT, "cuenta1") == "EmailAgent-cuenta1"
@@ -127,7 +127,7 @@ def test_windows_tr_never_ends_quoted_path_with_backslash(run_stub, monkeypatch,
     assert 'watch "C:\\dir bar" cuenta1' in tr
 
 
-def test_windows_drive_root_stays_intact(run_stub, monkeypatch):
+def test_windows_drive_root_stays_intact(run_stub, monkeypatch, abspath_identity):
     _set_platform(monkeypatch, "Windows")
     monkeypatch.setattr(autostart.sys, "executable", "PY")
     assert _windows_watch_root("C:\\") == "C:\\"
