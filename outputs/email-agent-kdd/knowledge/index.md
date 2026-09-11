@@ -49,3 +49,5 @@
 * [Contrato del Objetivo 16](contracts/sprint16-diagnostics.md) - Comando `doctor` seguro y accionable.
 * [Informe de reparación guiada](../../SPRINT17-DOCTOR-REPAIR-REPORT.md) - Instrucciones sin cambios automáticos.
 * [Contrato del Objetivo 17](contracts/sprint17-doctor-repair.md) - Reparación guiada segura.
+* [Informe de reporte seguro](../../SPRINT18-DIAGNOSTIC-REPORT-REPORT.md) - Exportación sin datos sensibles.
+* [Contrato del Objetivo 18](contracts/sprint18-diagnostic-report.md) - Reporte local y atómico.

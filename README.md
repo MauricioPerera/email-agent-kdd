@@ -13,6 +13,8 @@ Antes de configurar una cuenta puedes ejecutar `email-agent doctor` para revisar
 los requisitos locales sin conectarte al correo ni leer credenciales.
 Con `email-agent doctor --fix` obtendrás instrucciones específicas para corregir
 problemas detectados; el programa no aplica cambios automáticamente.
+Puedes guardar un reporte compartible con `email-agent doctor --report diagnostico.json`;
+el archivo no incluye credenciales ni rutas completas.
 
 Necesitas Python 3.10 o superior instalado en tu equipo. Los mismos pasos valen en los tres sistemas: instala, comprueba y crea tu cuenta.
 

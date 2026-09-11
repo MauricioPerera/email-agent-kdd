@@ -1,6 +1,8 @@
 """Diagnostico local y de solo lectura para preparar el primer uso."""
 
 import importlib.util
+import json
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -81,3 +83,37 @@ def run_diagnostics(root=None, repair=False):
     if repair:
         result["repair"] = {"performed": False, "actions": actions}
     return result
+
+
+def write_diagnostic_report(path, result):
+    """Escribe un reporte JSON atómico sin incluir un ROOT ni secretos."""
+    if not isinstance(path, str) or not path.strip():
+        raise ValueError("ruta de reporte invalida")
+    target = Path(path)
+    if target.name in {"", ".", ".."}:
+        raise ValueError("ruta de reporte invalida")
+    safe = {
+        "status": result.get("status"),
+        "checks": [
+            {key: item[key] for key in ("name", "status", "detail", "required")}
+            for item in result.get("checks", [])
+        ],
+        "next": result.get("next"),
+    }
+    if "repair" in result:
+        safe["repair"] = {
+            "performed": False,
+            "actions": list(result["repair"].get("actions", [])),
+        }
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary = target.with_name(target.name + ".tmp")
+    try:
+        temporary.write_text(json.dumps(safe, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        os.replace(temporary, target)
+    except Exception:
+        try:
+            temporary.unlink()
+        except FileNotFoundError:
+            pass
+        raise
+    return True

@@ -88,7 +88,7 @@ from src.email.notifications import notify_new_records
 from src.email.notifications import delete_notification_rule, list_notification_rules, save_notification_rule
 from src.email.autostart import install_startup, remove_startup, startup_status
 from src.email.unlink import unlink_email_account
-from src.email.diagnostics import run_diagnostics
+from src.email.diagnostics import run_diagnostics, write_diagnostic_report
 
 USAGE = (
     "usage: email-agent [--help] | email-agent query ROOT INSTRUCTION | "
@@ -104,7 +104,7 @@ USAGE = (
     "email-agent watch ROOT ACCOUNT_ID [--every N] [--limit N] [--unread] | "
     "email-agent notification add|list|delete ROOT ... | "
     "email-agent startup install|status|remove ROOT ACCOUNT_ID ... | "
-    "email-agent doctor [ROOT] [--fix] | "
+    "email-agent doctor [ROOT] [--fix] [--report FILE] | "
     "email-agent message delete ROOT REL_PATH | "
     "email-agent message restore ROOT TRASH_REL_PATH | "
     "email-agent message trash ROOT | "
@@ -1402,7 +1402,7 @@ def cli_main(argv: list) -> int:
         print("  notification list ROOT  lista reglas")
         print("  notification delete ROOT NAME  elimina una regla")
         print("  startup install|status|remove ROOT ACCOUNT_ID  inicio automatico")
-        print("  doctor [ROOT] [--fix]  revisa requisitos y muestra reparaciones guiadas")
+        print("  doctor [ROOT] [--fix] [--report FILE]  revisa y exporta diagnóstico seguro")
         print("  draft ROOT ACCOUNT_ID TO SUBJECT BODY")
         print("  send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO")
         return 0
@@ -1443,10 +1443,24 @@ def cli_main(argv: list) -> int:
         return _run_send(argv)
     if argv[0] == "doctor":
         repair = "--fix" in argv[1:]
-        roots = [value for value in argv[1:] if value != "--fix"]
+        arguments = [value for value in argv[1:] if value != "--fix"]
+        report_path = None
+        if "--report" in arguments:
+            report_index = arguments.index("--report")
+            if report_index + 1 >= len(arguments):
+                return _fail(["error: doctor --report requiere FILE", USAGE])
+            report_path = arguments[report_index + 1]
+            del arguments[report_index:report_index + 2]
+        roots = arguments
         if len(roots) > 1 or any(value.startswith("--") for value in roots):
             return _fail(["error: doctor acepta un solo ROOT", USAGE])
         result = run_diagnostics(roots[0] if roots else None, repair=repair)
+        if report_path is not None:
+            try:
+                write_diagnostic_report(report_path, result)
+            except (OSError, ValueError):
+                _print_stderr(["error: no se pudo guardar el reporte de diagnostico"])
+                return 1
         print(json.dumps(result, sort_keys=True))
         return 0 if result["status"] == "ready" else 1
 
