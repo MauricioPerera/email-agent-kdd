@@ -103,3 +103,5 @@
 * [Contrato del Objetivo 43](contracts/sprint43-plugin-startup-remove.md) - Retiro explícito y verificable.
 * [Informe de filtros de notificación](../../SPRINT44-PLUGIN-NOTIFICATION-FILTER-REPORT.md) - Dirección real y ciclo de sync.
 * [Contrato del Objetivo 44](contracts/sprint44-plugin-notification-filter.md) - Reglas por destinatario sin normalización indebida.
+* [Informe de seguridad de notificaciones](../../SPRINT45-PLUGIN-NOTIFICATION-SAFETY-REPORT.md) - Payload como dato no ejecutable.
+* [Contrato del Objetivo 45](contracts/sprint45-plugin-notification-safety.md) - Asuntos sin shell ni interpolación.

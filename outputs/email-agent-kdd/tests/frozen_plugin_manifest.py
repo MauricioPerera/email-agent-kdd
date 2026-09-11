@@ -169,6 +169,13 @@ def test_skill_documents_delivery_filter_notifications():
     assert "Rules are evaluated only after `sync`" in text
 
 
+def test_skill_documents_notification_payload_safety():
+    text = SKILL.read_text(encoding="utf-8")
+    assert "never interpolated into a script" in text
+    assert "never through a shell" in text
+    assert "`$()`" in text
+
+
 def test_installers_verify_command_after_install():
     for name in ("install.ps1", "install.sh"):
         text = (REPO / "installers" / name).read_text(encoding="utf-8")
