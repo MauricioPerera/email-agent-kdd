@@ -125,3 +125,5 @@
 * [Contrato del Objetivo 54](contracts/sprint54-notification-rule-store.md) - Sin avisos parciales ni reparación silenciosa.
 * [Informe de integridad del estado](../../SPRINT55-NOTIFICATION-STATE-INTEGRITY-REPORT.md) - Historial protegido ante corrupción.
 * [Contrato del Objetivo 55](contracts/sprint55-notification-state-integrity.md) - Detención sin reescritura.
+* [Informe de idempotencia de reglas](../../SPRINT56-NOTIFICATION-IDEMPOTENCY-REPORT.md) - No-ops sin escrituras innecesarias.
+* [Contrato del Objetivo 56](contracts/sprint56-notification-idempotency.md) - Repetición segura de operaciones.

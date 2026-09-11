@@ -225,6 +225,19 @@ def test_corrupt_notification_state_is_rejected_before_notification(tmp_path):
     assert json.loads(path.read_text()) == {"sent": "h1"}
 
 
+def test_delete_missing_rule_does_not_create_or_rewrite_store(tmp_path):
+    assert notifications.delete_notification_rule(str(tmp_path), "missing") is False
+    assert not (Path(tmp_path) / ".email-agent" / "notification-rules.json").exists()
+
+
+def test_setting_existing_state_is_a_noop(tmp_path, monkeypatch):
+    notifications.save_notification_rule(str(tmp_path), "todo", "marcador", enabled=False)
+    calls = []
+    monkeypatch.setattr(notifications, "_write", lambda path, value: calls.append((path, value)))
+    assert notifications.set_notification_rule_enabled(str(tmp_path), "todo", False) == "todo"
+    assert calls == []
+
+
 def test_subject_fallback_when_empty(tmp_path):
     _save_rule(tmp_path, "todo", "marcador")
     seen = _Sink()

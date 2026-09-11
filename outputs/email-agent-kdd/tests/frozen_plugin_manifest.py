@@ -172,6 +172,8 @@ def test_skill_documents_delivery_filter_notifications():
     assert "do not rewrite it" in text
     assert "corrupt notification state store" in text
     assert "delivery history cannot be lost silently" in text
+    assert "Repeating an already-satisfied enable/disable" in text
+    assert "deleting a missing rule is a no-op" in text
     assert "Rules are evaluated only after `sync`" in text
 
 

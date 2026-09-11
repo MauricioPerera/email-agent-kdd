@@ -91,23 +91,29 @@ def save_notification_rule(root, name, query, enabled=True):
 def delete_notification_rule(root, name):
     rules = list_notification_rules(root)
     remaining = [rule for rule in rules if rule.get("name") != name]
-    _write(_path(root, _RULES), {"rules": remaining})
-    return len(rules) != len(remaining)
+    changed = len(rules) != len(remaining)
+    if changed:
+        _write(_path(root, _RULES), {"rules": remaining})
+    return changed
 
 
 def set_notification_rule_enabled(root, name, enabled):
     if not isinstance(enabled, bool):
         raise ValueError("enabled invalido")
     rules = list_notification_rules(root)
+    found = False
     changed = False
     for rule in rules:
         if rule.get("name") == name:
-            rule["enabled"] = enabled
-            changed = True
+            found = True
+            changed = rule.get("enabled", True) != enabled
+            if changed:
+                rule["enabled"] = enabled
             break
-    if not changed:
+    if not found:
         raise LookupError("regla no encontrada")
-    _write(_path(root, _RULES), {"rules": rules})
+    if changed:
+        _write(_path(root, _RULES), {"rules": rules})
     return name
 
 
