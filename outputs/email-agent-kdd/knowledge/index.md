@@ -91,3 +91,5 @@
 * [Contrato del Objetivo 37](contracts/sprint37-setup-language-safety.md) - Rechazo sin efectos secundarios.
 * [Informe de setup localizado del plugin](../../SPRINT38-PLUGIN-SETUP-LANGUAGE-REPORT.md) - Ruta directa para agentes.
 * [Contrato del Objetivo 38](contracts/sprint38-plugin-setup-language.md) - Sintaxis documentada y compatible.
+* [Informe del primer sync del plugin](../../SPRINT39-PLUGIN-FIRST-SYNC-REPORT.md) - Continuidad desde onboarding.
+* [Contrato del Objetivo 39](contracts/sprint39-plugin-first-sync.md) - Uso de metadatos públicos sin credenciales.
