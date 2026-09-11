@@ -589,7 +589,7 @@ def _run_contact(argv):
         return _fail(["error: contact list requiere exactamente ROOT", USAGE])
     if argv[1] == "show" and len(argv) != 4:
         return _fail(["error: contact show requiere ROOT y EMAIL", USAGE])
-    if argv[1] == "find" and len(argv) not in (4, 5):
+    if argv[1] == "find" and not 4 <= len(argv) <= 9:
         return _fail(["error: contact find requiere ROOT y TEXT", USAGE])
     try:
         contacts = load_email_contacts(argv[2])
@@ -610,16 +610,40 @@ def _run_contact(argv):
         query = argv[3].strip().casefold()
         if not query:
             return _fail(["error: contact find requiere TEXT no vacio", USAGE])
-        if len(argv) == 5 and argv[4] != "--json":
-            return _fail(["error: contact find solo acepta --json", USAGE])
+        options = list(argv[4:])
+        as_json = False
+        if "--json" in options:
+            options.remove("--json")
+            as_json = True
+        if len(options) % 2:
+            return _fail(["error: contact find requiere pares --offset N y --limit N", USAGE])
+        offset, limit = 0, None
+        for index in range(0, len(options), 2):
+            flag, raw = options[index:index + 2]
+            if flag not in ("--offset", "--limit"):
+                return _fail(["error: contact find solo acepta --offset N y --limit N", USAGE])
+            try:
+                value = int(raw)
+            except ValueError:
+                return _fail(["error: --offset/--limit requiere un entero", USAGE])
+            if flag == "--offset":
+                if value < 0:
+                    return _fail(["error: --offset debe ser >= 0", USAGE])
+                offset = value
+            else:
+                if not 1 <= value <= LIMIT_MAX:
+                    return _fail(["error: --limit debe estar entre 1 y 100", USAGE])
+                limit = value
         matches = [
             contact for contact in contacts
             if query in contact["name"].casefold() or query in contact["email"]
         ]
-        if len(argv) == 5:
-            print(json.dumps({"results": matches, "total": len(matches)}, sort_keys=True))
+        page = matches[offset:offset + limit if limit is not None else None]
+        if as_json:
+            next_offset = offset + len(page) if limit is not None and offset + len(page) < len(matches) else None
+            print(json.dumps({"limit": limit, "next_offset": next_offset, "offset": offset, "results": page, "total": len(matches)}, sort_keys=True))
         else:
-            for contact in matches:
+            for contact in page:
                 print(json.dumps(contact, sort_keys=True))
         return 0
     for record in contacts:

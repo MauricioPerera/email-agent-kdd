@@ -25,7 +25,7 @@ The same onboarding flow works on Windows, macOS, and Linux: install, verify, cr
 - List configured accounts: `account list ROOT`.
 - Inspect one exact contact without changing the address book: `contact show ROOT EMAIL`.
 - Find candidate contacts by name or partial email without changing the address book: `contact find ROOT TEXT`; if multiple candidates are returned, ask the user to choose before searching or sending.
-- Add `--json` to receive `total` and `results` in one structured response.
+- Add `--json` to receive `total`, `offset`, `limit`, `results`, and `next_offset` in one structured response; combine it with `--offset N --limit N` for large address books.
 - Synchronize one page: `sync ROOT ACCOUNT_ID --limit 50`.
 - Synchronize only unread messages: add `--unread`.
 - Continue monitoring: `watch ROOT ACCOUNT_ID --every 300 --limit 50`.

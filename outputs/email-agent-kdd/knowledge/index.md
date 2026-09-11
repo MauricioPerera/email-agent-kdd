@@ -143,3 +143,5 @@
 * [Contrato del Objetivo 63](contracts/sprint63-pagination-json.md) - Metadatos de recorrido.
 * [Informe JSON de candidatos](../../SPRINT64-CONTACT-FIND-JSON-REPORT.md) - Resolución estructurada de contactos.
 * [Contrato del Objetivo 64](contracts/sprint64-contact-find-json.md) - Total y candidatos sin mutación.
+* [Informe de paginación de contactos](../../SPRINT65-CONTACT-FIND-PAGINATION-REPORT.md) - Candidatos por lotes.
+* [Contrato del Objetivo 65](contracts/sprint65-contact-find-pagination.md) - Offset y límite para la libreta.

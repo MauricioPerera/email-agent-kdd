@@ -31,6 +31,20 @@ def test_contact_find_json_returns_candidates_and_total(tmp_path, capsys):
     ])
     assert cli._run_contact(["contact", "find", str(tmp_path), "ana", "--json"]) == 0
     assert json.loads(capsys.readouterr().out) == {
-        "results": [{"email": "ana@example.test", "name": "Ana García"}],
-        "total": 1,
+        "limit": None, "next_offset": None, "offset": 0,
+        "results": [{"email": "ana@example.test", "name": "Ana García"}], "total": 1,
+    }
+
+
+def test_contact_find_json_paginates_candidates(tmp_path, capsys):
+    store_email_contacts(str(tmp_path), [
+        {"name": "Ana Uno", "email": "ana1@example.test"},
+        {"name": "Ana Dos", "email": "ana2@example.test"},
+    ])
+    assert cli._run_contact([
+        "contact", "find", str(tmp_path), "ana", "--offset", "1", "--limit", "1", "--json"
+    ]) == 0
+    assert json.loads(capsys.readouterr().out) == {
+        "limit": 1, "next_offset": None, "offset": 1,
+        "results": [{"email": "ana2@example.test", "name": "Ana Dos"}], "total": 2,
     }
