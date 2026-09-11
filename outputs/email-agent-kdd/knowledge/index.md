@@ -119,3 +119,5 @@
 * [Contrato del Objetivo 51](contracts/sprint51-cli-notification-show.md) - Consulta segura por nombre.
 * [Informe de validación de filtros](../../SPRINT52-NOTIFICATION-FILTER-VALIDATION-REPORT.md) - Reglas imposibles rechazadas antes de guardar.
 * [Contrato del Objetivo 52](contracts/sprint52-notification-filter-validation.md) - Validación sin efectos secundarios.
+* [Informe de estado de reglas](../../SPRINT53-NOTIFICATION-RULE-STATE-REPORT.md) - Pausar y reanudar sin borrar filtros.
+* [Contrato del Objetivo 53](contracts/sprint53-notification-rule-state.md) - Cambios de estado autorizados.

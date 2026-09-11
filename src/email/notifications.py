@@ -72,6 +72,22 @@ def delete_notification_rule(root, name):
     return len(rules) != len(remaining)
 
 
+def set_notification_rule_enabled(root, name, enabled):
+    if not isinstance(enabled, bool):
+        raise ValueError("enabled invalido")
+    rules = list_notification_rules(root)
+    changed = False
+    for rule in rules:
+        if rule.get("name") == name:
+            rule["enabled"] = enabled
+            changed = True
+            break
+    if not changed:
+        raise LookupError("regla no encontrada")
+    _write(_path(root, _RULES), {"rules": rules})
+    return name
+
+
 def notification_matches(record, query):
     if not isinstance(record, dict) or not isinstance(query, str):
         return False

@@ -196,6 +196,8 @@ def test_skill_documents_notification_rule_authorization():
     assert "notification list ROOT" in text
     assert "notification show ROOT NAME" in text
     assert "exact stored query" in text
+    assert "notification disable ROOT NAME CONFIRMAR REGLA" in text
+    assert "notification enable ROOT NAME CONFIRMAR REGLA" in text
     assert "Listing rules is read-only and does not need confirmation" in text
     assert "notification delete ROOT NAME CONFIRMAR REGLA" in text
     assert "request and receive explicit confirmation immediately before running" in text

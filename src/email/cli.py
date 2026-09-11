@@ -85,7 +85,7 @@ from src.email.query import query_email
 from src.email.search import search_email_nodes
 from src.email.sync import sync_email_account
 from src.email.notifications import notify_new_records
-from src.email.notifications import delete_notification_rule, list_notification_rules, save_notification_rule
+from src.email.notifications import delete_notification_rule, list_notification_rules, save_notification_rule, set_notification_rule_enabled
 from src.email.autostart import install_startup, remove_startup, startup_status
 from src.email.unlink import unlink_email_account
 from src.email.diagnostics import run_diagnostics, write_diagnostic_report, _write_diagnostic_report
@@ -828,8 +828,8 @@ def _run_watch(argv):
 
 
 def _run_notification(argv):
-    if len(argv) < 2 or argv[1] not in ("add", "list", "show", "delete"):
-        return _fail(["error: notification requiere add, list, show o delete", USAGE])
+    if len(argv) < 2 or argv[1] not in ("add", "list", "show", "enable", "disable", "delete"):
+        return _fail(["error: notification requiere add, list, show, enable, disable o delete", USAGE])
     action = argv[1]
     try:
         if action == "list":
@@ -858,6 +858,15 @@ def _run_notification(argv):
                 ])
             print(json.dumps({"deleted": delete_notification_rule(argv[2], argv[3])}))
             return 0
+        if action in ("enable", "disable"):
+            if len(argv) != 6 or " ".join(argv[4:]) != _NOTIFICATION_DELETE_CONFIRMATION:
+                return _fail([
+                    f"error: notification {action} requiere ROOT, NAME y CONFIRMAR REGLA",
+                    USAGE,
+                ])
+            set_notification_rule_enabled(argv[2], argv[3], action == "enable")
+            print(json.dumps({"enabled": action == "enable", "name": argv[3]}, sort_keys=True))
+            return 0
         if len(argv) not in (5, 7):
             return _fail([
                 "error: notification add requiere ROOT NAME QUERY y, al "
@@ -880,7 +889,7 @@ def _run_notification(argv):
         save_notification_rule(argv[2], argv[3], argv[4])
         print(json.dumps({"saved": argv[3]}, sort_keys=True))
         return 0
-    except (ValueError, RuntimeError, OSError):
+    except (LookupError, ValueError, RuntimeError, OSError):
         _print_stderr(["error: no se pudo modificar la regla de notificacion"])
         return 1
 
