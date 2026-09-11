@@ -20,6 +20,8 @@ La preferencia puede guardarse para futuros diagnósticos con `email-agent langu
 Para iniciar el primer uso con un solo paso, ejecuta `email-agent onboard ROOT`.
 Si cancelas o falta un requisito, recibirás el siguiente paso y podrás repetir
 el comando sin dejar una contraseña en la salida.
+Cuando termine correctamente, el resumen te indicará el comando `sync` para
+iniciar la descarga de correo.
 
 Necesitas Python 3.10 o superior instalado en tu equipo. Los mismos pasos valen en los tres sistemas: instala, comprueba y crea tu cuenta.
 

@@ -63,3 +63,5 @@
 * [Contrato del Objetivo 23](contracts/sprint23-onboarding-i18n.md) - Idioma efectivo y comandos estables.
 * [Informe de resumen del onboarding](../../SPRINT24-ONBOARDING-SUMMARY-REPORT.md) - Confirmación pública y segura del alta.
 * [Contrato del Objetivo 24](contracts/sprint24-onboarding-summary.md) - Resumen sin referencias de credencial.
+* [Informe del siguiente paso](../../SPRINT25-ONBOARDING-NEXT-STEP-REPORT.md) - Recomendación de primer sync.
+* [Contrato del Objetivo 25](contracts/sprint25-onboarding-next-step.md) - Continuidad accionable y localizada.

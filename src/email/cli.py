@@ -1412,7 +1412,13 @@ def _run_onboard(argv):
         "provider": account["provider"],
         "email": account["email"],
     }
-    print(json.dumps({"status": "configured", "language": language, "account": public_account}, sort_keys=True))
+    account_id = public_account["account_id"] if public_account else "ACCOUNT_ID"
+    next_steps = {
+        "es": "Puedes sincronizar ahora con: email-agent sync ROOT " + account_id,
+        "en": "You can sync now with: email-agent sync ROOT " + account_id,
+        "pt": "Voce pode sincronizar agora com: email-agent sync ROOT " + account_id,
+    }
+    print(json.dumps({"status": "configured", "language": language, "account": public_account, "next": next_steps[language]}, sort_keys=True))
     return code
 
 

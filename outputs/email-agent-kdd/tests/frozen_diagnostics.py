@@ -130,6 +130,7 @@ def test_onboard_reports_safe_public_account_summary(monkeypatch, tmp_path, caps
     assert payload == {
         "account": {"account_id": "personal", "email": "user@example.test", "provider": "gmail"},
         "language": "es",
+        "next": "Puedes sincronizar ahora con: email-agent sync ROOT personal",
         "status": "configured",
     }
     assert "credential_ref" not in payload
