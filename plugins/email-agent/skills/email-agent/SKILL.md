@@ -48,7 +48,7 @@ Create drafts first with `draft`. Sending is an external side effect and require
 
 ## Account management
 
-- Add manually with `account setup-gui ROOT` or use the guided `account setup ROOT`.
+- Add manually with `account setup-gui ROOT` or use the guided `account setup ROOT`. To localize the terminal wizard explicitly, use `account setup ROOT --lang es|en|pt`.
 - Assisted first use: `onboard ROOT [--gui|--terminal] [--lang es|en|pt]`. Treat its JSON summary as public metadata only; never request or print credential references.
 - List linked accounts with `account list ROOT`.
 - Unlink only after explicit confirmation: `account remove ROOT ACCOUNT_ID CONFIRMAR DESVINCULAR`.

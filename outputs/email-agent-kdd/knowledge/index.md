@@ -89,3 +89,5 @@
 * [Contrato del Objetivo 36](contracts/sprint36-onboarding-preference-recovery.md) - Preferencias ilegibles sin filtrado.
 * [Informe de seguridad de idioma en setup](../../SPRINT37-SETUP-LANGUAGE-SAFETY-REPORT.md) - Validación antes de leer entradas.
 * [Contrato del Objetivo 37](contracts/sprint37-setup-language-safety.md) - Rechazo sin efectos secundarios.
+* [Informe de setup localizado del plugin](../../SPRINT38-PLUGIN-SETUP-LANGUAGE-REPORT.md) - Ruta directa para agentes.
+* [Contrato del Objetivo 38](contracts/sprint38-plugin-setup-language.md) - Sintaxis documentada y compatible.

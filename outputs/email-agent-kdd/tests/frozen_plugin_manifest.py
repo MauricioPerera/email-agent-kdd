@@ -151,7 +151,7 @@ def test_skill_mentions_every_confirmation_phrase():
 
 def test_skill_documents_onboarding_options():
     text = SKILL.read_text(encoding="utf-8")
-    for phrase in ("onboard ROOT", "--gui", "--terminal", "--lang es|en|pt"):
+    for phrase in ("onboard ROOT", "--gui", "--terminal", "--lang es|en|pt", "account setup ROOT --lang es|en|pt"):
         assert phrase in text, f"SKILL.md no documenta onboarding: {phrase}"
 
 
