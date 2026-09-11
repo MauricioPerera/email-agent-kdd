@@ -166,6 +166,8 @@ def test_skill_documents_startup_confirmation_boundary():
 def test_skill_documents_delivery_filter_notifications():
     text = SKILL.read_text(encoding="utf-8")
     assert 'notification add ROOT ventas "para:ventas+cliente@example.com"' in text
+    assert "Filters are validated before saving" in text
+    assert "empty `para:` token" in text
     assert "Rules are evaluated only after `sync`" in text
 
 

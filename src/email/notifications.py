@@ -51,10 +51,16 @@ def save_notification_rule(root, name, query, enabled=True):
         raise ValueError("nombre de regla invalido")
     if not isinstance(query, str) or not query.strip():
         raise ValueError("filtro invalido")
+    normalized_query = query.strip()
+    if any(ord(char) < 32 or ord(char) == 127 for char in normalized_query):
+        raise ValueError("filtro invalido")
+    for token in normalized_query.split():
+        if token.casefold().startswith("para:") and not token[5:]:
+            raise ValueError("filtro invalido")
     if not isinstance(enabled, bool):
         raise ValueError("enabled invalido")
     rules = [rule for rule in list_notification_rules(root) if rule.get("name") != name]
-    rules.append({"name": name, "query": query.strip(), "enabled": enabled})
+    rules.append({"name": name, "query": normalized_query, "enabled": enabled})
     _write(_path(root, _RULES), {"rules": rules})
     return name
 

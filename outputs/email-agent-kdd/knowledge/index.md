@@ -117,3 +117,5 @@
 * [Contrato del Objetivo 50](contracts/sprint50-plugin-notification-confirmation-scope.md) - Sin permisos permanentes ni transferibles.
 * [Informe de inspección de reglas](../../SPRINT51-CLI-NOTIFICATION-SHOW-REPORT.md) - Presentación exacta antes de mutar.
 * [Contrato del Objetivo 51](contracts/sprint51-cli-notification-show.md) - Consulta segura por nombre.
+* [Informe de validación de filtros](../../SPRINT52-NOTIFICATION-FILTER-VALIDATION-REPORT.md) - Reglas imposibles rechazadas antes de guardar.
+* [Contrato del Objetivo 52](contracts/sprint52-notification-filter-validation.md) - Validación sin efectos secundarios.

@@ -196,6 +196,13 @@ def test_para_and_text_matching(tmp_path):
     assert seen.items == [("Email Agent", "Su FACTURA digital")]
 
 
+def test_invalid_notification_filters_are_rejected_before_storage(tmp_path):
+    for query in ("", "   ", "para:", "tema\npara:ventas@example.test"):
+        with pytest.raises(ValueError):
+            notifications.save_notification_rule(str(tmp_path), "regla", query)
+    assert not (Path(tmp_path) / ".email-agent" / "notification-rules.json").exists()
+
+
 def test_subject_fallback_when_empty(tmp_path):
     _save_rule(tmp_path, "todo", "marcador")
     seen = _Sink()
