@@ -153,3 +153,13 @@ def test_onboard_rejects_forced_gui_when_unavailable(monkeypatch, tmp_path, caps
     monkeypatch.setattr(cli, "run_diagnostics", lambda root: {"status": "ready", "checks": [{"name": "gui", "status": "warning"}], "next": "ok"})
     assert cli.cli_main(["onboard", str(tmp_path), "--gui"]) == 1
     assert "--terminal" in capsys.readouterr().err
+
+
+def test_onboard_can_set_language_for_entire_flow(monkeypatch, tmp_path, capsys):
+    import src.email.cli as cli
+
+    monkeypatch.setattr(cli, "run_diagnostics", lambda root: {"status": "needs_attention", "checks": [], "next": "irrelevant"})
+    assert cli.cli_main(["onboard", str(tmp_path), "--lang", "pt"]) == 1
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["language"] == "pt"
+    assert load_language(str(tmp_path)) == "pt"

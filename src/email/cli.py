@@ -107,7 +107,7 @@ USAGE = (
     "email-agent startup install|status|remove ROOT ACCOUNT_ID ... | "
     "email-agent doctor [ROOT] [--fix] [--lang es|en|pt] [--format json|text] [--report FILE] | "
     "email-agent language set|get ROOT [es|en|pt] | "
-    "email-agent onboard ROOT [--gui|--terminal] | "
+    "email-agent onboard ROOT [--gui|--terminal] [--lang es|en|pt] | "
     "email-agent message delete ROOT REL_PATH | "
     "email-agent message restore ROOT TRASH_REL_PATH | "
     "email-agent message trash ROOT | "
@@ -1375,11 +1375,28 @@ def _run_attachment(argv):
 
 def _run_onboard(argv):
     """Diagnostica y dirige el primer uso al formulario adecuado."""
-    if len(argv) not in (2, 3) or (len(argv) == 3 and argv[2] not in ("--gui", "--terminal")):
-        return _fail(["error: onboard requiere ROOT y acepta --gui o --terminal", USAGE])
+    if len(argv) < 2 or len(argv) > 5:
+        return _fail(["error: onboard requiere ROOT y acepta --gui, --terminal o --lang es|en|pt", USAGE])
     root = argv[1]
-    requested_mode = argv[2] if len(argv) == 3 else None
-    language = load_language(root)
+    requested_mode = None
+    requested_language = None
+    options = argv[2:]
+    while options:
+        option = options.pop(0)
+        if option in ("--gui", "--terminal") and requested_mode is None:
+            requested_mode = option
+        elif option == "--lang" and requested_language is None and options:
+            requested_language = options.pop(0)
+        else:
+            return _fail(["error: onboard requiere ROOT y acepta --gui, --terminal o --lang es|en|pt", USAGE])
+    if requested_language is not None:
+        try:
+            language = normalize_language(requested_language)
+            save_language(root, language)
+        except (OSError, ValueError):
+            return _fail(["error: onboard acepta --lang es|en|pt", USAGE])
+    else:
+        language = load_language(root)
     try:
         before_ids = {item["account_id"] for item in load_email_accounts(root)}
     except (ValueError, RuntimeError):
@@ -1463,7 +1480,7 @@ def cli_main(argv: list) -> int:
         print("  doctor [ROOT] [--fix] [--lang es|en|pt] [--format json|text] [--report FILE]  diagnóstico seguro")
         print("  language set ROOT es|en|pt  guarda la preferencia local")
         print("  language get ROOT  muestra la preferencia efectiva")
-        print("  onboard ROOT [--gui|--terminal]  revisa requisitos y abre el flujo de primer uso")
+        print("  onboard ROOT [--gui|--terminal] [--lang es|en|pt]  revisa requisitos y abre el flujo de primer uso")
         print("  draft ROOT ACCOUNT_ID TO SUBJECT BODY")
         print("  send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO")
         return 0

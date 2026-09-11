@@ -73,3 +73,5 @@
 * [Contrato del Objetivo 28](contracts/sprint28-gui-messages.md) - Mensajes localizados sin datos sensibles.
 * [Informe de almacén nativo](../../SPRINT29-NATIVE-STORE-MESSAGE-REPORT.md) - Advertencia localizada y segura.
 * [Contrato del Objetivo 29](contracts/sprint29-native-store-message.md) - Detención sin fallback inseguro.
+* [Informe de idioma explícito](../../SPRINT30-ONBOARDING-LANGUAGE-REPORT.md) - Selección de idioma en primer uso.
+* [Contrato del Objetivo 30](contracts/sprint30-onboarding-language.md) - Preferencia local antes del setup.
