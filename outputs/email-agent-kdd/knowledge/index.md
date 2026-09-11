@@ -99,3 +99,5 @@
 * [Contrato del Objetivo 41](contracts/sprint41-plugin-watch-boundary.md) - Vida del proceso y startup separado.
 * [Informe de autorización startup](../../SPRINT42-PLUGIN-STARTUP-CONFIRMATION-REPORT.md) - Persistencia con confirmación inmediata.
 * [Contrato del Objetivo 42](contracts/sprint42-plugin-startup-confirmation.md) - Frontera de autorización para agentes.
+* [Informe de retiro startup](../../SPRINT43-PLUGIN-STARTUP-REMOVE-REPORT.md) - Deshabilitación con autorización.
+* [Contrato del Objetivo 43](contracts/sprint43-plugin-startup-remove.md) - Retiro explícito y verificable.

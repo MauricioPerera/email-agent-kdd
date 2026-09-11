@@ -65,7 +65,7 @@ The core commands are platform-neutral. A watcher runs only while its process is
 
 - Check status: `startup status ROOT ACCOUNT_ID`.
 - Install automatic startup: `startup install ROOT ACCOUNT_ID --every 300 --limit 50` (optionally add `--unread`) only after the user confirms immediately before enabling it; explain the OS integration first.
-- Remove automatic startup: `startup remove ROOT ACCOUNT_ID`.
+- Remove automatic startup: `startup remove ROOT ACCOUNT_ID` only after showing the user which account and OS integration will be changed and receiving confirmation immediately before removal.
 - The three formats are serialized defensively: Windows quotes the Task Scheduler `/TR` value with `list2cmdline` rules, macOS XML-escapes every plist value, and Linux quotes each systemd `ExecStart` argument. Paths with spaces, quotes or Unicode travel as data; control characters (newlines, tabs, NUL) are rejected before anything is written.
 
 ## Message deletion (local store)

@@ -159,6 +159,8 @@ def test_skill_documents_startup_confirmation_boundary():
     text = SKILL.read_text(encoding="utf-8")
     assert "startup install ROOT ACCOUNT_ID --every 300 --limit 50" in text
     assert "only after the user confirms immediately before enabling it" in text
+    assert "startup remove ROOT ACCOUNT_ID" in text
+    assert "receiving confirmation immediately before removal" in text
 
 
 def test_installers_verify_command_after_install():
