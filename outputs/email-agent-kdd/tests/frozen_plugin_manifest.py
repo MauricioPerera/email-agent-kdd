@@ -149,6 +149,12 @@ def test_skill_mentions_every_confirmation_phrase():
         assert phrase in text, f"SKILL.md no documenta: {phrase}"
 
 
+def test_skill_documents_onboarding_options():
+    text = SKILL.read_text(encoding="utf-8")
+    for phrase in ("onboard ROOT", "--gui", "--terminal", "--lang es|en|pt"):
+        assert phrase in text, f"SKILL.md no documenta onboarding: {phrase}"
+
+
 def test_installers_verify_command_after_install():
     for name in ("install.ps1", "install.sh"):
         text = (REPO / "installers" / name).read_text(encoding="utf-8")

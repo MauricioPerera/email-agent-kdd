@@ -83,3 +83,5 @@
 * [Contrato del Objetivo 33](contracts/sprint33-setup-help.md) - Descubribilidad sin cambiar compatibilidad.
 * [Informe de onboarding del plugin](../../SPRINT34-PLUGIN-ONBOARDING-REPORT.md) - Guía para agentes.
 * [Contrato del Objetivo 34](contracts/sprint34-plugin-onboarding.md) - Comandos y límites de seguridad.
+* [Informe de opciones del plugin](../../SPRINT35-PLUGIN-ONBOARDING-OPTIONS-REPORT.md) - Contrato documentado del onboarding.
+* [Contrato del Objetivo 35](contracts/sprint35-plugin-onboarding-options.md) - Opciones verificadas para agentes.
