@@ -31,7 +31,12 @@ class _FakeConnection:
         record.append(self)
 
     def login(self, username, password):
+        assert self.port == 465 or getattr(self, 'tls', False)
         self.login_calls.append((username, password))
+
+    def starttls(self, *, context):
+        assert context.check_hostname
+        self.tls = True
 
     def send_message(self, msg):
         self.sent.append(msg)
@@ -44,11 +49,13 @@ def _install_fakes(monkeypatch):
     ssl_connections, plain_connections = [], []
 
     class FakeSSL(_FakeConnection):
-        def __init__(self, host, port):
+        def __init__(self, host, port, *, context, timeout):
+            assert context.check_hostname and timeout == 30
             super().__init__(ssl_connections, host, port)
 
     class FakePlain(_FakeConnection):
-        def __init__(self, host, port):
+        def __init__(self, host, port, *, timeout):
+            assert timeout == 30
             super().__init__(plain_connections, host, port)
 
     monkeypatch.setattr(smtplib, "SMTP", FakePlain)
@@ -156,7 +163,7 @@ def test_transport_error_wraps_without_leaking_secrets(monkeypatch):
     plain, _ = _install_fakes(monkeypatch)
 
     class Broken(_FakeConnection):
-        def __init__(self, host, port):
+        def __init__(self, host, port, *, timeout):
             super().__init__(plain, host, port)
 
         def send_message(self, msg):

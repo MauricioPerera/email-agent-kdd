@@ -22,6 +22,8 @@ La password jamas aparece en los errores y la conexion se libera en
 """
 
 import imaplib
+from src.email.transport import open_imap
+from src.email.imap_identity import require_uidvalidity
 
 from typing import Protocol, runtime_checkable
 
@@ -115,7 +117,11 @@ def _uid_check(result, action):
 def _announce_uidplus(connection):
     """True solo si la conexion anuncia UIDPLUS (UID EXPUNGE selectivo)."""
     capabilities = getattr(connection, "capabilities", ()) or ()
-    return any(str(capability).upper() == _CAPABILITY for capability in capabilities)
+    return any(
+        isinstance(capability, (str, bytes))
+        and capability.upper() in (_CAPABILITY, b"UIDPLUS")
+        for capability in capabilities
+    )
 
 
 def _release(connection):
@@ -134,7 +140,7 @@ class ImapDeletionProvider:
     """Implementacion IMAP de MailDeletionProvider (factory inyectable)."""
 
     def __init__(self, connection_factory=None):
-        self._connection_factory = connection_factory or imaplib.IMAP4_SSL
+        self._connection_factory = connection_factory or open_imap
 
     def soft_delete(self, account, config, uid, trash_mailbox):
         """COPY a Trash/Papelera + STORE \\Deleted en el original; NUNCA expunge."""
@@ -146,7 +152,10 @@ class ImapDeletionProvider:
             connection = self._connection_factory(host, port)
             connection.login(config["username"], config["password"])
             mailbox = config.get("mailbox") or "INBOX"
-            connection.select(mailbox, readonly=False)
+            status, _ = connection.select(mailbox, readonly=False)
+            if status != "OK":
+                raise RuntimeError("mailbox selection failed")
+            require_uidvalidity(connection, config.get("uidvalidity"))
             _uid_check(connection.uid("COPY", str(uid), trash), "UID COPY")
             _uid_check(
                 connection.uid("STORE", str(uid), "+FLAGS", _DELETED_FLAG),
@@ -182,7 +191,10 @@ class ImapDeletionProvider:
         try:
             connection = self._connection_factory(host, port)
             connection.login(config["username"], config["password"])
-            connection.select(trash, readonly=False)
+            status, _ = connection.select(trash, readonly=False)
+            if status != "OK":
+                raise RuntimeError("mailbox selection failed")
+            require_uidvalidity(connection, config.get("uidvalidity"))
             _uid_check(connection.uid("COPY", str(uid), original), "UID COPY")
             _uid_check(
                 connection.uid("STORE", str(uid), "+FLAGS", _DELETED_FLAG),
@@ -222,7 +234,10 @@ class ImapDeletionProvider:
                     "el servidor no anuncia UIDPLUS; se cancela el purge "
                     "para evitar un EXPUNGE global"
                 )
-            connection.select(mailbox, readonly=False)
+            status, _ = connection.select(mailbox, readonly=False)
+            if status != "OK":
+                raise RuntimeError("mailbox selection failed")
+            require_uidvalidity(connection, config.get("uidvalidity"))
             _uid_check(
                 connection.uid("STORE", str(uid), "+FLAGS", _DELETED_FLAG),
                 "UID STORE",

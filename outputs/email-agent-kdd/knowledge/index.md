@@ -165,3 +165,4 @@
 * [Contrato del Objetivo 76](contracts/sprint76-antivirus-gate.md) - Estados y adaptador ClamAV.
 * [Informe del worker PDF](../../SPRINT77-PDF-WORKER-REPORT.md) - Extracción aislada y limitada.
 * [Contrato del Objetivo 77](contracts/sprint77-pdf-worker.md) - PDF sin red ni contenido activo.
+* [Sprint 78: corrección de auditoría](contracts/sprint78-audit-remediation.md) - Plan de remediación de seis hallazgos, migración y pruebas de aceptación.

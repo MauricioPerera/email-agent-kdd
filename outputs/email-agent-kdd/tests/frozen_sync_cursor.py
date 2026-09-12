@@ -181,7 +181,7 @@ def test_target_module_imports_are_within_deps_allowed():
             imported |= {a.name.split(".")[0] for a in node.names}
         elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
             imported |= {node.module.split(".")[0]}
-    assert imported <= {"os", "pathlib", "json", "re"}, "imports fuera de deps: " + ", ".join(
+    assert imported <= {"os", "pathlib", "json", "re", "sqlite3"}, "imports fuera de deps: " + ", ".join(
         sorted(imported)
     )
     source = TARGET.read_text(encoding="utf-8")

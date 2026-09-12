@@ -3,6 +3,8 @@
 import hashlib
 import importlib
 import json
+import sys
+import pytest
 
 
 def _pdf_bytes():
@@ -25,6 +27,38 @@ def _pdf_bytes():
         output.extend(f"{offset:010d} 00000 n \n".encode())
     output.extend(f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode())
     return bytes(output)
+
+
+def test_oversized_blob_is_read_with_bound_before_scanning(tmp_path, monkeypatch):
+    from pathlib import Path
+    from src.email import attachments
+    import pytest
+    content = b'x' * 20
+    digest = hashlib.sha256(content).hexdigest()
+    blob = attachments.blob_path(str(tmp_path), digest)
+    blob.parent.mkdir(parents=True)
+    blob.write_bytes(content)
+    original_open = Path.open
+    reads = []
+    class Reader:
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+        def read(self, limit):
+            reads.append(limit)
+            return content[:limit]
+    def bounded_open(path, *args, **kwargs):
+        return Reader() if path == blob else original_open(path, *args, **kwargs)
+    monkeypatch.setattr(Path, 'open', bounded_open)
+    scans = []
+    with pytest.raises(attachments.AttachmentError) as exc:
+        attachments.extract_text_from_blob(str(tmp_path),
+            {'sha256': digest, 'filename': 'test.txt', 'content_type': 'text/plain'},
+            max_bytes=10, scanner=lambda data: scans.append(data))
+    assert exc.value.code == 'size-limit-exceeded'
+    assert reads == [11]
+    assert scans == []
 
 
 def _node(root, content, *, content_type="text/plain", stored=True):
@@ -92,12 +126,36 @@ def test_attachment_extracta_pdf_despues_del_gate(tmp_path, monkeypatch):
     content = _pdf_bytes()
     digest = _node(tmp_path, content, content_type="application/pdf")
     _blob(cli, tmp_path, content)
+    if sys.platform != "linux":
+        with pytest.raises(attachments.AttachmentError) as exc:
+            attachments.extract_text_from_blob(str(tmp_path),
+                {"sha256": digest, "filename": "source.pdf", "content_type": "application/pdf"},
+                scanner=lambda _: "clean")
+        assert exc.value.code == "pdf-sandbox-unavailable"
+        return
     result = attachments.extract_text_from_blob(
         str(tmp_path),
         {"sha256": digest, "filename": "source.pdf", "content_type": "application/pdf"},
         scanner=lambda _: "clean",
     )
     assert "Texto PDF de prueba" in result["text"]
+
+
+@pytest.mark.parametrize('scan_result', ['infected', 'unavailable', 'error'])
+def test_pdf_never_starts_before_antivirus_approval(tmp_path, monkeypatch, scan_result):
+    from src.email import attachments, pdf_sandbox
+    cli = importlib.import_module('src.email.cli')
+    content = _pdf_bytes()
+    digest = _node(tmp_path, content, content_type='application/pdf')
+    _blob(cli, tmp_path, content)
+    def forbidden(*args):
+        raise AssertionError('parser started before scan approval')
+    monkeypatch.setattr(pdf_sandbox, 'run_pdf', forbidden)
+    monkeypatch.setattr(attachments, 'scan_bytes', lambda *args: scan_result)
+    with pytest.raises(attachments.AttachmentError) as caught:
+        attachments.extract_text_from_blob(str(tmp_path),
+            {'sha256': digest, 'filename': 'test.pdf', 'content_type': 'application/pdf'})
+    assert caught.value.code == 'antivirus-' + scan_result
 
 
 def test_attachment_extract_rechaza_pdf_corrupto_despues_del_gate(tmp_path):
@@ -112,6 +170,6 @@ def test_attachment_extract_rechaza_pdf_corrupto_despues_del_gate(tmp_path):
             scanner=lambda _: "clean",
         )
     except attachments.AttachmentError as exc:
-        assert exc.code == "pdf-rejected"
+        assert exc.code == ("pdf-rejected" if sys.platform == "linux" else "pdf-sandbox-unavailable")
     else:
         raise AssertionError("un PDF corrupto debe rechazarse")

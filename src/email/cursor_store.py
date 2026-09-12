@@ -6,11 +6,57 @@ corrupcion (JSON o esquema) = RuntimeError, nunca 0 y nunca sobreescritura.
 
 import json
 import os
+import sqlite3
 from pathlib import Path
 
 _ALLOWED_CHARS = frozenset(
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.-"
 )
+
+
+def load_mailbox_cursor(root, account_id, mailbox):
+    """V2 cursors never reinterpret legacy sequence numbers as UIDs."""
+    _validate_args(root, account_id)
+    if not isinstance(mailbox, str) or not mailbox:
+        raise ValueError('mailbox invalido')
+    path = Path(root) / '.email-agent' / 'uid-cursors.sqlite3'
+    if not path.exists():
+        return {'uid': 0, 'uidvalidity': None}
+    connection = sqlite3.connect(path.resolve().as_uri() + '?mode=ro', uri=True)
+    try:
+        row = connection.execute(
+            'SELECT uid, validity FROM cursors WHERE account=? AND mailbox=?',
+            (account_id, mailbox),
+        ).fetchone()
+        if row is not None:
+            for value, minimum in ((row[0], 0), (row[1], 1)):
+                if type(value) is not int or not minimum <= value <= 4294967295:
+                    raise RuntimeError('cursor store: identidad UID corrupta')
+        return {'uid': row[0], 'uidvalidity': row[1]} if row else {'uid': 0, 'uidvalidity': None}
+    finally:
+        connection.close()
+
+
+def save_mailbox_cursor(root, account_id, mailbox, uidvalidity, uid):
+    _validate_args(root, account_id)
+    if not isinstance(mailbox, str) or not mailbox:
+        raise ValueError('mailbox invalido')
+    for value, minimum in ((uidvalidity, 1), (uid, 0)):
+        if isinstance(value, bool) or not isinstance(value, int) or not minimum <= value <= 4294967295:
+            raise ValueError('identidad UID invalida')
+    path = Path(root) / '.email-agent' / 'uid-cursors.sqlite3'
+    path.parent.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(path, timeout=5)
+    try:
+        connection.execute('PRAGMA synchronous=FULL')
+        with connection:
+            connection.execute('CREATE TABLE IF NOT EXISTS cursors '
+                               '(account TEXT, mailbox TEXT, validity INTEGER, uid INTEGER, '
+                               'PRIMARY KEY(account, mailbox))')
+            connection.execute('INSERT OR REPLACE INTO cursors VALUES (?, ?, ?, ?)',
+                               (account_id, mailbox, uidvalidity, uid))
+    finally:
+        connection.close()
 
 
 def _valid_account(account_id: str) -> bool:

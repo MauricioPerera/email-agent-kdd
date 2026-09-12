@@ -52,6 +52,7 @@ from src.email.attachments import (
     mark_attachment_stored,
     read_attachment_entries,
     read_download_target,
+    read_download_uidvalidity,
     sanitize_display_name,
     store_attachment_bytes,
     store_record_attachments,
@@ -61,6 +62,7 @@ from src.email.confirm import confirm_email_draft
 from src.email.contacts import extract_contacts
 from src.email.contact_store import load_email_contacts, store_email_contacts
 from src.email.cursor_store import load_sync_cursor, save_sync_cursor
+from src.email.cursor_store import load_mailbox_cursor, save_mailbox_cursor
 from src.email.deletion import (
     list_trash,
     purge,
@@ -69,6 +71,8 @@ from src.email.deletion import (
 )
 from src.email.draft import create_email_draft
 from src.email.smtp_send import send_smtp_message
+from src.email.send_state import claim as claim_send, finish as finish_send
+from src.email.send_state import read_status as read_send_status
 from src.email.conversation_index import persist_conversation_index
 from src.email.credentials import resolve_credential
 from src.email.mail_server_store import load_mail_server_config
@@ -488,6 +492,10 @@ def _run_draft(argv):
             for key in ("id", "account_id", "to", "subject", "body", "status")
             if key in draft
         }
+        try:
+            preview["status"] = read_send_status(root, draft_id)
+        except Exception:
+            return _fail(["error: el estado de envio no se pudo leer"])
         print(json.dumps(preview, sort_keys=True, ensure_ascii=False))
         return 0
     if len(argv) != 6:
@@ -512,6 +520,13 @@ def _run_draft(argv):
 
 
 def _run_send(argv):
+    retry_unknown = False
+    if len(argv) == 7 and argv[5] == "--retry-unknown":
+        if argv[6] != "CONFIRMAR REENVIO INCIERTO":
+            _print_stderr(["error: reenvio incierto requiere confirmacion adicional"])
+            return 1
+        retry_unknown = True
+        argv = argv[:5]
     if len(argv) != 5:
         return _fail([
             "error: send requiere ROOT, ACCOUNT_ID, DRAFT_ID y confirmacion",
@@ -595,9 +610,19 @@ def _run_send(argv):
         "password": secret,
     }
     try:
-        send_smtp_message(account, config, deliverable)
+        claim_send(root, draft_id, retry_unknown=retry_unknown)
     except Exception:
-        _print_stderr(["error: el envio fallo"])
+        _print_stderr(["error: envio bloqueado; el borrador ya se intento o no se pudo registrar"])
+        return 1
+    try:
+        send_smtp_message(account, config, deliverable)
+        finish_send(root, draft_id, "sent")
+    except Exception:
+        try:
+            finish_send(root, draft_id, "unknown")
+        except Exception:
+            pass  # The durable sending claim still prevents another delivery.
+        _print_stderr(["error: el envio fallo o su resultado es incierto; no reintentar automaticamente"])
         return 1
     # Post-envio: registro de contactos salientes. El SMTP ya pudo entregar el
     # mensaje; si el registro falla NO se reintentara el envio automaticamente
@@ -843,15 +868,16 @@ def _run_sync(argv):
         _print_stderr(["error: provider sin host por defecto"])
         return 1
     try:
-        cursor = load_sync_cursor(root, account_id)
-    except (ValueError, RuntimeError):
+        cursor = load_mailbox_cursor(root, account_id, DEFAULT_MAILBOX)
+    except Exception:
         _print_stderr(["error: el cursor de sincronizacion es ilegible"])
         return 1
     config = {
         "host": host,
         "username": account["email"],
         "password": secret,
-        "since_uid": cursor,
+        "since_uid": cursor["uid"],
+        "uidvalidity": cursor["uidvalidity"],
     }
     if limit is not None:
         config["limit"] = limit
@@ -910,10 +936,11 @@ def _run_sync(argv):
         summary["attachments_errors"] = attachment_stats["errors"]
     if fetched:
         try:
-            save_sync_cursor(
-                root, account_id, max(record["imap_uid"] for record in fetched)
+            save_mailbox_cursor(
+                root, account_id, mailbox, fetched[0]["uidvalidity"],
+                max(record["imap_uid"] for record in fetched)
             )
-        except (ValueError, RuntimeError):
+        except Exception:
             _print_stderr(["error: el cursor de sincronizacion no se pudo guardar"])
             return 1
         try:
@@ -1091,12 +1118,12 @@ _MESSAGE_ACTION_USAGE = (
     "  message restore ROOT TRASH_REL_PATH  devuelve un nodo desde .trash",
     "  message trash ROOT  lista los manifiestos de root/.trash",
     "  message purge ROOT TRASH_REL_PATH CONFIRMAR BORRADO PERMANENTE",
-    "  message remote-delete ROOT ACCOUNT_ID UID TRASH_MAILBOX  "
+    "  message remote-delete ROOT ACCOUNT_ID UID TRASH_MAILBOX --uidvalidity N  "
     "mueve el mensaje remoto a Trash (COPY + Deleted, sin expunge)",
-    "  message remote-restore ROOT ACCOUNT_ID UID TRASH_MAILBOX ORIGINAL_MAILBOX  "
+    "  message remote-restore ROOT ACCOUNT_ID UID TRASH_MAILBOX ORIGINAL_MAILBOX --uidvalidity N  "
     "devuelve el mensaje desde Trash",
     "  message remote-purge ROOT ACCOUNT_ID UID MAILBOX "
-    "CONFIRMAR BORRADO PERMANENTE  expurga solo con UIDPLUS",
+    "CONFIRMAR BORRADO PERMANENTE --uidvalidity N  expurga solo con UIDPLUS",
 )
 
 
@@ -1109,6 +1136,14 @@ def _parse_uid(raw):
 
 def _run_remote_message(argv, action):
     """Capa fina sobre ImapDeletionProvider: cuenta/config/UID resueltos del store."""
+    argv = list(argv)
+    if argv.count("--uidvalidity") != 1:
+        return _fail(["error: operacion remota requiere --uidvalidity N de la referencia original"])
+    position = argv.index("--uidvalidity")
+    validity = _parse_uid(argv[position + 1]) if position + 1 < len(argv) else None
+    if validity is None or validity > 4294967295:
+        return _fail(["error: UIDVALIDITY invalido"])
+    del argv[position:position + 2]
     if action == "remote-restore":
         if len(argv) != 7:
             return _fail([
@@ -1177,6 +1212,7 @@ def _run_remote_message(argv, action):
     if servers is not None:
         config["port"] = servers["imap_port"]
     provider = ImapDeletionProvider()
+    config["uidvalidity"] = validity
     try:
         if action == "remote-delete":
             # TRASH_MAILBOX va como parametro explicito; el mailbox origen lo
@@ -1370,6 +1406,10 @@ def _run_attachment_download(argv):
         ])
         return 1
     account_id, imap_uid, mailbox = read_download_target(node_text)
+    uidvalidity = read_download_uidvalidity(node_text)
+    if uidvalidity is None:
+        _print_stderr(["error: nodo sin UIDVALIDITY fiable; re-sincronizar antes de descargar"])
+        return 1
     if not account_id or imap_uid is None:
         _print_stderr([
             "error: nodo legacy sin imap_uid o account_id: no es descargable "
@@ -1420,6 +1460,7 @@ def _run_attachment_download(argv):
     if mailbox:
         config["mailbox"] = mailbox
     try:
+        config["uidvalidity"] = uidvalidity
         raw = fetch_raw_message_by_uid(account, config, imap_uid)
     except Exception:
         _print_stderr(["error: la descarga fallo (servidor o credencial invalidos)"])

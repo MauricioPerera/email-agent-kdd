@@ -54,7 +54,7 @@ def _render(record):
             )
     # Identidad de re-descarga por UID: solo cuando el record la trae; los
     # records legacy (sin imap_uid/mailbox) se renderizan igual que antes.
-    for key in ("imap_uid", "mailbox"):
+    for key in ("imap_uid", "mailbox", "uidvalidity"):
         value = record.get(key)
         if value is not None and value != "":
             lines.append(key + ": " + str(value))

@@ -33,7 +33,15 @@ from src.email import imap_reader
 from src.email.account import create_email_account
 from src.email.account_store import save_email_account
 from src.email.attachments import blob_path, meta_path
-from src.email.cursor_store import load_sync_cursor, save_sync_cursor
+from src.email.cursor_store import load_mailbox_cursor, save_mailbox_cursor
+
+
+def load_sync_cursor(root, account):
+    return load_mailbox_cursor(root, account, "INBOX")["uid"]
+
+
+def save_sync_cursor(root, account, uid):
+    return save_mailbox_cursor(root, account, "INBOX", 123, uid)
 
 PHRASE = "CONFIRMAR EXTRACCION"
 SECRETO = "SECRETO-SYNC-ATT-FKE-NO-REAL"
@@ -86,6 +94,16 @@ class _FakeConnection:
         self._fake.calls.append(("select", mailbox, readonly))
         return ("OK", [b"1 EXISTS"])
 
+    def response(self, name):
+        assert name == "UIDVALIDITY"
+        return "UIDVALIDITY", [b"123"]
+
+    def uid(self, command, *args):
+        if command == "SEARCH":
+            return self.search(*args)
+        assert command == "FETCH" and args[1] == "(BODY.PEEK[])"
+        return self.fetch(*args)
+
     def search(self, charset, criterion):
         self._fake.calls.append(("search", criterion))
         ids = " ".join(str(uid) for uid in sorted(self._fake.raws))
@@ -108,7 +126,9 @@ class _FakeIMAPFactory:
         self.calls = []
         self.raws = {}
 
-    def __call__(self, host, port):
+    def __call__(self, host, port, *, ssl_context, timeout):
+        assert ssl_context.check_hostname
+        assert timeout == 30
         self.calls.append(("connect", host, port))
         return _FakeConnection(self, host, port)
 
@@ -163,7 +183,7 @@ def test_sync_por_defecto_no_persiste_bytes(tmp_path, monkeypatch, capsys):
     assert not (root / "attachments").exists(), "sync por defecto no escribe blobs"
     assert "raw_message" not in text
     assert load_sync_cursor(str(root), "personal") == 1
-    assert ("fetch", "1", "(RFC822)") in fake.calls
+    assert ("fetch", "1", "(BODY.PEEK[])") in fake.calls
 
 
 # ---------------------------------------------------------------------------
@@ -232,7 +252,7 @@ def test_sync_attachments_exitoso_reutiliza_el_rfc822(tmp_path, monkeypatch, cap
         "attachments_errors",
     }
     # un solo fetch por mensaje: el RFC822 se reutiliza, no hay re-fetch
-    assert fake.calls.count(("fetch", "1", "(RFC822)")) == 1
+    assert fake.calls.count(("fetch", "1", "(BODY.PEEK[])")) == 1
     assert ("select", "INBOX", True) in fake.calls
     assert SECRETO not in out + err
     # blobs content-addressed bajo ROOT, bytes exactos

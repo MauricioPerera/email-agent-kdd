@@ -4,6 +4,7 @@ errores de transporte se relanzan como ``RuntimeError`` sin password ni cuerpo. 
 sin logs; la unica red es la fabrica inyectada (465: ``smtplib.SMTP_SSL``; resto: ``SMTP``)."""
 
 import smtplib
+from src.email.transport import open_smtp, secure_smtp
 from email.message import EmailMessage
 
 _DEFAULT_PORT = 587
@@ -46,11 +47,20 @@ def _deliver(factory, endpoint, credentials, msg):
     connection = None
     try:
         connection = factory(*endpoint)
+        secure_smtp(connection, endpoint[1])
         connection.login(*credentials)
         connection.send_message(msg)
     finally:
         if connection is not None:
-            connection.quit()
+            try:
+                connection.quit()
+            except Exception:
+                # QUIT cannot undo an accepted DATA transaction or replace
+                # the original delivery error with a cleanup error.
+                try:
+                    connection.close()
+                except Exception:
+                    pass
 
 
 def send_smtp_message(account, config, message, connection_factory=None):
@@ -63,7 +73,7 @@ def send_smtp_message(account, config, message, connection_factory=None):
     msg["To"] = ", ".join(message["to"])
     msg["Subject"] = message["subject"]
     msg.set_content(message["body"])
-    default = smtplib.SMTP_SSL if port == 465 else smtplib.SMTP
+    default = open_smtp
     factory = connection_factory if connection_factory is not None else default
     try:
         _deliver(factory, endpoint, (config["username"], config["password"]), msg)

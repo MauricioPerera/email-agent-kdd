@@ -383,6 +383,54 @@ def test_send_confirmado_devuelve_0_con_json(cli, tmp_root, capsys, monkeypatch)
     assert json.loads(lineas[0])["id"] == draft_id
 
 
+@pytest.mark.parametrize('failure', ['none', 'smtp', 'contacts'])
+def test_repeated_send_never_delivers_twice(cli, tmp_root, monkeypatch, capsys, failure):
+    _stub_backend(monkeypatch, cli)
+    deliveries = []
+    def deliver(*args):
+        deliveries.append('attempt')
+        if failure == 'smtp':
+            raise OSError('connection lost during DATA')
+    def contacts(*args):
+        if failure == 'contacts':
+            raise OSError('store unavailable')
+    monkeypatch.setattr(cli, 'send_smtp_message', deliver)
+    monkeypatch.setattr(cli, 'store_email_contacts', contacts)
+    cli.cli_main(['draft', str(tmp_root), 'acc-1', 'a@b.c', 'Hola', 'Cuerpo'])
+    draft_id = next((tmp_root / 'drafts').glob('*.json')).stem
+    argv = ['send', str(tmp_root), 'acc-1', draft_id, CONFIRM_PHRASE]
+    assert cli.cli_main(argv) == (0 if failure == 'none' else 1)
+    # Recreating the deterministic draft cannot erase the send ledger.
+    cli.cli_main(['draft', str(tmp_root), 'acc-1', 'a@b.c', 'Hola', 'Cuerpo'])
+    assert cli.cli_main(argv) == 1
+    assert deliveries == ['attempt']
+    capsys.readouterr()
+    assert cli.cli_main(['draft', 'show', str(tmp_root), draft_id]) == 0
+    assert json.loads(capsys.readouterr().out)['status'] == (
+        'unknown' if failure == 'smtp' else 'sent'
+    )
+
+
+def test_unknown_retry_requires_second_confirmation(cli, tmp_root, monkeypatch):
+    _stub_backend(monkeypatch, cli)
+    attempts = []
+    def deliver(*args):
+        attempts.append(1)
+        if len(attempts) == 1:
+            raise OSError('ambiguous DATA result')
+    monkeypatch.setattr(cli, 'send_smtp_message', deliver)
+    cli.cli_main(['draft', str(tmp_root), 'acc-1', 'a@b.c', 'Hola', 'Cuerpo'])
+    draft_id = next((tmp_root / 'drafts').glob('*.json')).stem
+    command = ['send', str(tmp_root), 'acc-1', draft_id, CONFIRM_PHRASE]
+    assert cli.cli_main(command) == 1
+    assert cli.cli_main(command + ['--retry-unknown', 'yes']) == 1
+    assert len(attempts) == 1
+    retry = command + ['--retry-unknown', 'CONFIRMAR REENVIO INCIERTO']
+    assert cli.cli_main(retry) == 0
+    assert cli.cli_main(retry) == 1
+    assert len(attempts) == 2
+
+
 def test_send_draft_inexistente_devuelve_1(cli, tmp_root, capsys):
     rc = cli.cli_main(
         ["send", str(tmp_root), "acc-1", "no-existe", CONFIRM_PHRASE]

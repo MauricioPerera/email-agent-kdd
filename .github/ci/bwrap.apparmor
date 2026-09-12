@@ -1,0 +1,8 @@
+# CI-only exception for the system sandbox launcher, not the CLI or test runner.
+# Bubblewrap still creates all namespaces and enforces its filesystem policy.
+abi <abi/4.0>,
+include <tunables/global>
+
+profile email-agent-ci-bwrap /usr/bin/bwrap flags=(unconfined) {
+  userns,
+}

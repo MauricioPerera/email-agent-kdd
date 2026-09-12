@@ -73,6 +73,15 @@ class _FakeConnection:
         self._fake.calls.append(("select", mailbox, readonly))
         return ("OK", [b"1 EXISTS"])
 
+    def response(self, name):
+        assert name == "UIDVALIDITY"
+        return "UIDVALIDITY", [b"123"]
+
+    def uid(self, command, message_set, spec):
+        assert command == "FETCH"
+        assert spec == "(BODY.PEEK[])"
+        return self.fetch(message_set, spec)
+
     def fetch(self, message_set, spec):
         self._fake.calls.append(("fetch", message_set, spec))
         return ("OK", [(b"1 (RFC822 {%d}" % len(self._fake.raw), self._fake.raw), b")"])
@@ -91,7 +100,9 @@ class _FakeIMAPFactory:
         self.calls = []
         self.raw = b""
 
-    def __call__(self, host, port):
+    def __call__(self, host, port, *, ssl_context, timeout):
+        assert ssl_context.check_hostname
+        assert timeout == 30
         self.calls.append(("connect", host, port))
         return _FakeConnection(self, host, port)
 
@@ -110,6 +121,7 @@ def _node_lines(attachments, extra_fields=None):
         "type: Email Message",
         "account_id: personal",
         "imap_uid: 7",
+        "uidvalidity: 123",
         "subject: con adjuntos",
     ]
     if extra_fields:

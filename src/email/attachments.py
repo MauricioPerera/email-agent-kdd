@@ -436,8 +436,11 @@ def extract_text_from_blob(root, entry, max_bytes=MAX_EXTRACTED_TEXT_BYTES, scan
     blob = blob_path(root, sha256)
     if not blob.is_file():
         raise AttachmentError("not-stored", "el adjunto no esta almacenado")
-    content = blob.read_bytes()
     input_limit = MAX_PDF_BYTES if is_pdf else max_bytes
+    if isinstance(input_limit, bool) or not isinstance(input_limit, int) or input_limit < 1:
+        raise AttachmentError("size-limit-exceeded", "limite invalido")
+    with blob.open("rb") as source:
+        content = source.read(input_limit + 1)
     if len(content) > int(input_limit):
         raise AttachmentError("size-limit-exceeded", "texto extraido demasiado grande")
     if hashlib.sha256(content).hexdigest() != sha256:
@@ -447,14 +450,10 @@ def extract_text_from_blob(root, entry, max_bytes=MAX_EXTRACTED_TEXT_BYTES, scan
         raise AttachmentError("antivirus-" + scan_status, "escaneo antivirus no aprobado")
     if is_pdf:
         try:
-            result = subprocess.run(
-                [sys.executable, "-m", "src.email.pdf_worker"],
-                input=content,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
-                timeout=15,
-                check=False,
-            )
+            from src.email.pdf_sandbox import run_pdf, SandboxUnavailable
+            result = run_pdf(content)
+        except SandboxUnavailable as exc:
+            raise AttachmentError("pdf-sandbox-unavailable", "aislamiento PDF no disponible") from exc
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise AttachmentError("pdf-parser-error", "parser PDF no disponible") from exc
         if result.returncode != 0:
@@ -495,6 +494,17 @@ def extract_attachment_bytes(raw_message, part_index):
             return bytes(content), str(part.get_filename()), part.get_content_type()
         index += 1
     return None
+
+
+def read_download_uidvalidity(node_text):
+    """Read exactly one top-level generation; legacy/ambiguous nodes fail closed."""
+    values = [line.partition(':')[2].strip()
+              for line in _frontmatter_text(node_text).splitlines()
+              if line.startswith('uidvalidity:')]
+    if len(values) != 1 or not values[0].isascii() or not values[0].isdecimal():
+        return None
+    value = int(values[0])
+    return value if 0 < value <= 4294967295 else None
 
 
 def read_download_target(node_text):

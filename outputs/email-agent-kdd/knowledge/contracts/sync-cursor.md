@@ -9,7 +9,7 @@ budget:
   nesting_max: 3
   lines_max: 80
   params_max: 3
-deps_allowed: [os, pathlib, json, re]
+deps_allowed: [os, pathlib, json, re, sqlite3]
 forbids: [eval, exec, subprocess, network_access, socket, pickle]
 tests_frozen: true
 tests: tests/frozen_sync_cursor.py
@@ -18,6 +18,22 @@ stop_rule: "PARAR y reportar si algún invariant resulta insatisfacible dentro d
 ---
 
 ## Intent
+
+### Revisión Sprint 78: cursor V2
+
+La CLI usa `load_mailbox_cursor(root, account_id, mailbox)` y
+`save_mailbox_cursor(root, account_id, mailbox, uidvalidity, uid)` en
+`.email-agent/uid-cursors.sqlite3`. La clave es cuenta/buzón y el valor incluye
+UIDVALIDITY. SQLite con transacciones y synchronous=FULL sustituye el reemplazo
+JSON para esta API. Se admite expresamente la firma de cinco parámetros de save.
+Ausencia devuelve uid=0 y uidvalidity=None; un error de lectura no se convierte
+en ausencia. Un cambio de generación reinicia la búsqueda desde cero.
+
+Las reglas siguientes describen exclusivamente la API JSON heredada, conservada
+por compatibilidad. Ese archivo no se modifica ni se usa para iniciar el cursor
+V2: sus valores podrían ser números de secuencia, no UIDs. Esta separación es
+la migración aprobada por sprint78-audit-remediation.md, no dos fuentes activas.
+Pruebas V2: frozen_mailbox_cursor.py y frozen_imap_identity.py.
 
 Par de funciones que gestionan el cursor de sincronización IMAP de cada cuenta:
 
@@ -246,7 +262,7 @@ def test_escritura_atomica_sin_parciales(tmp_root, monkeypatch):
 ## Constraints
 
 - Presupuestos: ciclomática ≤ 12, anidamiento ≤ 3, líneas ≤ 80, parámetros ≤ 3 por función.
-- Solo dependencias de `deps_allowed` (`os`, `pathlib`, `json`, `re`); cero terceros
+- Solo dependencias de `deps_allowed` (`os`, `pathlib`, `json`, `re`, `sqlite3`); cero terceros
   (anti-slopsquatting).
 - Prohibido: `eval`, `exec`, `subprocess`, red, `socket`, `pickle`, credenciales/secretos, fechas o
   marcas de tiempo en el fichero.
