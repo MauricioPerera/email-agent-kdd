@@ -31,6 +31,11 @@ Este reporte sustituye las notas incrementales. No acredita cierre del sprint.
 
 ## Resultados registrados
 
+- Auditoría adicional de cursor V2: nueve casos de valores corruptos reproducían
+  aceptación indebida (9 fallos, 2 aprobados antes del fix). La lectura ahora
+  valida tipo entero y rango UID/UIDVALIDITY, rechazando corrupción sin reescribir
+  el archivo. Así un UID fuera del rango IMAP no puede omitir correos en silencio.
+
 - Windows: suite completa repetida tras agregar concurrencia multiproceso.
 - WSL/Linux: las seis pruebas reales de aislamiento, cifrado y exceso de páginas
   pasaron juntas en 21.75 segundos.

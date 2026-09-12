@@ -17,6 +17,8 @@ _ALLOWED_CHARS = frozenset(
 def load_mailbox_cursor(root, account_id, mailbox):
     """V2 cursors never reinterpret legacy sequence numbers as UIDs."""
     _validate_args(root, account_id)
+    if not isinstance(mailbox, str) or not mailbox:
+        raise ValueError('mailbox invalido')
     path = Path(root) / '.email-agent' / 'uid-cursors.sqlite3'
     if not path.exists():
         return {'uid': 0, 'uidvalidity': None}
@@ -26,6 +28,10 @@ def load_mailbox_cursor(root, account_id, mailbox):
             'SELECT uid, validity FROM cursors WHERE account=? AND mailbox=?',
             (account_id, mailbox),
         ).fetchone()
+        if row is not None:
+            for value, minimum in ((row[0], 0), (row[1], 1)):
+                if type(value) is not int or not minimum <= value <= 4294967295:
+                    raise RuntimeError('cursor store: identidad UID corrupta')
         return {'uid': row[0], 'uidvalidity': row[1]} if row else {'uid': 0, 'uidvalidity': None}
     finally:
         connection.close()
