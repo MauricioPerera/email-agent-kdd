@@ -77,7 +77,8 @@ def test_rejects_untrusted_or_wrong_hostname_before_auth(tmp_path, monkeypatch, 
         if trust:
             assert 'IP address mismatch' in str(caught.value)
         else:
-            assert 'self-signed' in str(caught.value)
+            # OpenSSL versions spell this message differently; verify the cause.
+            assert caught.value.verify_code == 18  # DEPTH_ZERO_SELF_SIGNED_CERT
     finally:
         thread.join(6)
         listener.close()
