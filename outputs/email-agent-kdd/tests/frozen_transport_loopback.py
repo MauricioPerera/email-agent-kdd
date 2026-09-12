@@ -8,7 +8,9 @@ import pytest
 from src.email.smtp_send import send_smtp_message
 
 
-def test_server_without_starttls_never_receives_auth_or_message():
+def test_server_without_starttls_never_receives_auth_or_message(monkeypatch):
+    # Keep EHLO identity deterministic without consulting the runner's DNS.
+    monkeypatch.setattr(socket, 'getfqdn', lambda *args: 'client.example.test')
     commands = []
     errors = []
     listener = socket.socket()

@@ -17,6 +17,9 @@ from src.email import transport
 @pytest.mark.parametrize('trust', [False, True])
 @pytest.mark.parametrize('protocol', ['imap', 'smtp'])
 def test_rejects_untrusted_or_wrong_hostname_before_auth(tmp_path, monkeypatch, trust, protocol):
+    # SMTP resolves the local EHLO name after connecting. Runner DNS is not
+    # part of this loopback TLS test and may exceed the server's timeout.
+    monkeypatch.setattr(socket, 'getfqdn', lambda *args: 'client.example.test')
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, 'wrong.example.test')])
     now = datetime.datetime.now(datetime.timezone.utc)
