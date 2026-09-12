@@ -76,3 +76,40 @@ def test_concurrent_claim_has_single_winner(tmp_path):
             return False
     with ThreadPoolExecutor(max_workers=4) as executor:
         assert sum(executor.map(attempt, range(8))) == 1
+
+
+def test_separate_processes_have_one_send_claim(tmp_path):
+    import subprocess
+    import sys
+    script = (
+        'import sys\n'
+        'from src.email.send_state import claim, SendBlocked\n'
+        'sys.stdin.readline()\n'
+        'try:\n'
+        '    claim(sys.argv[1], "shared-draft")\n'
+        '    print("claimed")\n'
+        'except SendBlocked:\n'
+        '    print("blocked")\n'
+    )
+    processes = []
+    try:
+        for _ in range(4):
+            processes.append(subprocess.Popen(
+                [sys.executable, '-c', script, str(tmp_path)],
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, text=True,
+            ))
+        for process in processes:
+            process.stdin.write('go\n')
+            process.stdin.flush()
+        results = [process.communicate(timeout=15) for process in processes]
+        assert all(process.returncode == 0 for process in processes), results
+        assert sorted(stdout.strip() for stdout, _ in results) == [
+            'blocked', 'blocked', 'blocked', 'claimed',
+        ]
+        assert read_status(tmp_path, 'shared-draft') == 'sending'
+    finally:
+        for process in processes:
+            if process.poll() is None:
+                process.kill()
+            process.communicate()

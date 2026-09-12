@@ -31,18 +31,24 @@ Este reporte sustituye las notas incrementales. No acredita cierre del sprint.
 
 ## Resultados registrados
 
-- Windows: última suite registrada, 1061 aprobadas y 6 omitidas por plataforma.
-- WSL/Linux: cuatro pruebas de aislamiento aprobadas (red, archivo y variable
-  señuelo, memoria, salida y timeout); dos pruebas adicionales de PDF cifrado y
-  exceso de páginas aprobadas por separado.
+- Windows: suite completa repetida tras agregar concurrencia multiproceso.
+- WSL/Linux: las seis pruebas reales de aislamiento, cifrado y exceso de páginas
+  pasaron juntas en 21.75 segundos.
+- Envío: 12 pruebas del registro aprobadas, incluida contención entre cuatro
+  procesos Python independientes: un ganador, tres bloqueados y estado sending.
+- Restauración: prueba con INBOX UIDVALIDITY=123 y papelera UIDVALIDITY=456;
+  la referencia 123 se rechaza sin COPY/STORE; la 456 opera sobre la papelera.
 - Skill del plugin validada con quick_validate.py.
 - Solo servidores, credenciales y documentos sintéticos locales: sin correo real.
 
 ## Pendientes de cierre
 
 - CI remoto Windows/macOS/Linux y verificación del runtime en instalación nueva.
-- Revisión de referencias de restauración entre buzones: UID y UIDVALIDITY no son
-  transferibles al buzón destino después de COPY.
-- Completar contratos, README y corrección de afirmaciones históricas del Sprint 77.
+- Se corrigieron las afirmaciones históricas de aislamiento del Sprint 77 y se
+  documentó el cursor V2; falta revisión final de consistencia documental.
+- La revisión no-mistakes del commit 2ba3c5b falló antes de analizar código por
+  sesión OAuth de Claude vencida (run 01M2B29A0SCNKX1HW9K6SN1TBJ).
+  La alternativa de revisión Codex de solo lectura tampoco pudo leer el repo:
+  CreateProcessWithLogonW failed: 2. No se desactivó sandbox ni se omitió el gate.
 - Contrastar todos los criterios del contrato con evidencia directa y actual;
   un conteo verde local no acredita por sí solo las garantías de seguridad.
