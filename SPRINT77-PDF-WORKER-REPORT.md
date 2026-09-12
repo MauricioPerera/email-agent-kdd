@@ -1,5 +1,11 @@
 # Sprint 77 — Worker aislado para extracción PDF
 
+> Corrección de auditoría (Sprint 78): el worker de este sprint era un subproceso,
+> no un aislamiento de seguridad. La ausencia de llamadas de red en su código
+> no bloqueaba red ni acceso a archivos ante un parser comprometido. Las garantías
+> y restricciones nuevas se documentan en SPRINT78-AUDIT-REMEDIATION-REPORT.md.
+> El resultado histórico siguiente no debe interpretarse como prueba de sandbox.
+
 ## Resultado
 
 `attachment extract` admite PDF almacenados después del gate antivirus. El

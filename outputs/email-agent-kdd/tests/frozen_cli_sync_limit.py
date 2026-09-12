@@ -62,10 +62,11 @@ class _FakeWorld:
             raise ValueError("error: credencial irresoluble")
         return self.environ[variable]
 
-    def load_sync_cursor(self, root, account_id):
-        return self.cursors.get((root, account_id), 0)
+    def load_sync_cursor(self, root, account_id, mailbox):
+        return {"uid": self.cursors.get((root, account_id), 0), "uidvalidity": 123}
 
-    def save_sync_cursor(self, root, account_id, uid):
+    def save_sync_cursor(self, root, account_id, mailbox, validity, uid):
+        assert mailbox == "INBOX" and validity == 123
         self.cursors[(root, account_id)] = uid
         self.cursor_saves.append((account_id, uid))
         return ".email-agent/cursors.json"
@@ -86,6 +87,7 @@ class _FakeWorld:
                 {
                     "account_id": account["account_id"],
                     "imap_uid": uid,
+                    "uidvalidity": 123,
                     "raw_sha256": "hash-" + str(uid),
                 }
             )
@@ -99,8 +101,8 @@ def world(monkeypatch):
     monkeypatch.setattr(cli, "load_email_accounts", fake.load_email_accounts)
     monkeypatch.setattr(cli, "load_mail_server_config", fake.load_mail_server_config)
     monkeypatch.setattr(cli, "resolve_credential", fake.resolve_credential)
-    monkeypatch.setattr(cli, "load_sync_cursor", fake.load_sync_cursor)
-    monkeypatch.setattr(cli, "save_sync_cursor", fake.save_sync_cursor)
+    monkeypatch.setattr(cli, "load_mailbox_cursor", fake.load_sync_cursor)
+    monkeypatch.setattr(cli, "save_mailbox_cursor", fake.save_sync_cursor)
     monkeypatch.setattr(cli, "fetch_imap_messages", fake.fetch_imap_messages)
     monkeypatch.setattr(
         cli,

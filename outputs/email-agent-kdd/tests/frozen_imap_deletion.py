@@ -20,6 +20,7 @@ from src.email.imap_deletion import (
 
 ACCOUNT = {"account_id": "cuenta-test", "email": "usuario@example.test"}
 CONFIG = {
+    "uidvalidity": 123,
     "host": "imap.example.test",
     "port": 993,
     "username": "usuario",
@@ -39,6 +40,10 @@ class FakeIMAP:
 
     def login(self, username, password):
         self.calls.append(("login",))
+
+    def response(self, name):
+        assert name == "UIDVALIDITY"
+        return "UIDVALIDITY", [b"123"]
 
     def select(self, mailbox, readonly=True):
         self.calls.append(("select", mailbox, readonly))
@@ -67,6 +72,22 @@ def _uid_calls(fake):
 
 def test_imap_provider_satisfies_protocol():
     assert isinstance(ImapDeletionProvider(), MailDeletionProvider)
+
+
+@pytest.mark.parametrize('generation', [None, 122])
+@pytest.mark.parametrize('action', ['soft_delete', 'restore', 'permanent_delete'])
+def test_stale_generation_never_mutates_mailbox(generation, action):
+    fake = FakeIMAP()
+    provider = _provider(fake)
+    config = dict(CONFIG, uidvalidity=generation)
+    with pytest.raises(RuntimeError):
+        if action == 'soft_delete':
+            provider.soft_delete(ACCOUNT, config, 5, TRASH)
+        elif action == 'restore':
+            provider.restore(ACCOUNT, config, TRASH, 5, MAILBOX)
+        else:
+            provider.permanent_delete(ACCOUNT, config, MAILBOX, 5, PURGE_CONFIRMATION)
+    assert _uid_calls(fake) == []
 
 
 def test_soft_delete_copies_flags_deleted_and_never_expunges():
@@ -135,6 +156,29 @@ def test_restore_rejects_same_mailbox_without_connecting():
     assert fake.calls == [], "origen y destino iguales no abren conexion"
 
 
+@pytest.mark.parametrize('expected,allowed', [(123, False), (456, True)])
+def test_restore_checks_trash_generation_not_inbox(expected, allowed):
+    class SeparateMailboxes(FakeIMAP):
+        def select(self, mailbox, readonly=True):
+            self.selected = mailbox
+            return super().select(mailbox, readonly)
+
+        def response(self, name):
+            assert name == 'UIDVALIDITY'
+            return name, [b'456' if self.selected == TRASH else b'123']
+
+    fake = SeparateMailboxes()
+    provider = _provider(fake)
+    config = dict(CONFIG, uidvalidity=expected)
+    if allowed:
+        provider.restore(ACCOUNT, config, TRASH, 99, MAILBOX)
+        assert ('uid', 'COPY', '99', MAILBOX) in _uid_calls(fake)
+    else:
+        with pytest.raises(RuntimeError, match='identity changed'):
+            provider.restore(ACCOUNT, config, TRASH, 99, MAILBOX)
+        assert _uid_calls(fake) == []
+
+
 def test_purge_without_exact_confirmation_never_touches_the_server():
     fake = FakeIMAP()
     for bad in (
@@ -150,8 +194,9 @@ def test_purge_without_exact_confirmation_never_touches_the_server():
     assert fake.calls == [], "sin frase exacta el servidor no recibe nada"
 
 
-def test_purge_without_uidplus_fails_and_never_expunges():
-    fake = FakeIMAP(capabilities=("IMAP4REV1",))
+@pytest.mark.parametrize("capabilities", [("IMAP4REV1",), (b"IMAP4rev1",), (b"UIDPLUS-extra",)])
+def test_purge_without_uidplus_fails_and_never_expunges(capabilities):
+    fake = FakeIMAP(capabilities=capabilities)
     with pytest.raises(RuntimeError):
         _provider(fake).permanent_delete(
             ACCOUNT, CONFIG, MAILBOX, 5, PURGE_CONFIRMATION
@@ -166,8 +211,9 @@ def test_purge_without_uidplus_fails_and_never_expunges():
     assert ("logout",) in fake.calls
 
 
-def test_purge_confirmed_with_uidplus_uses_uid_expunge():
-    fake = FakeIMAP(capabilities=("IMAP4REV1", "UIDPLUS"))
+@pytest.mark.parametrize("capabilities", [("IMAP4REV1", "UIDPLUS"), (b"IMAP4rev1", b"UIDPLUS")])
+def test_purge_confirmed_with_uidplus_uses_uid_expunge(capabilities):
+    fake = FakeIMAP(capabilities=capabilities)
     receipt = _provider(fake).permanent_delete(
         ACCOUNT, CONFIG, MAILBOX, 5, PURGE_CONFIRMATION
     )
@@ -324,6 +370,8 @@ def test_store_failure_after_copy_logs_out():
 
 def test_unselect_absent_does_not_prevent_logout():
     class BareIMAP:
+        def response(self, name):
+            return "UIDVALIDITY", [b"123"]
         """Conexion minima SIN atributo unselect (sin red)."""
 
         def __init__(self):

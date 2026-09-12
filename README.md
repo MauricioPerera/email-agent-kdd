@@ -168,6 +168,22 @@ Con `--attachments` (y la frase literal exacta `CONFIRMAR EXTRACCION`, que un ag
 
 El presupuesto total por sync es de 100 MB, configurable con la env var `SYNC_ATTACHMENT_BUDGET_MB` (entero ≥ 1); los adjuntos que no caben en el presupuesto quedan como metadatos (`skipped: budget-exhausted`). La escritura del blob es content-addressed, idempotente y atómica (`.tmp` + `replace`), sin blobs temporales residuales ante fallos; un fallo por adjunto se degrada a `skipped`, no aborta la sync ni rompe el cursor. Los nodos se escriben en el formato nuevo de adjuntos (con `part_index` y `stored`); el resumen JSON añade `attachments_stored`, `attachments_skipped` y `attachments_errors` solo en esta modalidad.
 
+### Estado y reintento de envíos
+
+Las operaciones remotas `message trash`, `message restore` y `message purge`
+requieren `--uidvalidity N` del buzón donde se encuentra el UID indicado.
+Al restaurar, usa la identidad de la copia en la papelera, nunca la del mensaje
+original: COPY puede asignar otro UID y cada buzón tiene su propia generación.
+No inventes esos valores ni reutilices referencias heredadas sin verificarlas.
+
+Los estados de entrega se consultan con `draft show ROOT DRAFT_ID`.
+Un resultado `unknown` significa que el servidor pudo haber aceptado el mensaje:
+SMTP no garantiza entrega exactamente una vez después de una desconexión ambigua.
+Solo tras una nueva decisión explícita del usuario puede utilizarse
+`send ROOT ACCOUNT_ID DRAFT_ID "CONFIRMAR ENVIO" --retry-unknown "CONFIRMAR REENVIO INCIERTO"`.
+Este comando no desbloquea estados `sent` ni `sending`. Un estado `sending` tras
+caída requiere investigación; no se debe borrar el registro para reintentar.
+
 ### Listado (solo lectura)
 
 El listado es solo lectura: imprime una línea JSON por adjunto con nombre de display saneado, tipo, tamaño, hash y estado `stored|not-stored` (según el frontmatter del nodo); nunca abre blobs ni conecta a IMAP.
@@ -175,9 +191,15 @@ El listado es solo lectura: imprime una línea JSON por adjunto con nombre de di
 Los blobs ya almacenados pasan primero por el gate antivirus local
 y pueden extraerse con
 `email-agent attachment extract ROOT REL_PATH INDEX DEST CONFIRMAR EXTRACCION`.
-Se aceptan texto UTF-8 inerte y PDF mediante un worker sin red con límites
-estrictos; HTML, documentos ofimáticos y ejecutables requieren una futura etapa
-con sandbox.
+Se acepta texto UTF-8 inerte. La extracción PDF requiere Linux con Bubblewrap,
+`prlimit`, `/usr/bin/python3` y el paquete `pypdf` instalado en el entorno de la CLI.
+El sandbox usa un espacio de red separado, entorno limpio, archivos restringidos
+y un límite de memoria de 256 MiB. Acepta hasta 25 MiB de entrada y 100 páginas;
+el texto extraído se limita a 4 MiB y la ejecución a 15 segundos. La representación
+JSON tiene un límite adicional de 24 MiB para admitir caracteres escapados.
+En Windows/macOS o si el sandbox no puede ejecutarse, la extracción PDF falla
+con `pdf-sandbox-unavailable`; no existe fallback al parser sin aislamiento.
+HTML, documentos ofimáticos y ejecutables siguen bloqueados.
 
 ```bash
 email-agent attachment list ROOT REL_PATH

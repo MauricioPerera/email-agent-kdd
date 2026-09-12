@@ -67,7 +67,8 @@ class _FakeSmtp:
         self.host, self.port = host, port
         self.tls = False
 
-    def starttls(self):
+    def starttls(self, *, context):
+        assert context.check_hostname
         self.tls = True
 
     def login(self, user, password):
@@ -146,7 +147,8 @@ def test_default_factories_ssl_for_465_and_starttls_for_587(monkeypatch):
     created = []
 
     class _StubImap:
-        def __init__(self, host, port):
+        def __init__(self, host, port, *, ssl_context, timeout):
+            assert ssl_context.check_hostname and timeout == 30
             created.append(("IMAP4_SSL", host, port))
 
         def login(self, user, password):
@@ -162,7 +164,8 @@ def test_default_factories_ssl_for_465_and_starttls_for_587(monkeypatch):
             pass
 
     class _StubSmtpSsl(_StubImap):
-        def __init__(self, host, port):
+        def __init__(self, host, port, *, context, timeout):
+            assert context.check_hostname and timeout == 30
             created.append(("SMTP_SSL", host, port))
 
         def login(self, user, password):
@@ -184,11 +187,13 @@ def test_default_factories_ssl_for_465_and_starttls_for_587(monkeypatch):
     created.clear()
 
     class _StubSmtpTls(_StubImap):
-        def __init__(self, host, port):
+        def __init__(self, host, port, *, timeout):
+            assert timeout == 30
             created.append(("SMTP", host, port))
             self.tls = False
 
-        def starttls(self):
+        def starttls(self, *, context):
+            assert context.check_hostname
             self.tls = True
 
         def login(self, user, password):

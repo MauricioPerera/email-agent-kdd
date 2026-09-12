@@ -81,6 +81,15 @@ class _FakeConnection:
             raise OSError("select rechazado con " + SECRETO)
         return ("OK", [b"1 EXISTS"])
 
+    def response(self, name):
+        assert name == "UIDVALIDITY"
+        return "UIDVALIDITY", [b"123"]
+
+    def uid(self, command, message_set, spec):
+        assert command == "FETCH"
+        assert spec == "(BODY.PEEK[])"
+        return self.fetch(message_set, spec)
+
     def fetch(self, message_set, spec):
         self._fake.calls.append(("fetch", message_set, spec))
         if self._fake.error == "fetch":
@@ -102,13 +111,17 @@ class _FakeIMAPFactory:
         self.raw = b""
         self.error = None
 
-    def __call__(self, host, port):
+    def __call__(self, host, port, *, ssl_context, timeout):
+        assert ssl_context.check_hostname
+        assert timeout == 30
         self.calls.append(("connect", host, port))
         connection = _FakeConnection(self, host, port)
         return connection
 
 
 def _write_node(root, rel_path, lines):
+    if not any(line.startswith("uidvalidity:") for line in lines):
+        lines = ["uidvalidity: 123", *lines]
     path = root / rel_path
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
@@ -154,6 +167,7 @@ def _setup(tmp_path, monkeypatch, attachments=None, node_fields=None, rel_path="
         "type: Email Message",
         "account_id: personal",
         "imap_uid: 7",
+        "uidvalidity: 123",
         "subject: con adjuntos",
     ]
     if node_fields:
@@ -246,7 +260,7 @@ def test_exito_descarga_solo_el_indice_pedido_y_escribe_bajo_root(
     assert ("connect", "imap.saved.test", 1143) in fake.calls
     assert ("login", "yo@example.test", SECRETO) in fake.calls
     assert ("select", "INBOX", True) in fake.calls
-    assert ("fetch", "7", "(RFC822)") in fake.calls
+    assert ("fetch", "7", "(BODY.PEEK[])") in fake.calls
     assert SECRETO not in out + err
     assert str(root.resolve()) not in out + err
 
@@ -257,7 +271,7 @@ def test_select_mailbox_desde_el_nodo(tmp_path, monkeypatch, capsys):
     assert code == 0
     _output(capsys)
     assert ("select", "INBOX/Sub", True) in fake.calls, "el mailbox viene del nodo"
-    assert ("fetch", "7", "(RFC822)") in fake.calls
+    assert ("fetch", "7", "(BODY.PEEK[])") in fake.calls
 
 
 def test_nodo_legacy_sin_imap_uid_o_sin_account_id_rechazado(tmp_path, monkeypatch, capsys):

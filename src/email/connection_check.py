@@ -2,6 +2,7 @@
 
 import imaplib
 import smtplib
+from src.email.transport import open_imap, open_smtp, secure_smtp
 
 
 def verify_email_connection(account: dict, servers: dict, password: str,
@@ -25,8 +26,8 @@ def verify_email_connection(account: dict, servers: dict, password: str,
     if not all(isinstance(value, int) and 1 <= value <= 65535 for value in (imap_port, smtp_port)):
         raise ValueError("puerto invalido")
 
-    imap_factory = imap_factory or imaplib.IMAP4_SSL
-    smtp_factory = smtp_factory or (smtplib.SMTP_SSL if smtp_port == 465 else smtplib.SMTP)
+    imap_factory = imap_factory or open_imap
+    smtp_factory = smtp_factory or open_smtp
     imap = None
     smtp = None
     try:
@@ -44,8 +45,7 @@ def verify_email_connection(account: dict, servers: dict, password: str,
                     pass
     try:
         smtp = smtp_factory(smtp_host, smtp_port)
-        if smtp_port != 465 and hasattr(smtp, "starttls"):
-            smtp.starttls()
+        secure_smtp(smtp, smtp_port)
         smtp.login(email, password)
     except Exception as exc:
         raise RuntimeError("smtp_authentication_failed") from exc

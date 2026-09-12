@@ -7,6 +7,8 @@ fabrica inyectada y sin exponer la password en los errores.
 """
 
 import imaplib
+from src.email.transport import open_imap
+from src.email.imap_identity import require_uidvalidity, selected_uidvalidity
 
 from src.email.parse import parse_raw_email
 
@@ -71,9 +73,7 @@ def _raw_message(result):
         for item in payload:
             if isinstance(item, (tuple, list)) and item and isinstance(item[-1], (bytes, bytearray)):
                 return bytes(item[-1])
-            if isinstance(item, (bytes, bytearray)):
-                return bytes(item)
-    return bytes(payload)
+    raise RuntimeError("UID FETCH returned no message literal")
 
 
 def fetch_raw_message_by_uid(
@@ -92,12 +92,17 @@ def fetch_raw_message_by_uid(
     host = config["host"]
     port = int(config.get("port", DEFAULT_PORT))
     if connection_factory is None:
-        connection_factory = imaplib.IMAP4_SSL
+        connection_factory = open_imap
     connection = connection_factory(host, port)
     try:
         connection.login(config["username"], config["password"])
-        connection.select(mailbox, readonly=True)
-        typ, data = connection.fetch(str(uid), "(RFC822)")
+        selected, _ = connection.select(mailbox, readonly=True)
+        if selected != "OK":
+            raise RuntimeError("mailbox selection failed")
+        require_uidvalidity(connection, config.get("uidvalidity"))
+        typ, data = connection.uid("FETCH", str(uid), "(BODY.PEEK[])")
+        if typ != "OK":
+            raise RuntimeError("UID FETCH failed")
         return _raw_message((typ, data))
     except Exception as exc:
         message = type(exc).__name__ + ": " + str(exc)
@@ -130,23 +135,34 @@ def fetch_imap_messages(
     host = config["host"]
     port = int(config.get("port", DEFAULT_PORT))
     if connection_factory is None:
-        connection_factory = imaplib.IMAP4_SSL
+        connection_factory = open_imap
     connection = connection_factory(host, port)
     try:
         connection.login(config["username"], config["password"])
-        connection.select(mailbox, readonly=True)
+        selected, _ = connection.select(mailbox, readonly=True)
+        if selected != "OK":
+            raise RuntimeError("mailbox selection failed")
+        uidvalidity = selected_uidvalidity(connection)
+        if config.get("uidvalidity") != uidvalidity:
+            since_uid = 0
         criterion = "UNSEEN" if config.get("unread", False) else "ALL"
-        typ, data = connection.search(None, criterion)
+        typ, data = connection.uid("SEARCH", None, criterion)
+        if typ != "OK":
+            raise RuntimeError("UID SEARCH failed")
         ids = _search_ids((typ, data))
         if since_uid is not None:
             ids = [message_id for message_id in ids if message_id > since_uid]
         ids = sorted(ids)[:limit]
         records = []
         for message_id in ids:
-            typ, data = connection.fetch(str(message_id), "(RFC822)")
+            typ, data = connection.uid("FETCH", str(message_id), "(BODY.PEEK[])")
+            if typ != "OK":
+                raise RuntimeError("UID FETCH failed")
             raw = _raw_message((typ, data))
             record = parse_raw_email(raw, account_id)
             record["imap_uid"] = message_id
+            record["uidvalidity"] = uidvalidity
+            record["mailbox"] = mailbox
             if include_raw:
                 record["raw_message"] = raw
             records.append(record)

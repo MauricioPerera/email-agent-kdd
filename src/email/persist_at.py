@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from src.email.attachments import render_attachment_front_lines
+from src.email.identity_migration import refresh_identity
 
 _FRONT_FIELDS = (
     ("type", "Email Message"),
@@ -64,7 +65,7 @@ def _render(record):
             lines.append("delivered_to: " + ", ".join(str(addr) for addr in delivered))
     # Identidad de re-descarga por UID: solo cuando el record la trae; los
     # records legacy (sin imap_uid/mailbox) se renderizan igual que antes.
-    for key in ("imap_uid", "mailbox"):
+    for key in ("imap_uid", "mailbox", "uidvalidity"):
         value = record.get(key)
         if value is not None and value != "":
             lines.append(key + ": " + str(value))
@@ -82,9 +83,10 @@ def persist_email_okf_at(record: dict, root: str, rel_path: str) -> str:
     content = _render(record).encode("utf-8")
     if target.exists():
         if target.read_bytes() != content:
-            raise OSError(
-                "destino ya existe con contenido distinto: " + str(target)
-            )
+            try:
+                content = refresh_identity(target.read_text(encoding="utf-8"), record).encode("utf-8")
+            except ValueError as exc:
+                raise OSError("destino ya existe con contenido distinto: " + str(target)) from exc
     else:
         target.parent.mkdir(parents=True, exist_ok=True)
     tmp = target.with_name(target.name + ".tmp")

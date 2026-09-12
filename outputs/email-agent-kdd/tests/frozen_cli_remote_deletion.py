@@ -32,6 +32,13 @@ PURGE_PHRASE = "CONFIRMAR BORRADO PERMANENTE"
 SECRETO = "SECRETO-ORACLE-FKE-NO-REAL"
 
 
+def _run(argv):
+    """Dispatch cases use an explicit generation; missing-generation tests are separate."""
+    if len(argv) > 1 and argv[1].startswith('remote-'):
+        argv = [*argv, '--uidvalidity', '123']
+    return cli_mod.cli_main(argv)
+
+
 class _FakeProvider:
     """ImapDeletionProvider falso: registra llamadas, nunca abre sockets."""
 
@@ -46,12 +53,14 @@ class _FakeProvider:
         return dict(self.receipt, action=op)
 
     def soft_delete(self, account, config, uid, trash_mailbox):
+        assert config['uidvalidity'] == 123
         self.calls.append(
             ("soft_delete", account["account_id"], dict(config), uid, trash_mailbox)
         )
         return self._result("soft_delete")
 
     def restore(self, account, config, trash_mailbox, uid, original_mailbox):
+        assert config['uidvalidity'] == 123
         self.calls.append(
             (
                 "restore",
@@ -65,6 +74,7 @@ class _FakeProvider:
         return self._result("restore")
 
     def permanent_delete(self, account, config, mailbox, uid, confirmation):
+        assert config['uidvalidity'] == 123
         self.calls.append(
             (
                 "permanent_delete",
@@ -109,7 +119,7 @@ def test_remote_delete_dispatcha_con_orden_exacto_y_host_guardado(
     monkeypatch, tmp_path, capsys
 ):
     root, fake = _setup_account(monkeypatch, tmp_path, with_servers=True)
-    code = cli_mod.cli_main(["message", "remote-delete", root, "personal", "7", "INBOX.Trash"])
+    code = _run(["message", "remote-delete", root, "personal", "7", "INBOX.Trash"])
     assert code == 0
     out, err = _output(capsys)
     assert err == ""
@@ -135,7 +145,7 @@ def test_remote_delete_usa_host_por_defecto_sin_servers_guardados(
     monkeypatch, tmp_path, capsys
 ):
     root, fake = _setup_account(monkeypatch, tmp_path, with_servers=False)
-    code = cli_mod.cli_main(["message", "remote-delete", root, "personal", "7", "INBOX.Trash"])
+    code = _run(["message", "remote-delete", root, "personal", "7", "INBOX.Trash"])
     assert code == 0
     _output(capsys)
     config = fake.calls[0][2]
@@ -145,7 +155,7 @@ def test_remote_delete_usa_host_por_defecto_sin_servers_guardados(
 
 def test_remote_restore_dispatcha_con_orden_exacto(monkeypatch, tmp_path, capsys):
     root, fake = _setup_account(monkeypatch, tmp_path, with_servers=True)
-    code = cli_mod.cli_main(
+    code = _run(
         ["message", "remote-restore", root, "personal", "9", "INBOX.Trash", "INBOX"]
     )
     assert code == 0
@@ -161,7 +171,7 @@ def test_remote_restore_dispatcha_con_orden_exacto(monkeypatch, tmp_path, capsys
 
 def test_remote_purge_dispatcha_con_confirmacion_literal(monkeypatch, tmp_path, capsys):
     root, fake = _setup_account(monkeypatch, tmp_path, with_servers=True)
-    code = cli_mod.cli_main(
+    code = _run(
         ["message", "remote-purge", root, "personal", "3", "INBOX", *PURGE_PHRASE.split()]
     )
     assert code == 0
@@ -184,7 +194,7 @@ def test_remote_purge_sin_frase_exacta_no_toca_provider(monkeypatch, tmp_path, c
         "CONFIRMAR BORRADO PERMANENTE EXTRA",
         "borrar",
     ):
-        code = cli_mod.cli_main(
+        code = _run(
             ["message", "remote-purge", root, "personal", "3", "INBOX", *frase.split()]
         )
         assert code == 1, "frase incorrecta debe dar 1: " + frase
@@ -193,7 +203,7 @@ def test_remote_purge_sin_frase_exacta_no_toca_provider(monkeypatch, tmp_path, c
         assert "confirmacion" in err.lower()
         assert "traceback" not in err.lower()
     # doble espacio, como un solo argumento: tampoco es la frase literal
-    code = cli_mod.cli_main(
+    code = _run(
         ["message", "remote-purge", root, "personal", "3", "INBOX",
          "CONFIRMAR  BORRADO PERMANENTE"]
     )
@@ -203,7 +213,7 @@ def test_remote_purge_sin_frase_exacta_no_toca_provider(monkeypatch, tmp_path, c
 
 def test_remote_purge_frase_concatenada_en_un_argo(monkeypatch, tmp_path, capsys):
     root, fake = _setup_account(monkeypatch, tmp_path, with_servers=True)
-    code = cli_mod.cli_main(
+    code = _run(
         ["message", "remote-purge", root, "personal", "3", "INBOX", PURGE_PHRASE]
     )
     assert code == 0
@@ -228,7 +238,7 @@ def test_remote_arity_y_uid_invalidos_devuelven_2(monkeypatch, tmp_path, capsys)
         ["message", "remote-purge", root, "personal", "", "INBOX", *PURGE_PHRASE.split()],
     ]
     for argv in bad_cases:
-        code = cli_mod.cli_main(argv)
+        code = _run(argv)
         assert code == 2, "argv " + repr(argv) + " debe dar 2"
         out, err = _output(capsys)
         assert fake.calls == [], "error de argumentos no debe tocar el provider"
@@ -240,7 +250,7 @@ def test_remote_cuenta_ausente_devuelve_1_sin_llamar_provider(
     monkeypatch, tmp_path, capsys
 ):
     root, fake = _setup_account(monkeypatch, tmp_path, with_servers=True)
-    code = cli_mod.cli_main(
+    code = _run(
         ["message", "remote-delete", root, "otra-cuenta", "7", "INBOX.Trash"]
     )
     assert code == 1
@@ -255,7 +265,7 @@ def test_remote_credencial_ausente_devuelve_1_sin_llamar_provider(
 ):
     root, fake = _setup_account(monkeypatch, tmp_path, with_servers=True)
     monkeypatch.delenv("TEST_REMOTE_PW")
-    code = cli_mod.cli_main(
+    code = _run(
         ["message", "remote-delete", root, "personal", "7", "INBOX.Trash"]
     )
     assert code == 1
@@ -268,7 +278,7 @@ def test_remote_credencial_ausente_devuelve_1_sin_llamar_provider(
 def test_remote_provider_valueerror_devuelve_1(monkeypatch, tmp_path, capsys):
     root, fake = _setup_account(monkeypatch, tmp_path, with_servers=True)
     fake.error = ValueError("uid debe ser int no bool >= 1")
-    code = cli_mod.cli_main(
+    code = _run(
         ["message", "remote-delete", root, "personal", "7", "INBOX.Trash"]
     )
     assert code == 1
@@ -282,7 +292,7 @@ def test_remote_provider_runtimeerror_devuelve_1_sin_password(
 ):
     root, fake = _setup_account(monkeypatch, tmp_path, with_servers=True)
     fake.error = RuntimeError("IMAP fallo: login rejected con " + SECRETO)
-    code = cli_mod.cli_main(
+    code = _run(
         ["message", "remote-purge", root, "personal", "3", "INBOX", *PURGE_PHRASE.split()]
     )
     assert code == 1
@@ -297,7 +307,7 @@ def test_remote_outlook_host_por_defecto(monkeypatch, tmp_path, capsys):
     root, fake = _setup_account(
         monkeypatch, tmp_path, with_servers=False, provider="outlook"
     )
-    code = cli_mod.cli_main(
+    code = _run(
         ["message", "remote-restore", root, "personal", "2", "INBOX.Trash", "INBOX"]
     )
     assert code == 0
@@ -306,7 +316,7 @@ def test_remote_outlook_host_por_defecto(monkeypatch, tmp_path, capsys):
 
 
 def test_help_documenta_los_comandos_remotos_con_orden_pedido(capsys):
-    code = cli_mod.cli_main(["--help"])
+    code = _run(["--help"])
     assert code == 0
     out, err = _output(capsys)
     assert err == ""

@@ -47,6 +47,16 @@ class _FakeConnection:
         self._fake.calls.append(("select", mailbox, readonly))
         return ("OK", [b"1 EXISTS"])
 
+    def response(self, name):
+        assert name == "UIDVALIDITY"
+        return "UIDVALIDITY", [b"123"]
+
+    def uid(self, command, *args):
+        if command == "SEARCH":
+            return self.search(*args)
+        assert command == "FETCH" and args[1] == "(BODY.PEEK[])"
+        return self.fetch(*args)
+
     def search(self, charset, criterion):
         self._fake.calls.append(("search", criterion))
         return ("OK", [b"1"])
@@ -67,7 +77,9 @@ class _FakeIMAPFactory:
         self.calls = []
         self.raw = b""
 
-    def __call__(self, host, port):
+    def __call__(self, host, port, *, ssl_context, timeout):
+        assert ssl_context.check_hostname
+        assert timeout == 30
         self.calls.append(("connect", host, port))
         return _FakeConnection(self, host, port)
 
@@ -122,7 +134,7 @@ def test_sync_record_con_imap_uid_termina_en_nodo_descargable(tmp_path, monkeypa
     assert entries[0]["sha256"] == hashlib.sha256(CONTENT).hexdigest()
     # sesion real de sync: select del mailbox efectivo, readonly
     assert ("select", "INBOX", True) in fake.calls
-    assert ("fetch", "1", "(RFC822)") in fake.calls
+    assert ("fetch", "1", "(BODY.PEEK[])") in fake.calls
     assert SECRETO not in text
 
 
