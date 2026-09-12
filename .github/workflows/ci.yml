@@ -82,6 +82,8 @@ jobs:
       - name: Entry point smoke test
         run: email-agent --help
         shell: bash
+      - name: Offline release wheel installation in clean environment
+        run: python .github/ci/offline_install_smoke.py
 
   build:
     name: Packaging validation

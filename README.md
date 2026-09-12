@@ -37,7 +37,8 @@ Necesitas Python 3.10 o superior instalado en tu equipo. Los mismos pasos valen 
    ```
 
    Los instaladores descargan por defecto el wheel de la release estable
-   `v0.1.0`, verifican su SHA-256 antes de instalar y no requieren Git. Para
+   `v0.2.0` y los wheels de `pypdf` y `typing_extensions`, verifican todos sus SHA-256 antes de instalar
+   sin índices de paquetes y no requieren Git. Para
    desarrollo, Windows admite `-FromSource -Source URL -Ref NOMBRE` y macOS/Linux
    `sh installers/install.sh --source URL NOMBRE`.
 

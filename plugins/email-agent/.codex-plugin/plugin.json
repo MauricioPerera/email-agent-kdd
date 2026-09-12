@@ -1,6 +1,6 @@
 {
   "name": "email-agent",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Local, agent-friendly email CLI: IMAP sync, OKF Markdown knowledge store, search, attachments and send-only-after-confirmation.",
   "author": {
     "name": "Mauricio Perera"
