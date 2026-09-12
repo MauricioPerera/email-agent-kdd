@@ -29,16 +29,20 @@ data = BytesIO()
 writer.write(data)
 with tempfile.TemporaryDirectory() as directory:
     os.chdir(directory)
-    assert checkout not in Path.cwd().parents
-    if sys.platform == 'linux':
-        result = pdf_sandbox.run_pdf(data.getvalue())
-        assert result.returncode == 0
-        assert json.loads(result.stdout)['text'].strip() == 'installed sandbox evidence'
-    else:
-        try:
-            pdf_sandbox.run_pdf(data.getvalue())
-        except pdf_sandbox.SandboxUnavailable:
-            pass
+    try:
+        assert checkout not in Path.cwd().parents
+        if sys.platform == 'linux':
+            result = pdf_sandbox.run_pdf(data.getvalue())
+            assert result.returncode == 0
+            assert json.loads(result.stdout)['text'].strip() == 'installed sandbox evidence'
         else:
-            raise AssertionError('unsupported platform did not fail closed')
+            try:
+                pdf_sandbox.run_pdf(data.getvalue())
+            except pdf_sandbox.SandboxUnavailable:
+                pass
+            else:
+                raise AssertionError('unsupported platform did not fail closed')
+    finally:
+        # Windows cannot remove a directory while it is the process cwd.
+        os.chdir(checkout)
 print('Installed PDF sandbox smoke passed')
