@@ -36,7 +36,7 @@ Este reporte sustituye las notas incrementales. No acredita cierre del sprint.
   valida tipo entero y rango UID/UIDVALIDITY, rechazando corrupción sin reescribir
   el archivo. Así un UID fuera del rango IMAP no puede omitir correos en silencio.
 
-- Windows: suite completa repetida tras agregar concurrencia multiproceso.
+- Windows: suite completa, 1073 aprobadas y 6 omitidas por plataforma.
 - WSL/Linux: las seis pruebas reales de aislamiento, cifrado y exceso de páginas
   pasaron juntas en 21.75 segundos.
 - Envío: 12 pruebas del registro aprobadas, incluida contención entre cuatro
@@ -48,12 +48,24 @@ Este reporte sustituye las notas incrementales. No acredita cierre del sprint.
 
 ## Pendientes de cierre
 
-- CI remoto Windows/macOS/Linux y verificación del runtime en instalación nueva.
+- CI remoto del commit 0f7e39c aprobado en los dos eventos:
+  [PR](https://github.com/MauricioPerera/email-agent-kdd/actions/runs/34702397415)
+  y [push](https://github.com/MauricioPerera/email-agent-kdd/actions/runs/34702395259).
+  Cada ejecución acredita 12 combinaciones OS/Python (Windows/macOS/Linux,
+  Python 3.10–3.13), tres builds y el control de archivos del repositorio.
+  El CI instala la CLI y comprueba su entry point; no es una prueba funcional
+  de extracción desde el wheel en una instalación Linux sin checkout.
+- CI Linux requiere el perfil AppArmor acotado a /usr/bin/bwrap para permitir
+  crear namespaces. No se deshabilita AppArmor globalmente ni se comparte red.
+  Las pruebas SMTP usan nombre EHLO sintético para evitar dependencia de DNS
+  del runner; conexiones, STARTTLS y certificados siguen siendo reales.
 - Se corrigieron las afirmaciones históricas de aislamiento del Sprint 77 y se
   documentó el cursor V2; falta revisión final de consistencia documental.
 - La revisión no-mistakes del commit 2ba3c5b falló antes de analizar código por
   sesión OAuth de Claude vencida (run 01M2B29A0SCNKX1HW9K6SN1TBJ).
   La alternativa de revisión Codex de solo lectura tampoco pudo leer el repo:
-  CreateProcessWithLogonW failed: 2. No se desactivó sandbox ni se omitió el gate.
+  CreateProcessWithLogonW failed: 2. No se desactivó el sandbox del revisor.
+  Posteriormente el usuario pidió usar gh y autorizó publicación directa:
+  ese flujo ejecutó CI, pero no constituye aprobación de no-mistakes.
 - Contrastar todos los criterios del contrato con evidencia directa y actual;
   un conteo verde local no acredita por sí solo las garantías de seguridad.
