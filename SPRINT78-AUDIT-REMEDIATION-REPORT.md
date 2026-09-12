@@ -53,8 +53,12 @@ Este reporte sustituye las notas incrementales. No acredita cierre del sprint.
   y [push](https://github.com/MauricioPerera/email-agent-kdd/actions/runs/34702395259).
   Cada ejecución acredita 12 combinaciones OS/Python (Windows/macOS/Linux,
   Python 3.10–3.13), tres builds y el control de archivos del repositorio.
-  El CI instala la CLI y comprueba su entry point; no es una prueba funcional
-  de extracción desde el wheel en una instalación Linux sin checkout.
+  Además, el [CI de d243189](https://github.com/MauricioPerera/email-agent-kdd/actions/runs/34702658763)
+  aprobó las mismas 12 combinaciones con la prueba de instalación: python -I,
+  módulo importado fuera del checkout, directorio temporal y PDF sintético con
+  texto esperado. Linux acredita extracción en el sandbox instalado;
+  Windows/macOS acreditan rechazo seguro. Linux Python 3.13 registró 1079 pruebas
+  aprobadas y `Installed PDF sandbox smoke passed`.
 - CI Linux requiere el perfil AppArmor acotado a /usr/bin/bwrap para permitir
   crear namespaces. No se deshabilita AppArmor globalmente ni se comparte red.
   Las pruebas SMTP usan nombre EHLO sintético para evitar dependencia de DNS
