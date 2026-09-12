@@ -130,8 +130,12 @@ reference; never invent N or substitute the server's current generation to make
 a stale reference pass. Re-sync legacy nodes before downloading attachments.
 
 Delivery status: `draft show ROOT DRAFT_ID` reports the persistent send state.
-`sent` must not be sent again; `sending` and `unknown` require investigation and
-a new explicit user decision before any resend. Recreating the same draft does
+`sent` must not be sent again. `sending` remains blocked, including after a
+process crash; investigate and do not unlock it by editing the database.
+For `unknown`, explain that SMTP may already have accepted the message. Only
+after a new explicit user decision use
+`send ROOT ACCOUNT_ID DRAFT_ID "CONFIRMAR ENVIO" --retry-unknown "CONFIRMAR REENVIO INCIERTO"`.
+This command cannot unlock `sending` or `sent`. Recreating the same draft does
 not clear its delivery record. Never remove the send-state database to retry.
 
 Sync persists attachment metadata only (`filename`, `content_type`, `size`, `sha256`, `part_index`) in the node's frontmatter; no bytes are written to disk and no extraction happens during `sync` by default. Content extraction is a separate, user-authorized action. Do not upload or send attachments implicitly.
