@@ -52,6 +52,7 @@ jobs:
 
   test:
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
         python: ['3.10', '3.11', '3.12', '3.13']
@@ -67,7 +68,12 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y bubblewrap util-linux python3
+          sudo apt-get install -y bubblewrap util-linux python3 apparmor
+      - name: Allow system Bubblewrap to create isolated namespaces (CI only)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apparmor_parser -r .github/ci/bwrap.apparmor
+          bwrap --unshare-all --ro-bind /usr /usr --symlink usr/lib /lib --symlink usr/lib64 /lib64 --proc /proc --dev /dev /usr/bin/true
       - run: python -m compileall -q src
       - run: python -m pytest -q
       - run: python -m pip install .
