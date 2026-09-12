@@ -13,6 +13,31 @@ deps_allowed: [imaplib, email, typing]
 forbids: [eval, exec, subprocess, filesystem_write, print]
 ---
 ## Intent
+
+### Revisión vigente — Sprint 78
+
+Esta revisión sustituye las reglas históricas de transporte e identidad que
+aparecen debajo. La conexión por defecto usa `transport.open_imap`: TLS con
+certificado y hostname verificados y timeout de 30 segundos. La fábrica inyectada
+debe ofrecer `uid` y `response`, además de selección/login/limpieza.
+
+Después de seleccionar en solo lectura, se obtiene UIDVALIDITY. La búsqueda usa
+`uid("SEARCH", None, "ALL")` (o UNSEEN con unread); la descarga usa
+`uid("FETCH", str(uid), "(BODY.PEEK[])")`. Se rechazan selección fallida y FETCH
+sin literal. Nunca se interpretan números de secuencia como UIDs.
+
+`since_uid` solo se reutiliza si config.uidvalidity coincide con la generación
+seleccionada; de lo contrario se reconstruye desde cero. Los registros incluyen
+imap_uid, uidvalidity y mailbox, que los persistidores conservan en OKF.
+`include_raw=False` es un cuarto parámetro autorizado; True conserva temporalmente
+raw_message para la extracción autorizada durante sync. La descarga individual
+exige UIDVALIDITY coincidente antes de FETCH y rechaza referencias heredadas.
+
+Pruebas vigentes: frozen_imap_identity.py, frozen_mailbox_cursor.py,
+frozen_identity_migration.py y pruebas CLI de descarga/sincronización.
+Las menciones siguientes a search/fetch por secuencia, TLS sin contexto explícito
+y metadatos exclusivamente transitorios se conservan solo como historia del MVP.
+
 Leer, de forma determinista y en modo solo lectura, los mensajes de un buzon IMAP y devolverlos como una lista de registros producidos por `parse_raw_email`, sin escribir en disco y sin exponer credenciales.
 
 ## Interface
