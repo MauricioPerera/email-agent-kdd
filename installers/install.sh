@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 SOURCE="https://github.com/MauricioPerera/email-agent-kdd.git"
-REF="v0.1.0"
+REF="v0.2.0"
 FROM_SOURCE=0
 if [ "${1:-}" = "--source" ]; then
   FROM_SOURCE=1
@@ -29,20 +29,29 @@ if [ "$FROM_SOURCE" -eq 1 ]; then
   printf '%s\n' "Modo desarrollo: instalando desde ${SOURCE}@${REF}"
   "$PYTHON_BIN" -m pip install "git+${SOURCE}@${REF}"
 else
-  RELEASE_BASE="https://github.com/MauricioPerera/email-agent-kdd/releases/download/v0.1.0"
+  RELEASE_BASE="https://github.com/MauricioPerera/email-agent-kdd/releases/download/v0.2.0"
   TEMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/email-agent-install.XXXXXX")"
   trap 'rm -rf "$TEMP_ROOT"' EXIT HUP INT TERM
-  WHEEL="$TEMP_ROOT/email_agent_cli-0.1.0-py3-none-any.whl"
+  WHEEL="$TEMP_ROOT/email_agent_cli-0.2.0-py3-none-any.whl"
+  DEPENDENCY_WHEEL="$TEMP_ROOT/pypdf-6.18.1-py3-none-any.whl"
+  TYPING_WHEEL="$TEMP_ROOT/typing_extensions-4.16.0-py3-none-any.whl"
   SUMS="$TEMP_ROOT/SHA256SUMS.txt"
-  curl -fsSL "$RELEASE_BASE/email_agent_cli-0.1.0-py3-none-any.whl" -o "$WHEEL"
   curl -fsSL "$RELEASE_BASE/SHA256SUMS.txt" -o "$SUMS"
-  EXPECTED="$(awk '$2 == "email_agent_cli-0.1.0-py3-none-any.whl" {print tolower($1); exit}' "$SUMS")"
-  ACTUAL="$(sha256sum "$WHEEL" 2>/dev/null | awk '{print tolower($1)}' || shasum -a 256 "$WHEEL" | awk '{print tolower($1)}')"
-  if [ -z "$EXPECTED" ] || [ "$ACTUAL" != "$EXPECTED" ]; then
-    printf '%s\n' "La verificacion de integridad del instalador fallo. No se instalara el paquete." >&2
-    exit 1
-  fi
-  "$PYTHON_BIN" -m pip install --no-index "$WHEEL"
+  for ARTIFACT in "$WHEEL" "$DEPENDENCY_WHEEL" "$TYPING_WHEEL"; do
+    ARTIFACT_NAME="$(basename "$ARTIFACT")"
+    curl -fsSL "$RELEASE_BASE/$ARTIFACT_NAME" -o "$ARTIFACT"
+    EXPECTED="$(awk -v name="$ARTIFACT_NAME" '$2 == name {print tolower($1)}' "$SUMS")"
+    if command -v sha256sum >/dev/null 2>&1; then
+      ACTUAL="$(sha256sum "$ARTIFACT" | awk '{print tolower($1)}')"
+    else
+      ACTUAL="$(shasum -a 256 "$ARTIFACT" | awk '{print tolower($1)}')"
+    fi
+    if [ "${#EXPECTED}" -ne 64 ] || [ "$ACTUAL" != "$EXPECTED" ]; then
+      printf '%s\n' "La verificacion de integridad del instalador fallo. No se instalara el paquete." >&2
+      exit 1
+    fi
+  done
+  "$PYTHON_BIN" -m pip install --no-index "$TYPING_WHEEL" "$DEPENDENCY_WHEEL" "$WHEEL"
 fi
 if [ "$?" -ne 0 ]; then
   printf '%s\n' "La instalacion fallo. Revisa el mensaje anterior de pip y vuelve a intentarlo." >&2

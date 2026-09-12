@@ -4,10 +4,33 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 
 El formato se inspira en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 la versión sigue [SemVer](https://semver.org/lang/es/). La release pública actual
-es `0.1.0`, y coincide con `pyproject.toml` (`email-agent-cli`) y con
+es `0.2.0`, y coincide con `pyproject.toml` (`email-agent-cli`) y con
 `plugins/email-agent/.codex-plugin/plugin.json`.
 
 ## [Unreleased]
+
+## [0.2.0] — 2026-09-12
+
+### Seguridad y fiabilidad (Sprint 78)
+
+- Verificación TLS explícita en IMAP/SMTP, seguimiento de UIDVALIDITY y rechazo
+  de referencias/cursors de generaciones distintas del buzón.
+- Estado persistente de envío y exclusión entre procesos. Un resultado SMTP
+  incierto no se reenvía automáticamente; requiere una nueva decisión explícita.
+- Extracción PDF aislada solo en Linux con Bubblewrap, prlimit y antivirus;
+  Windows/macOS fallan de forma cerrada sin ese sandbox.
+- Pruebas de instalación y sandbox fuera del checkout, más evidencia CI
+  Windows/macOS/Linux con Python 3.10–3.13.
+
+### Distribución
+
+- Versiones del paquete, plugin, marketplace e instaladores alineadas a v0.2.0.
+- La release incluye los wheels de pypdf y typing_extensions requeridos por la CLI.
+  Los instaladores verifican todos por SHA-256 y los instalan sin recurrir a un índice.
+- Nodos IMAP legacy deben re-sincronizarse para obtener su UIDVALIDITY; no se
+  deben inventar identidades ni editar el registro de envío para desbloquearlo.
+
+Los cambios posteriores a v0.1.0 incluidos en esta release se detallan abajo.
 
 ### Seguridad de adjuntos (Sprint 76 — 2026-09-11)
 
