@@ -1,6 +1,8 @@
-# Sprint 78 — Remediación de auditoría (en curso)
+# Sprint 78 — Reporte de remediación y aceptación
 
-Este reporte sustituye las notas incrementales. No acredita cierre del sprint.
+Este reporte relaciona las correcciones con evidencia reproducible. El cierre
+operativo se acredita con el CI del commit integrado y el estado de la PR #3;
+no se infiere de este documento ni de un conteo de pruebas.
 
 ## Evidencia local e implementación
 
@@ -88,5 +90,6 @@ Este reporte sustituye las notas incrementales. No acredita cierre del sprint.
 La revisión no afirma entrega SMTP exactamente una vez ni aislamiento contra
 fallos del kernel. Una configuración OS que impide iniciar Bubblewrap causa
 rechazo, no extracción degradada. No hubo acceso a correo real en las pruebas.
-Pendiente operativo: aprobar el CI del último ajuste documental e incorporar
-el complemento de PR #3 a main antes de cerrar el objetivo.
+Condición de cierre operativo: CI aprobado para el último commit e incorporación
+del complemento de [PR #3](https://github.com/MauricioPerera/email-agent-kdd/pull/3)
+a main. GitHub conserva el commit exacto, los checks y el recibo de integración.

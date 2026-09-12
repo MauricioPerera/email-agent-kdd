@@ -2,7 +2,7 @@
 type: KDD Contract
 id: email-agent-sprint78-audit-remediation
 objective: Corregir los seis hallazgos de la auditoría con evidencia reproducible
-status: in_progress
+status: implemented_pending_integration
 ---
 
 # Sprint 78 — Corrección de seguridad y fiabilidad
@@ -68,4 +68,6 @@ garantías de transporte y aislamiento requieren pruebas de integración locales
 Las pruebas usan cuentas, servidores, certificados y documentos sintéticos locales.
 No requieren credenciales reales, envíos externos ni borrados de correo del usuario.
 No se incorporan nuevos formatos de adjuntos ni funcionalidades ajenas a los hallazgos.
-Este documento planifica el sprint; no declara implementadas las correcciones.
+Las correcciones y su evidencia están en SPRINT78-AUDIT-REMEDIATION-REPORT.md.
+El cierre operativo exige CI aprobado y la integración del complemento PR #3;
+el estado del contrato no sustituye esa verificación.
