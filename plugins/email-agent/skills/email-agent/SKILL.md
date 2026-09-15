@@ -83,7 +83,9 @@ Synchronization is read-only, paginated, and resumes from the stored UID cursor.
 
 ## Sending policy
 
-Create drafts first with `draft`. Before asking for authorization, show the exact pending content with `draft show ROOT DRAFT_ID` and present its recipients, subject, and body to the user. Use the same `DRAFT_ID` from that preview when sending; the CLI rejects content changed after creation. Sending is an external side effect and requires the exact user confirmation phrase `CONFIRMAR ENVIO` in a separate explicit step. Never request or print passwords, credential references, or raw secrets. Never retry an uncertain SMTP result automatically.
+Create drafts first with `draft`. For an assisted non-technical user, prefer `send-gui ROOT ACCOUNT_ID DRAFT_ID`: it opens a local approval window showing the exact recipients, subject and body, keeps the send button disabled until the user checks the review box, and performs the existing integrity-checked send in the same process after approval. Closing or cancelling returns `status: cancelled` and sends nothing. The agent must not interact with the approval window on the user's behalf.
+
+The legacy terminal path remains `send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO`. Before using it, show the exact pending content with `draft show ROOT DRAFT_ID`; the confirmation phrase must come from the user in a separate explicit step. With either path, the CLI revalidates the deterministic draft ID immediately before SMTP. Never request or print passwords, credential references, or raw secrets. Never retry an uncertain SMTP result automatically.
 
 ## Account management
 

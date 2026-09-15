@@ -56,9 +56,9 @@ _UI_MESSAGES = {
     "pt": {"empty": "erro: informe seu email e sua senha", "guide": "Nao foi possivel detectar os servidores de email automaticamente; preencha a secao avancada e pressione Salvar novamente.", "confirmed": "Detectamos os servidores de email; salvando a conta...", "incomplete": "erro: faltam dados do servidor de email", "verifying": "verificando a conexao IMAP e SMTP; nenhum email sera enviado...", "verify_failed": "nao foi possivel validar a conexao. Confira os dados e tente novamente.", "dialog": "configuracao da conta", "saved": "conta salva: ", "cancelled": "Cancelar"},
 }
 _UI_TEXT = {
-    "es": {"title": "Configuracion segura de cuenta", "email": "Correo electronico", "password": "Contrasena", "save": "Guardar", "cancel": "Cancelar", "advanced": "Configuracion avanzada del servidor de correo", "imap": "Servidor de entrada (IMAP)", "imap_port": "Puerto de entrada", "smtp": "Servidor de salida (SMTP)", "smtp_port": "Puerto de salida"},
-    "en": {"title": "Secure account setup", "email": "Email address", "password": "Password", "save": "Save", "cancel": "Cancel", "advanced": "Advanced mail server settings", "imap": "Incoming server (IMAP)", "imap_port": "Incoming port", "smtp": "Outgoing server (SMTP)", "smtp_port": "Outgoing port"},
-    "pt": {"title": "Configuracao segura da conta", "email": "Email", "password": "Senha", "save": "Salvar", "cancel": "Cancelar", "advanced": "Configuracao avancada do servidor de email", "imap": "Servidor de entrada (IMAP)", "imap_port": "Porta de entrada", "smtp": "Servidor de saida (SMTP)", "smtp_port": "Porta de saida"},
+    "es": {"title": "Configuracion segura de cuenta", "heading": "Conecta tu cuenta de correo", "guide": "Introduce tus datos directamente aqui. Tu contrasena no se muestra al agente y se guarda en el almacen seguro del sistema.", "email": "Correo electronico", "password": "Contrasena", "save": "Conectar y guardar", "cancel": "Cancelar sin guardar", "advanced": "Configuracion avanzada del servidor de correo", "imap": "Servidor de entrada (IMAP)", "imap_port": "Puerto de entrada", "smtp": "Servidor de salida (SMTP)", "smtp_port": "Puerto de salida"},
+    "en": {"title": "Secure account setup", "heading": "Connect your email account", "guide": "Enter your details directly here. Your password is not shown to the agent and is saved in the operating system's secure store.", "email": "Email address", "password": "Password", "save": "Save", "cancel": "Cancel without saving", "advanced": "Advanced mail server settings", "imap": "Incoming server (IMAP)", "imap_port": "Incoming port", "smtp": "Outgoing server (SMTP)", "smtp_port": "Outgoing port"},
+    "pt": {"title": "Configuracao segura da conta", "heading": "Conecte sua conta de email", "guide": "Informe seus dados diretamente aqui. Sua senha nao e exibida ao agente e fica no armazenamento seguro do sistema.", "email": "Email", "password": "Senha", "save": "Conectar e salvar", "cancel": "Cancelar sem salvar", "advanced": "Configuracao avancada do servidor de email", "imap": "Servidor de entrada (IMAP)", "imap_port": "Porta de entrada", "smtp": "Servidor de saida (SMTP)", "smtp_port": "Porta de saida"},
 }
 
 
@@ -130,24 +130,32 @@ class _SetupForm:
         window = self.window
         text = _UI_TEXT[self.language]
         window.title(text["title"])
-        tk.Label(window, text=text["email"]).grid(
-            row=0, column=0, sticky="w"
-        )
-        self.email = tk.Entry(window, width=32)
-        self.email.grid(row=0, column=1, sticky="w")
-        tk.Label(window, text=text["password"]).grid(row=1, column=0, sticky="w")
-        self.password = tk.Entry(window, show="*", width=32)
-        self.password.grid(row=1, column=1, sticky="w")
-        self.status = tk.Label(window, text="", wraplength=360, justify="left")
-        self.status.grid(row=2, column=0, columnspan=2, sticky="w")
-        tk.Button(window, text=text["save"], command=self._on_save).grid(
-            row=3, column=0, sticky="w"
-        )
-        tk.Button(window, text=text["cancel"], command=self._on_cancel).grid(
-            row=3, column=1, sticky="w"
-        )
-        self._build_advanced(window)
+        window.minsize(520, 330)
+        window.columnconfigure(0, weight=1)
+        content = tk.Frame(window, padx=24, pady=22)
+        content.grid(row=0, column=0, sticky="nsew")
+        content.columnconfigure(1, weight=1)
+        tk.Label(content, text=text["heading"], font=("TkDefaultFont", 16, "bold")).grid(row=0, column=0, columnspan=2, sticky="w")
+        tk.Label(content, text=text["guide"], wraplength=460, justify="left").grid(row=1, column=0, columnspan=2, sticky="ew", pady=(4, 18))
+        tk.Label(content, text=text["email"]).grid(row=2, column=0, sticky="w", pady=6)
+        self.email = tk.Entry(content, width=36)
+        self.email.grid(row=2, column=1, sticky="ew", pady=6)
+        tk.Label(content, text=text["password"]).grid(row=3, column=0, sticky="w", pady=6)
+        self.password = tk.Entry(content, show="*", width=36)
+        self.password.grid(row=3, column=1, sticky="ew", pady=6)
+        self.status = tk.Label(content, text="", wraplength=460, justify="left")
+        self.status.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(8, 12))
+        actions = tk.Frame(content)
+        actions.grid(row=5, column=0, columnspan=2, sticky="ew")
+        actions.columnconfigure(1, weight=1)
+        self.cancel_button = tk.Button(actions, text=text["cancel"], command=self._on_cancel, padx=12, pady=7)
+        self.cancel_button.grid(row=0, column=0, sticky="w")
+        self.save_button = tk.Button(actions, text=text["save"], command=self._on_save, padx=12, pady=7)
+        self.save_button.grid(row=0, column=2, sticky="e")
+        self._build_advanced(content)
+        self.email.focus_set()
         window.protocol("WM_DELETE_WINDOW", self._on_cancel)
+        window.bind("<Escape>", lambda _event: self._on_cancel())
 
     def _build_advanced(self, window):
         """Seccion avanzada oculta: solo hosts y puertos, sin mas terminos."""
@@ -165,7 +173,7 @@ class _SetupForm:
             entry = tk.Entry(frame)
             entry.grid(row=row, column=1)
             setattr(self, attr, entry)
-        frame.grid(row=4, column=0, columnspan=2, sticky="w")
+        frame.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(18, 0))
         frame.grid_remove()
         self.advanced = frame
 

@@ -36,3 +36,9 @@ authorization before running:
 Never provide confirmation phrases for sending, deletion, unlinking,
 notifications or attachment extraction on the user's behalf. Read
 `skills/email-agent/SKILL.md` for the complete operating and safety contract.
+
+For assisted sending, create and review a draft, then run
+`email-agent send-gui ROOT ACCOUNT_ID DRAFT_ID`. The user must operate the local
+review checkbox and approval button; the agent must not interact with that
+window. Cancellation sends nothing, while approval revalidates and sends in the
+same CLI process without another agent turn.

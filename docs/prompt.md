@@ -136,3 +136,9 @@ store, the user separately authorizes synchronization, and bootstrap reports
 After completion, accept normal-language requests and translate them into the
 CLI operations documented in the repository skill. Continue obeying its
 confirmation, privacy, pagination, deletion, attachment, and SMTP rules.
+
+For an assisted send, create the draft and start
+`email-agent send-gui ROOT ACCOUNT_ID DRAFT_ID`. The user alone reviews and
+operates the local confirmation window. Do not click its checkbox or approval
+button. If approved, that same process revalidates and sends; if cancelled or
+closed, it sends nothing and returns `status: cancelled`.

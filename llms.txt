@@ -143,3 +143,18 @@ The agent must never generate these confirmations on the user's behalf:
 
 Installation or synchronization authorization does not authorize sending,
 deletion, unlinking, startup registration or attachment extraction.
+
+## Assisted sending
+
+For a non-technical user, create the draft and use:
+
+    email-agent send-gui ROOT ACCOUNT_ID DRAFT_ID
+
+The local window displays the exact recipients, subject and body. The send
+button remains disabled until the user marks the review checkbox; cancel or
+window close sends nothing. Do not click, check or otherwise operate this
+approval UI for the user. After local approval, the same CLI process revalidates
+the draft and sends without another model turn.
+
+The terminal `send ... CONFIRMAR ENVIO` path remains available, but the phrase
+must be supplied explicitly by the user. Never retry an `unknown` SMTP result.

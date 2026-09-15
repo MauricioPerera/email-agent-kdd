@@ -134,7 +134,8 @@ USAGE = (
     "email-agent attachment gc ROOT [CONFIRMAR BORRADO ADJUNTOS] | "
     "email-agent draft ROOT ACCOUNT_ID TO SUBJECT BODY | "
     "email-agent draft show ROOT DRAFT_ID | "
-    "email-agent send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO"
+    "email-agent send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO | "
+    "email-agent send-gui ROOT ACCOUNT_ID DRAFT_ID"
 )
 SYNC_USAGE = (
     "  sync ROOT ACCOUNT_ID [HOST] [--limit N] [--unread] "
@@ -642,6 +643,30 @@ def _run_send(argv):
         return 1
     print(json.dumps({"id": draft_id, "status": "sent"}, sort_keys=True))
     return 0
+
+
+def _run_send_gui(argv):
+    """Pide aprobacion local y continua sin otra vuelta del agente."""
+    if len(argv) != 4:
+        return _fail([
+            "error: send-gui requiere ROOT, ACCOUNT_ID y DRAFT_ID",
+            USAGE,
+        ])
+    root, account_id, draft_id = argv[1], argv[2], argv[3]
+    try:
+        from src.email.send_gui import run_send_approval_gui
+        approved = run_send_approval_gui(
+            root, account_id, draft_id, load_language(root)
+        )
+    except Exception:
+        _print_stderr(["error: no se pudo mostrar la aprobacion de envio"])
+        return 1
+    if not approved:
+        print(json.dumps({"id": draft_id, "status": "cancelled"}, sort_keys=True))
+        return 0
+    # El clic local produce la autorizacion. La rama existente vuelve a cargar
+    # y validar el borrador antes de resolver credenciales o contactar SMTP.
+    return _run_send(["send", root, account_id, draft_id, _CONFIRMATION_PHRASE])
 
 
 def _make_update_contacts(root):
@@ -1974,6 +1999,7 @@ def cli_main(argv: list) -> int:
         print("  draft ROOT ACCOUNT_ID TO SUBJECT BODY")
         print("  draft show ROOT DRAFT_ID  vista previa de solo lectura")
         print("  send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO")
+        print("  send-gui ROOT ACCOUNT_ID DRAFT_ID  aprobacion local y envio")
         return 0
 
     if not argv:
@@ -2010,6 +2036,8 @@ def cli_main(argv: list) -> int:
         return _run_draft(argv)
     if argv[0] == "send":
         return _run_send(argv)
+    if argv[0] == "send-gui":
+        return _run_send_gui(argv)
     if argv[0] == "doctor":
         repair = "--fix" in argv[1:]
         arguments = [value for value in argv[1:] if value != "--fix"]

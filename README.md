@@ -129,9 +129,17 @@ El comando `send` verifica que el contenido no haya cambiado desde su creación 
 exige exactamente `CONFIRMAR ENVIO`; un agente nunca debe saltarse esa confirmación
 ni reintentar un resultado SMTP incierto.
 
+Para una persona asistida por un agente, el camino recomendado es
+`send-gui ROOT ACCOUNT_ID DRAFT_ID`. Abre una confirmación local que muestra el
+contenido exacto, enfoca inicialmente **Cancelar, no enviar** y mantiene
+**Enviar correo ahora** deshabilitado hasta que el usuario marque que revisó
+destinatarios, asunto y mensaje. Si aprueba, el mismo proceso revalida el hash y
+envía sin otra intervención del agente; cerrar la ventana equivale a cancelar.
+
 ```bash
 email-agent draft ROOT ACCOUNT_ID TO SUBJECT BODY
 email-agent draft show ROOT DRAFT_ID
+email-agent send-gui ROOT ACCOUNT_ID DRAFT_ID
 email-agent send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO
 ```
 
