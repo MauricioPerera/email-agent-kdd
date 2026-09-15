@@ -34,7 +34,7 @@
         <h1>Tu correo se convierte en conocimiento útil, <em>sin salir de tu equipo.</em></h1>
         <p class="hero-lead">Tú se lo pides a tu agente. El agente instala la CLI, comprueba el equipo y guía la configuración. Tú solo introduces la contraseña en el formulario seguro y autorizas las acciones sensibles.</p>
         <div class="hero-actions">
-          <a class="button primary" href="#instalar">Pedirle al agente que lo instale</a>
+          <button class="copy onboarding-button" type="button" data-copy="Fetch and execute the appropriate instructions to install and configure Email Agent from https://mauricioperera.github.io/email-agent-kdd/prompt.md">Configura tu agente para Email Agent <span aria-hidden="true">✦</span></button>
           <a class="button secondary" href="#capacidades">Explorar capacidades</a>
         </div>
         <ul class="trust-list" aria-label="Características principales">
@@ -88,14 +88,14 @@
       <div class="section-heading">
         <p class="eyebrow">Instalación asistida</p>
         <h2>Díselo a tu agente. Él se ocupa del proceso.</h2>
-        <p>Copia esta petición en tu agente con acceso al equipo. El agente leerá las instrucciones del proyecto, comprobará los requisitos y te pedirá permiso antes de instalar o sincronizar.</p>
+        <p>Pulsa el botón y pega el texto en tu agente con acceso al equipo. El agente obtendrá una guía completa, comprobará los requisitos y te pedirá permiso cuando corresponda.</p>
       </div>
 
       <div class="install-card">
         <div class="agent-request">
-          <span class="agent-label">Petición para tu agente</span>
-          <blockquote>Instala y configura Email Agent desde https://github.com/MauricioPerera/email-agent-kdd. Lee primero su <strong>llms.txt</strong> y sigue el flujo asistido del código actual. Comprueba los requisitos, explícame cualquier cambio y pídeme autorización antes de instalar. Abre el formulario local para que yo introduzca mis credenciales; no me pidas la contraseña en el chat ni la leas. Cuando la cuenta esté lista, detente y pídeme autorización separada antes de la primera sincronización.</blockquote>
-          <button class="copy prompt-copy" type="button" data-copy="Instala y configura Email Agent desde https://github.com/MauricioPerera/email-agent-kdd. Lee primero su llms.txt y sigue el flujo asistido del código actual. Comprueba los requisitos, explícame cualquier cambio y pídeme autorización antes de instalar. Abre el formulario local para que yo introduzca mis credenciales; no me pidas la contraseña en el chat ni la leas. Cuando la cuenta esté lista, detente y pídeme autorización separada antes de la primera sincronización.">Copiar petición</button>
+          <span class="agent-label">Un clic. Una instrucción.</span>
+          <button class="copy onboarding-button large" type="button" data-copy="Fetch and execute the appropriate instructions to install and configure Email Agent from https://mauricioperera.github.io/email-agent-kdd/prompt.md">Configura tu agente para Email Agent <span aria-hidden="true">✦</span></button>
+          <p>Copiará: <code>Fetch and execute the appropriate instructions to install and configure Email Agent from …/prompt.md</code></p>
         </div>
         <div class="roles" aria-label="Responsabilidades durante la instalación">
           <article><span>1</span><div><strong>El agente comprueba</strong><p>Verifica si la CLI ya existe, revisa Python y diagnostica el entorno sin conectarse a tu correo.</p></div></article>

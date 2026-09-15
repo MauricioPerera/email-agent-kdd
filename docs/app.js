@@ -26,14 +26,14 @@ tabs.forEach((tab, index) => {
 
 document.querySelectorAll('.copy').forEach((button) => {
   button.addEventListener('click', async () => {
-    const original = button.textContent;
+    const original = button.innerHTML;
     try {
       await navigator.clipboard.writeText(button.dataset.copy);
       button.textContent = 'Copiado';
     } catch {
       button.textContent = 'Selecciona el texto';
     }
-    window.setTimeout(() => { button.textContent = original; }, 1800);
+    window.setTimeout(() => { button.innerHTML = original; }, 1800);
   });
 });
 
