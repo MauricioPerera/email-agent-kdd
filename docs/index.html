@@ -7,6 +7,7 @@
   <meta name="theme-color" content="#101815">
   <title>Email Agent — Tu correo, listo para trabajar con agentes</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="agent-flow.css">
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -31,9 +32,9 @@
       <div class="hero-copy">
         <p class="eyebrow">CLI local · IMAP + SMTP · Windows, macOS y Linux</p>
         <h1>Tu correo se convierte en conocimiento útil, <em>sin salir de tu equipo.</em></h1>
-        <p class="hero-lead">Email Agent sincroniza tus mensajes en un almacén Markdown local para que tú —o un agente que te asista— pueda buscar, leer, organizar y preparar acciones con controles explícitos.</p>
+        <p class="hero-lead">Tú se lo pides a tu agente. El agente instala la CLI, comprueba el equipo y guía la configuración. Tú solo introduces la contraseña en el formulario seguro y autorizas las acciones sensibles.</p>
         <div class="hero-actions">
-          <a class="button primary" href="#instalar">Instalar paso a paso</a>
+          <a class="button primary" href="#instalar">Pedirle al agente que lo instale</a>
           <a class="button secondary" href="#capacidades">Explorar capacidades</a>
         </div>
         <ul class="trust-list" aria-label="Características principales">
@@ -57,8 +58,8 @@
     <section class="section" id="capacidades">
       <div class="section-heading">
         <p class="eyebrow">Qué puede hacer</p>
-        <h2>Una interfaz segura entre tu correo y un agente</h2>
-        <p>No reemplaza a tu proveedor de correo. Crea una copia local consultable y ofrece comandos precisos para actuar sin dar acceso indiscriminado.</p>
+        <h2>Una herramienta de correo que opera tu agente</h2>
+        <p>No tienes que aprender sus comandos. La CLI ofrece al agente operaciones precisas para trabajar con una copia local de tu correo sin darle permiso indiscriminado.</p>
       </div>
       <div class="feature-grid">
         <article><span class="feature-number">01</span><h3>Sincronizar</h3><p>Descarga correo por páginas mediante IMAP, conserva un cursor y puede limitarse a mensajes no leídos.</p></article>
@@ -79,46 +80,36 @@
         <i aria-hidden="true">→</i>
         <div role="listitem"><span>3</span><strong>Tu equipo</strong><small>Markdown + índices</small></div>
         <i aria-hidden="true">→</i>
-        <div role="listitem"><span>4</span><strong>Tú y tu agente</strong><small>Consultas controladas</small></div>
+        <div role="listitem"><span>4</span><strong>Tu agente</strong><small>Responde a tus peticiones</small></div>
       </div>
     </section>
 
     <section class="section install-section" id="instalar">
       <div class="section-heading">
-        <p class="eyebrow">Instalación sencilla</p>
-        <h2>De cero a tu primera cuenta</h2>
-        <p>Necesitas Python 3.10 o superior. El instalador estable descarga artefactos de la versión <strong>v0.2.0</strong>, verifica su integridad SHA-256 y comprueba el comando al terminar.</p>
+        <p class="eyebrow">Instalación asistida</p>
+        <h2>Díselo a tu agente. Él se ocupa del proceso.</h2>
+        <p>Copia esta petición en tu agente con acceso al equipo. El agente leerá las instrucciones del proyecto, comprobará los requisitos y te pedirá permiso antes de instalar o sincronizar.</p>
       </div>
 
       <div class="install-card">
-        <div class="tabs" role="tablist" aria-label="Sistema operativo">
-          <button role="tab" aria-selected="true" aria-controls="windows-panel" id="windows-tab">Windows</button>
-          <button role="tab" aria-selected="false" aria-controls="unix-panel" id="unix-tab" tabindex="-1">macOS / Linux</button>
+        <div class="agent-request">
+          <span class="agent-label">Petición para tu agente</span>
+          <blockquote>Instala y configura Email Agent desde https://github.com/MauricioPerera/email-agent-kdd. Lee primero su <strong>llms.txt</strong> y sigue el flujo asistido del código actual. Comprueba los requisitos, explícame cualquier cambio y pídeme autorización antes de instalar. Abre el formulario local para que yo introduzca mis credenciales; no me pidas la contraseña en el chat ni la leas. Cuando la cuenta esté lista, detente y pídeme autorización separada antes de la primera sincronización.</blockquote>
+          <button class="copy prompt-copy" type="button" data-copy="Instala y configura Email Agent desde https://github.com/MauricioPerera/email-agent-kdd. Lee primero su llms.txt y sigue el flujo asistido del código actual. Comprueba los requisitos, explícame cualquier cambio y pídeme autorización antes de instalar. Abre el formulario local para que yo introduzca mis credenciales; no me pidas la contraseña en el chat ni la leas. Cuando la cuenta esté lista, detente y pídeme autorización separada antes de la primera sincronización.">Copiar petición</button>
         </div>
-
-        <div class="tab-panel" id="windows-panel" role="tabpanel" aria-labelledby="windows-tab">
-          <ol class="steps">
-            <li><div><strong>Descarga el instalador</strong><p>Abre PowerShell, pega estas líneas y presiona Enter.</p><div class="code-block"><pre><code>$archivo = "$env:TEMP\email-agent-install.ps1"
-Invoke-WebRequest https://raw.githubusercontent.com/MauricioPerera/email-agent-kdd/main/installers/install.ps1 -OutFile $archivo
-powershell -File $archivo</code></pre><button class="copy" type="button" data-copy="$archivo = &quot;$env:TEMP\email-agent-install.ps1&quot;&#10;Invoke-WebRequest https://raw.githubusercontent.com/MauricioPerera/email-agent-kdd/main/installers/install.ps1 -OutFile $archivo&#10;powershell -File $archivo">Copiar</button></div></div></li>
-            <li><div><strong>Comprueba la instalación</strong><div class="code-block"><pre><code>email-agent --help</code></pre><button class="copy" type="button" data-copy="email-agent --help">Copiar</button></div></div></li>
-            <li><div><strong>Abre el formulario de configuración</strong><div class="code-block"><pre><code>email-agent account setup-gui .</code></pre><button class="copy" type="button" data-copy="email-agent account setup-gui .">Copiar</button></div><p>La prueba inicia sesión en IMAP y SMTP, pero no envía ningún mensaje.</p></div></li>
-          </ol>
-        </div>
-
-        <div class="tab-panel" id="unix-panel" role="tabpanel" aria-labelledby="unix-tab" hidden>
-          <ol class="steps">
-            <li><div><strong>Descarga y ejecuta el instalador</strong><p>Abre Terminal, pega estas líneas y presiona Enter.</p><div class="code-block"><pre><code>curl -fsSL https://raw.githubusercontent.com/MauricioPerera/email-agent-kdd/main/installers/install.sh -o /tmp/email-agent-install.sh
-sh /tmp/email-agent-install.sh</code></pre><button class="copy" type="button" data-copy="curl -fsSL https://raw.githubusercontent.com/MauricioPerera/email-agent-kdd/main/installers/install.sh -o /tmp/email-agent-install.sh&#10;sh /tmp/email-agent-install.sh">Copiar</button></div></div></li>
-            <li><div><strong>Comprueba la instalación</strong><div class="code-block"><pre><code>email-agent --help</code></pre><button class="copy" type="button" data-copy="email-agent --help">Copiar</button></div></div></li>
-            <li><div><strong>Abre el formulario de configuración</strong><div class="code-block"><pre><code>email-agent account setup-gui .</code></pre><button class="copy" type="button" data-copy="email-agent account setup-gui .">Copiar</button></div><p>En Linux, el formulario requiere una sesión de escritorio con Secret Service/libsecret disponible.</p></div></li>
-          </ol>
+        <div class="roles" aria-label="Responsabilidades durante la instalación">
+          <article><span>1</span><div><strong>El agente comprueba</strong><p>Verifica si la CLI ya existe, revisa Python y diagnostica el entorno sin conectarse a tu correo.</p></div></article>
+          <article><span>2</span><div><strong>Tú autorizas la instalación</strong><p>El agente explica lo que cambiará y espera tu permiso antes de instalar en el equipo.</p></div></article>
+          <article><span>3</span><div><strong>El agente abre la configuración</strong><p>Ejecuta el flujo reanudable y abre un formulario local. Si algo falla, interpreta el estado y continúa desde el punto correcto.</p></div></article>
+          <article class="user-step"><span>4</span><div><strong>Tú introduces las credenciales</strong><p>Escribes correo y contraseña directamente en la ventana segura. La contraseña nunca pasa por el chat ni se muestra al agente.</p></div></article>
+          <article><span>5</span><div><strong>El agente verifica y se detiene</strong><p>La CLI autentica IMAP y SMTP sin enviar mensajes. Al quedar lista, el agente debe pedirte otro permiso para sincronizar.</p></div></article>
+          <article class="user-step"><span>6</span><div><strong>Tú autorizas la primera sincronización</strong><p>Solo entonces el agente descarga la primera página y te informa del resultado.</p></div></article>
         </div>
       </div>
 
       <details class="advanced">
-        <summary>Instalar el código actual del repositorio (avanzado)</summary>
-        <p>Este camino incluye el flujo reanudable <code>bootstrap</code> del código actual. Requiere Git.</p>
+        <summary>Qué comandos ejecutará el agente (referencia técnica)</summary>
+        <p>El flujo del código actual es reanudable. Estos comandos son para el agente, no una tarea que el usuario deba realizar manualmente.</p>
         <div class="code-block"><pre><code>git clone https://github.com/MauricioPerera/email-agent-kdd.git
 cd email-agent-kdd
 python -m pip install .
@@ -129,13 +120,13 @@ email-agent bootstrap --gui --lang es</code></pre><button class="copy" type="but
     </section>
 
     <section class="section" id="usar">
-      <div class="section-heading"><p class="eyebrow">Uso cotidiano</p><h2>Comandos pequeños, intención explícita</h2><p>Sustituye <code>CUENTA</code> por el identificador que muestra la configuración.</p></div>
+      <div class="section-heading"><p class="eyebrow">Uso cotidiano</p><h2>Pide resultados, no comandos</h2><p>Habla con tu agente de forma normal. La referencia técnica muestra cómo traduce tus peticiones a operaciones controladas.</p></div>
       <div class="command-list">
-        <article><div><span>Sincronizar</span><p>Trae hasta 50 mensajes y conserva el avance.</p></div><code>email-agent sync . CUENTA --limit 50</code></article>
-        <article><div><span>Consultar</span><p>Busca en el almacén local, sin conectarse al buzón.</p></div><code>email-agent query . "contact:persona@ejemplo.com"</code></article>
-        <article><div><span>Leer</span><p>Abre el contenido de un resultado concreto.</p></div><code>email-agent read . RUTA/AL/MENSAJE.md</code></article>
-        <article><div><span>Contactos</span><p>Encuentra candidatos sin modificar la libreta.</p></div><code>email-agent contact find . "Nombre"</code></article>
-        <article><div><span>Revisar cada 5 minutos</span><p>Funciona mientras el proceso permanezca abierto.</p></div><code>email-agent watch . CUENTA --every 300 --limit 50</code></article>
+        <article><div><span>“Sincroniza mis correos nuevos”</span><p>El agente trae una página y conserva el avance.</p></div><code>email-agent sync ROOT CUENTA --limit 50</code></article>
+        <article><div><span>“Busca los correos de esta persona”</span><p>El agente resuelve primero el contacto y consulta el almacén local.</p></div><code>email-agent query ROOT "contact:persona@ejemplo.com"</code></article>
+        <article><div><span>“Muéstrame ese mensaje”</span><p>Después de seleccionar un resultado, el agente abre solo ese nodo.</p></div><code>email-agent read ROOT RUTA/AL/MENSAJE.md</code></article>
+        <article><div><span>“Avísame cuando llegue una factura”</span><p>El agente muestra la regla exacta y pide autorización antes de crearla.</p></div><code>email-agent notification add ROOT facturas "factura"</code></article>
+        <article><div><span>“Revisa mi correo cada 5 minutos”</span><p>El agente explica que el proceso debe permanecer activo antes de iniciarlo.</p></div><code>email-agent watch ROOT CUENTA --every 300 --limit 50</code></article>
       </div>
       <a class="text-link" href="https://github.com/MauricioPerera/email-agent-kdd#primer-uso">Consultar la guía completa en el README <span aria-hidden="true">↗</span></a>
     </section>
@@ -143,7 +134,7 @@ email-agent bootstrap --gui --lang es</code></pre><button class="copy" type="but
     <section class="security-section" id="seguridad">
       <div><p class="eyebrow light">Diseñado con límites</p><h2>El agente ayuda.<br>Tú autorizas.</h2></div>
       <div class="security-points">
-        <article><h3>El secreto no va al agente</h3><p>La interfaz gráfica guarda la contraseña en Windows Credential Manager, macOS Keychain o Linux Secret Service. No hay respaldo en texto plano.</p></article>
+        <article><h3>El secreto no va al agente</h3><p>Tú escribes la contraseña en la interfaz local. Esta la guarda en Windows Credential Manager, macOS Keychain o Linux Secret Service. No hay respaldo en texto plano.</p></article>
         <article><h3>Sincronizar es lectura</h3><p>La sincronización IMAP es paginada y de solo lectura. Los adjuntos quedan como metadatos hasta que solicites su extracción.</p></article>
         <article><h3>Las acciones peligrosas se frenan</h3><p>Enviar, extraer adjuntos y borrar definitivamente requieren frases literales de confirmación que un agente no debe completar por ti.</p></article>
       </div>
@@ -161,7 +152,7 @@ email-agent bootstrap --gui --lang es</code></pre><button class="copy" type="but
 
     <section class="closing">
       <p class="eyebrow">Código abierto · Licencia MIT</p>
-      <h2>Haz que tu correo sea consultable,<br>sin entregar el control.</h2>
+      <h2>Pídeselo a tu agente.<br>Tú conservas el control.</h2>
       <div class="hero-actions"><a class="button primary" href="#instalar">Instalar Email Agent</a><a class="button secondary" href="https://github.com/MauricioPerera/email-agent-kdd">Explorar el código</a></div>
     </section>
   </main>
