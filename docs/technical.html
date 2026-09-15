@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Documentación técnica de Email Agent CLI: instalación, configuración, comandos, formatos, seguridad y operación.">
+  <meta name="theme-color" content="#101815">
+  <title>Documentación técnica — Email Agent</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="technical.css">
+  <script src="app.js" defer></script>
+</head>
+<body class="docs-body">
+  <a class="skip-link" href="#documentacion">Saltar a la documentación</a>
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="Email Agent, volver a la página principal"><span class="brand-mark" aria-hidden="true">@</span><span>Email Agent</span></a>
+    <button class="menu-button" type="button" aria-expanded="false" aria-controls="menu">Menú</button>
+    <nav id="menu" aria-label="Navegación principal">
+      <a href="index.html">Descripción general</a>
+      <a href="#inicio-rapido">Inicio rápido</a>
+      <a href="#comandos">Comandos</a>
+      <a class="nav-cta" href="https://github.com/MauricioPerera/email-agent-kdd">GitHub</a>
+    </nav>
+  </header>
+
+  <div class="docs-shell">
+    <aside class="docs-nav" aria-label="Índice técnico">
+      <p>Documentación técnica</p>
+      <a href="#conceptos">Conceptos</a>
+      <a href="#instalacion">Instalación</a>
+      <a href="#inicio-rapido">Inicio rápido</a>
+      <a href="#cuentas">Cuentas</a>
+      <a href="#sincronizacion">Sincronización</a>
+      <a href="#consultas">Consultas</a>
+      <a href="#envio">Envío</a>
+      <a href="#notificaciones">Notificaciones</a>
+      <a href="#mensajes">Papelera</a>
+      <a href="#adjuntos">Adjuntos</a>
+      <a href="#automatizacion">Automatización</a>
+      <a href="#contrato">Contrato y salidas</a>
+    </aside>
+
+    <main class="docs-content" id="documentacion">
+      <div class="docs-hero">
+        <p class="eyebrow">Referencia técnica</p>
+        <h1>Email Agent CLI</h1>
+        <p>Comandos, contratos operativos y límites de seguridad para usuarios técnicos e integraciones con agentes.</p>
+        <div class="doc-meta"><span>Python 3.10+</span><span>Windows · macOS · Linux</span><span>Licencia MIT</span></div>
+      </div>
+
+      <section id="conceptos">
+        <h2>Conceptos fundamentales</h2>
+        <p>Email Agent conecta por IMAP y SMTP, persiste mensajes en Markdown y mantiene índices locales para consultas. No reemplaza el buzón remoto.</p>
+        <dl class="terms">
+          <div><dt><code>ROOT</code></dt><dd>Raíz de datos elegida por el usuario. Contiene el store, borradores, índices y estado local.</dd></div>
+          <div><dt><code>ACCOUNT_ID</code></dt><dd>Identificador público derivado o definido para una cuenta vinculada.</dd></div>
+          <div><dt><code>REL_PATH</code></dt><dd>Ruta relativa a un nodo Markdown bajo la raíz. Las rutas absolutas y el traversal se rechazan.</dd></div>
+          <div><dt><code>DRAFT_ID</code></dt><dd>SHA-256 determinista del contenido del borrador. Cambiar el contenido invalida el envío.</dd></div>
+        </dl>
+        <div class="callout"><strong>Privacidad:</strong> las credenciales se resuelven desde el almacén nativo del sistema y nunca forman parte de los argumentos de sincronización o envío.</div>
+      </section>
+
+      <section id="instalacion">
+        <h2>Instalación</h2>
+        <h3>Versión estable v0.2.0</h3>
+        <p>Los instaladores verifican Python, pip y los SHA-256 de los wheels antes de instalar sin índice de paquetes.</p>
+        <div class="split-code">
+          <div><b>Windows</b><pre><code>powershell -File installers\install.ps1</code></pre></div>
+          <div><b>macOS / Linux</b><pre><code>sh installers/install.sh</code></pre></div>
+        </div>
+        <h3>Código actual del repositorio</h3>
+        <pre><code>git clone https://github.com/MauricioPerera/email-agent-kdd.git
+cd email-agent-kdd
+python -m pip install .
+email-agent --help</code></pre>
+        <p><code>pipx install .</code> es una alternativa aislada cuando pipx ya está disponible. El flujo <code>bootstrap</code> y <code>send-gui</code> descritos aquí corresponden al código actual.</p>
+      </section>
+
+      <section id="inicio-rapido">
+        <h2>Inicio rápido asistido</h2>
+        <p><code>bootstrap</code> es reanudable, usa una raíz por usuario cuando no se proporciona <code>--root</code> y devuelve JSON para que un agente interprete el siguiente paso.</p>
+        <ol class="code-steps">
+          <li><b>Diagnóstico de solo lectura</b><pre><code>email-agent bootstrap --check --json</code></pre></li>
+          <li><b>Configuración mediante formulario local</b><pre><code>email-agent bootstrap --gui --lang es</code></pre><p>Un alta correcta termina en <code>ready-to-sync</code>; todavía no sincroniza.</p></li>
+          <li><b>Primera sincronización, después de autorización separada</b><pre><code>email-agent bootstrap --resume --sync
+email-agent bootstrap --resume --sync --sync-limit 50</code></pre></li>
+        </ol>
+        <table><thead><tr><th>Estado</th><th>Significado</th><th>Acción</th></tr></thead><tbody>
+          <tr><td><code>missing-runtime</code></td><td>Falta un requisito local.</td><td>Consultar los checks y <code>doctor --fix</code>.</td></tr>
+          <tr><td><code>needs-account</code></td><td>No existe una cuenta configurada.</td><td>Solicitar autorización para abrir el alta.</td></tr>
+          <tr><td><code>ready-to-sync</code></td><td>Cuenta autenticada y guardada.</td><td>Solicitar autorización separada para sincronizar.</td></tr>
+          <tr><td><code>complete</code></td><td>Primera sincronización terminada.</td><td>Ninguna.</td></tr>
+        </tbody></table>
+      </section>
+
+      <section id="comandos" class="command-index">
+        <h2>Referencia de comandos</h2>
+        <p>Los siguientes comandos reflejan la interfaz expuesta actualmente por <code>src/email/cli.py</code>.</p>
+      </section>
+
+      <section id="cuentas">
+        <h2>Cuentas y diagnóstico</h2>
+        <pre><code>email-agent doctor [ROOT] [--fix] [--lang es|en|pt] [--format json|text] [--report FILE]
+email-agent account setup-gui ROOT
+email-agent account setup ROOT [--lang es|en|pt]
+email-agent account add ROOT ACCOUNT_ID PROVIDER EMAIL CREDENTIAL_REF
+email-agent account list ROOT
+email-agent account remove ROOT ACCOUNT_ID CONFIRMAR DESVINCULAR
+email-agent language set ROOT es|en|pt
+email-agent language get ROOT</code></pre>
+        <p>El formulario gráfico valida IMAP y SMTP sin enviar correo. Guarda la contraseña en Credential Manager, Keychain o Secret Service. El asistente de terminal solicita una referencia a variable de entorno, no la contraseña.</p>
+      </section>
+
+      <section id="sincronizacion">
+        <h2>Sincronización</h2>
+        <pre><code>email-agent sync ROOT ACCOUNT_ID [HOST] [--limit N] [--unread]
+email-agent watch ROOT ACCOUNT_ID [--every N] [--limit N] [--unread]</code></pre>
+        <ul>
+          <li><code>sync</code> es paginada, de solo lectura y conserva un cursor UID.</li>
+          <li><code>--limit</code> acepta de 1 a 100; el valor predeterminado de <code>sync</code> es 50.</li>
+          <li><code>--unread</code> limita la lectura a mensajes no leídos.</li>
+          <li><code>watch</code> repite mientras el proceso siga vivo; intervalo predeterminado 300 segundos y mínimo 30.</li>
+        </ul>
+      </section>
+
+      <section id="consultas">
+        <h2>Búsqueda, lectura y contactos</h2>
+        <pre><code>email-agent query ROOT "INSTRUCTION" [--offset N] [--limit N] [--json]
+email-agent search ROOT "QUERY" [--offset N] [--limit N] [--json]
+email-agent read ROOT REL_PATH
+email-agent contact list ROOT
+email-agent contact show ROOT EMAIL
+email-agent contact find ROOT TEXT [--offset N] [--limit N] [--json]</code></pre>
+        <p><code>query</code> admite términos libres y filtros <code>para:</code>, <code>contact:</code>, <code>conversation:</code>, <code>topic:</code> y <code>account:</code>. <code>para:</code> usa el destinatario real de entrega; <code>contact:</code> busca remitente o destinatarios de cabeceras.</p>
+      </section>
+
+      <section id="envio">
+        <h2>Borradores y envío</h2>
+        <pre><code>email-agent draft ROOT ACCOUNT_ID TO SUBJECT BODY
+email-agent draft show ROOT DRAFT_ID
+email-agent send-gui ROOT ACCOUNT_ID DRAFT_ID
+email-agent send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO</code></pre>
+        <p><code>send-gui</code> es el camino recomendado con agentes: muestra el contenido exacto, requiere una casilla de revisión y ejecuta el envío en el mismo proceso. El camino terminal acepta la confirmación literal en la propia invocación.</p>
+        <div class="warning"><strong>Resultado incierto:</strong> no se reintenta automáticamente. Un reintento explícito usa <code>--retry-unknown "CONFIRMAR REENVIO INCIERTO"</code>. Los estados <code>sending</code> y <code>sent</code> permanecen bloqueados.</div>
+      </section>
+
+      <section id="notificaciones">
+        <h2>Notificaciones</h2>
+        <pre><code>email-agent notification list ROOT
+email-agent notification show ROOT NAME
+email-agent notification add ROOT NAME QUERY
+email-agent notification disable ROOT NAME CONFIRMAR REGLA
+email-agent notification enable ROOT NAME CONFIRMAR REGLA
+email-agent notification delete ROOT NAME CONFIRMAR REGLA</code></pre>
+        <p>Las reglas se evalúan después de sincronizar y se deduplican por hash del mensaje. Reemplazar una regla existente también requiere <code>CONFIRMAR REGLA</code>.</p>
+      </section>
+
+      <section id="mensajes">
+        <h2>Papelera local y remota</h2>
+        <h3>Store local</h3>
+        <pre><code>email-agent message delete ROOT REL_PATH
+email-agent message trash ROOT
+email-agent message restore ROOT TRASH_REL_PATH
+email-agent message purge ROOT TRASH_REL_PATH CONFIRMAR BORRADO PERMANENTE</code></pre>
+        <p><code>delete</code> mueve el nodo a <code>ROOT/.trash</code>. Solo <code>purge</code> elimina definitivamente.</p>
+        <h3>Buzón IMAP</h3>
+        <pre><code>email-agent message remote-delete ROOT ACCOUNT_ID UID TRASH_MAILBOX --uidvalidity N
+email-agent message remote-restore ROOT ACCOUNT_ID UID TRASH_MAILBOX ORIGINAL_MAILBOX --uidvalidity N
+email-agent message remote-purge ROOT ACCOUNT_ID UID MAILBOX CONFIRMAR BORRADO PERMANENTE --uidvalidity N</code></pre>
+        <p>El movimiento remoto usa COPY + Deleted sin expunge. La purga selectiva solo continúa si el servidor anuncia UIDPLUS.</p>
+      </section>
+
+      <section id="adjuntos">
+        <h2>Adjuntos</h2>
+        <pre><code>email-agent attachment list ROOT REL_PATH
+email-agent attachment download ROOT REL_PATH INDEX DEST CONFIRMAR EXTRACCION
+email-agent attachment extract ROOT REL_PATH INDEX DEST CONFIRMAR EXTRACCION
+email-agent attachment gc ROOT
+email-agent attachment gc ROOT CONFIRMAR BORRADO ADJUNTOS
+email-agent sync ROOT ACCOUNT_ID --attachments CONFIRMAR EXTRACCION</code></pre>
+        <ul>
+          <li>La sincronización normal guarda metadatos, no bytes.</li>
+          <li>Máximo 25 MB por adjunto y presupuesto predeterminado de 100 MB por sincronización con extracción.</li>
+          <li>Los blobs son content-addressed, verificados por SHA-256 y escritos atómicamente.</li>
+          <li><code>attachment gc ROOT</code> es un dry-run; con confirmación elimina solo candidatos reconocidos y no referenciados.</li>
+        </ul>
+      </section>
+
+      <section id="automatizacion">
+        <h2>Inicio automático</h2>
+        <pre><code>email-agent startup status ROOT ACCOUNT_ID
+email-agent startup install ROOT ACCOUNT_ID --every 300 --limit 50 [--unread]
+email-agent startup remove ROOT ACCOUNT_ID</code></pre>
+        <p>Usa Task Scheduler en Windows, LaunchAgents en macOS y servicios systemd de usuario en Linux. Instalar el inicio automático cambia la configuración del sistema y requiere autorización directa.</p>
+      </section>
+
+      <section id="contrato">
+        <h2>Contrato de salidas y confirmaciones</h2>
+        <table><thead><tr><th>Código</th><th>Uso</th></tr></thead><tbody><tr><td><code>0</code></td><td>Operación completada o cancelación segura reportada explícitamente.</td></tr><tr><td><code>1</code></td><td>Fallo operativo.</td></tr><tr><td><code>2</code></td><td>Argumentos inválidos.</td></tr><tr><td><code>3</code></td><td><code>bootstrap</code> necesita una acción del usuario; no es fallo operativo.</td></tr></tbody></table>
+        <h3>Frases de autorización</h3>
+        <div class="token-grid"><code>CONFIRMAR ENVIO</code><code>CONFIRMAR REENVIO INCIERTO</code><code>CONFIRMAR DESVINCULAR</code><code>CONFIRMAR BORRADO PERMANENTE</code><code>CONFIRMAR BORRADO ADJUNTOS</code><code>CONFIRMAR EXTRACCION</code><code>CONFIRMAR REGLA</code></div>
+        <p>Un usuario técnico puede incluir la frase correspondiente al ejecutar directamente el comando. Un agente nunca debe inventarla, guardarla ni reutilizarla por cuenta del usuario.</p>
+      </section>
+
+      <div class="docs-end"><a class="button primary" href="index.html">Volver a la página principal</a><a class="button secondary" href="https://github.com/MauricioPerera/email-agent-kdd/blob/main/README.md">README en GitHub</a></div>
+    </main>
+  </div>
+  <footer><div class="brand"><span class="brand-mark" aria-hidden="true">@</span><span>Email Agent</span></div><p>Documentación técnica</p><a href="index.html">Página principal</a><a href="https://github.com/MauricioPerera/email-agent-kdd">GitHub</a></footer>
+</body>
+</html>
