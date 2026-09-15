@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Email Agent: sincroniza, organiza y consulta tu correo localmente desde una CLI diseñada para trabajar de forma segura con agentes.">
+  <meta name="theme-color" content="#101815">
+  <title>Email Agent — Tu correo, listo para trabajar con agentes</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  <header class="site-header">
+    <a class="brand" href="#inicio" aria-label="Email Agent, inicio">
+      <span class="brand-mark" aria-hidden="true">@</span>
+      <span>Email Agent</span>
+    </a>
+    <button class="menu-button" type="button" aria-expanded="false" aria-controls="menu">Menú</button>
+    <nav id="menu" aria-label="Navegación principal">
+      <a href="#capacidades">Qué hace</a>
+      <a href="#instalar">Instalar</a>
+      <a href="#usar">Usar</a>
+      <a href="#seguridad">Seguridad</a>
+      <a class="nav-cta" href="https://github.com/MauricioPerera/email-agent-kdd">Ver en GitHub</a>
+    </nav>
+  </header>
+
+  <main id="contenido">
+    <section class="hero" id="inicio">
+      <div class="hero-copy">
+        <p class="eyebrow">CLI local · IMAP + SMTP · Windows, macOS y Linux</p>
+        <h1>Tu correo se convierte en conocimiento útil, <em>sin salir de tu equipo.</em></h1>
+        <p class="hero-lead">Email Agent sincroniza tus mensajes en un almacén Markdown local para que tú —o un agente que te asista— pueda buscar, leer, organizar y preparar acciones con controles explícitos.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#instalar">Instalar paso a paso</a>
+          <a class="button secondary" href="#capacidades">Explorar capacidades</a>
+        </div>
+        <ul class="trust-list" aria-label="Características principales">
+          <li>Procesamiento local</li>
+          <li>Contraseñas en el almacén seguro del sistema</li>
+          <li>Acciones sensibles con confirmación</li>
+        </ul>
+      </div>
+      <div class="terminal" aria-label="Ejemplo de uso de Email Agent">
+        <div class="terminal-bar"><span></span><span></span><span></span><b>email-agent</b></div>
+        <pre><code><span class="prompt">$</span> email-agent sync . mi-cuenta --limit 50
+<span class="json">{"fetched": 24, "persisted": 24}</span>
+
+<span class="prompt">$</span> email-agent query . "tema:facturas"
+<span class="path">2026/09/factura-septiembre.md</span>
+
+<span class="prompt">$</span> email-agent read . 2026/09/factura-septiembre.md</code></pre>
+      </div>
+    </section>
+
+    <section class="section" id="capacidades">
+      <div class="section-heading">
+        <p class="eyebrow">Qué puede hacer</p>
+        <h2>Una interfaz segura entre tu correo y un agente</h2>
+        <p>No reemplaza a tu proveedor de correo. Crea una copia local consultable y ofrece comandos precisos para actuar sin dar acceso indiscriminado.</p>
+      </div>
+      <div class="feature-grid">
+        <article><span class="feature-number">01</span><h3>Sincronizar</h3><p>Descarga correo por páginas mediante IMAP, conserva un cursor y puede limitarse a mensajes no leídos.</p></article>
+        <article><span class="feature-number">02</span><h3>Buscar y leer</h3><p>Consulta por texto, destinatario real, contacto, conversación, tema o cuenta; después abre solo el mensaje seleccionado.</p></article>
+        <article><span class="feature-number">03</span><h3>Organizar</h3><p>Guarda mensajes como Markdown, construye una libreta de contactos y relaciona conversaciones y temas.</p></article>
+        <article><span class="feature-number">04</span><h3>Notificar</h3><p>Define reglas locales que se evalúan después de sincronizar y muestran avisos nativos sin ejecutar el contenido del mensaje.</p></article>
+        <article><span class="feature-number">05</span><h3>Gestionar adjuntos</h3><p>Registra metadatos por defecto. Descargar o extraer contenido es una acción separada, limitada y autorizada.</p></article>
+        <article><span class="feature-number">06</span><h3>Preparar y enviar</h3><p>Crea un borrador, permite revisarlo y exige una confirmación literal antes de contactar al servidor SMTP.</p></article>
+      </div>
+    </section>
+
+    <section class="flow-section">
+      <div class="section-heading compact"><p class="eyebrow">Cómo funciona</p><h2>Del buzón a una carpeta que puedes entender</h2></div>
+      <div class="flow" role="list">
+        <div role="listitem"><span>1</span><strong>Tu proveedor</strong><small>IMAP / SMTP</small></div>
+        <i aria-hidden="true">→</i>
+        <div role="listitem"><span>2</span><strong>Email Agent</strong><small>Sincroniza y normaliza</small></div>
+        <i aria-hidden="true">→</i>
+        <div role="listitem"><span>3</span><strong>Tu equipo</strong><small>Markdown + índices</small></div>
+        <i aria-hidden="true">→</i>
+        <div role="listitem"><span>4</span><strong>Tú y tu agente</strong><small>Consultas controladas</small></div>
+      </div>
+    </section>
+
+    <section class="section install-section" id="instalar">
+      <div class="section-heading">
+        <p class="eyebrow">Instalación sencilla</p>
+        <h2>De cero a tu primera cuenta</h2>
+        <p>Necesitas Python 3.10 o superior. El instalador estable descarga artefactos de la versión <strong>v0.2.0</strong>, verifica su integridad SHA-256 y comprueba el comando al terminar.</p>
+      </div>
+
+      <div class="install-card">
+        <div class="tabs" role="tablist" aria-label="Sistema operativo">
+          <button role="tab" aria-selected="true" aria-controls="windows-panel" id="windows-tab">Windows</button>
+          <button role="tab" aria-selected="false" aria-controls="unix-panel" id="unix-tab" tabindex="-1">macOS / Linux</button>
+        </div>
+
+        <div class="tab-panel" id="windows-panel" role="tabpanel" aria-labelledby="windows-tab">
+          <ol class="steps">
+            <li><div><strong>Descarga el instalador</strong><p>Abre PowerShell, pega estas líneas y presiona Enter.</p><div class="code-block"><pre><code>$archivo = "$env:TEMP\email-agent-install.ps1"
+Invoke-WebRequest https://raw.githubusercontent.com/MauricioPerera/email-agent-kdd/main/installers/install.ps1 -OutFile $archivo
+powershell -File $archivo</code></pre><button class="copy" type="button" data-copy="$archivo = &quot;$env:TEMP\email-agent-install.ps1&quot;&#10;Invoke-WebRequest https://raw.githubusercontent.com/MauricioPerera/email-agent-kdd/main/installers/install.ps1 -OutFile $archivo&#10;powershell -File $archivo">Copiar</button></div></div></li>
+            <li><div><strong>Comprueba la instalación</strong><div class="code-block"><pre><code>email-agent --help</code></pre><button class="copy" type="button" data-copy="email-agent --help">Copiar</button></div></div></li>
+            <li><div><strong>Abre el formulario de configuración</strong><div class="code-block"><pre><code>email-agent account setup-gui .</code></pre><button class="copy" type="button" data-copy="email-agent account setup-gui .">Copiar</button></div><p>La prueba inicia sesión en IMAP y SMTP, pero no envía ningún mensaje.</p></div></li>
+          </ol>
+        </div>
+
+        <div class="tab-panel" id="unix-panel" role="tabpanel" aria-labelledby="unix-tab" hidden>
+          <ol class="steps">
+            <li><div><strong>Descarga y ejecuta el instalador</strong><p>Abre Terminal, pega estas líneas y presiona Enter.</p><div class="code-block"><pre><code>curl -fsSL https://raw.githubusercontent.com/MauricioPerera/email-agent-kdd/main/installers/install.sh -o /tmp/email-agent-install.sh
+sh /tmp/email-agent-install.sh</code></pre><button class="copy" type="button" data-copy="curl -fsSL https://raw.githubusercontent.com/MauricioPerera/email-agent-kdd/main/installers/install.sh -o /tmp/email-agent-install.sh&#10;sh /tmp/email-agent-install.sh">Copiar</button></div></div></li>
+            <li><div><strong>Comprueba la instalación</strong><div class="code-block"><pre><code>email-agent --help</code></pre><button class="copy" type="button" data-copy="email-agent --help">Copiar</button></div></div></li>
+            <li><div><strong>Abre el formulario de configuración</strong><div class="code-block"><pre><code>email-agent account setup-gui .</code></pre><button class="copy" type="button" data-copy="email-agent account setup-gui .">Copiar</button></div><p>En Linux, el formulario requiere una sesión de escritorio con Secret Service/libsecret disponible.</p></div></li>
+          </ol>
+        </div>
+      </div>
+
+      <details class="advanced">
+        <summary>Instalar el código actual del repositorio (avanzado)</summary>
+        <p>Este camino incluye el flujo reanudable <code>bootstrap</code> del código actual. Requiere Git.</p>
+        <div class="code-block"><pre><code>git clone https://github.com/MauricioPerera/email-agent-kdd.git
+cd email-agent-kdd
+python -m pip install .
+email-agent bootstrap --check --json
+email-agent bootstrap --gui --lang es</code></pre><button class="copy" type="button" data-copy="git clone https://github.com/MauricioPerera/email-agent-kdd.git&#10;cd email-agent-kdd&#10;python -m pip install .&#10;email-agent bootstrap --check --json&#10;email-agent bootstrap --gui --lang es">Copiar</button></div>
+        <p class="note">La primera sincronización no ocurre sola: después de revisarlo y autorizarlo, se ejecuta <code>email-agent bootstrap --resume --sync</code>.</p>
+      </details>
+    </section>
+
+    <section class="section" id="usar">
+      <div class="section-heading"><p class="eyebrow">Uso cotidiano</p><h2>Comandos pequeños, intención explícita</h2><p>Sustituye <code>CUENTA</code> por el identificador que muestra la configuración.</p></div>
+      <div class="command-list">
+        <article><div><span>Sincronizar</span><p>Trae hasta 50 mensajes y conserva el avance.</p></div><code>email-agent sync . CUENTA --limit 50</code></article>
+        <article><div><span>Consultar</span><p>Busca en el almacén local, sin conectarse al buzón.</p></div><code>email-agent query . "contact:persona@ejemplo.com"</code></article>
+        <article><div><span>Leer</span><p>Abre el contenido de un resultado concreto.</p></div><code>email-agent read . RUTA/AL/MENSAJE.md</code></article>
+        <article><div><span>Contactos</span><p>Encuentra candidatos sin modificar la libreta.</p></div><code>email-agent contact find . "Nombre"</code></article>
+        <article><div><span>Revisar cada 5 minutos</span><p>Funciona mientras el proceso permanezca abierto.</p></div><code>email-agent watch . CUENTA --every 300 --limit 50</code></article>
+      </div>
+      <a class="text-link" href="https://github.com/MauricioPerera/email-agent-kdd#primer-uso">Consultar la guía completa en el README <span aria-hidden="true">↗</span></a>
+    </section>
+
+    <section class="security-section" id="seguridad">
+      <div><p class="eyebrow light">Diseñado con límites</p><h2>El agente ayuda.<br>Tú autorizas.</h2></div>
+      <div class="security-points">
+        <article><h3>El secreto no va al agente</h3><p>La interfaz gráfica guarda la contraseña en Windows Credential Manager, macOS Keychain o Linux Secret Service. No hay respaldo en texto plano.</p></article>
+        <article><h3>Sincronizar es lectura</h3><p>La sincronización IMAP es paginada y de solo lectura. Los adjuntos quedan como metadatos hasta que solicites su extracción.</p></article>
+        <article><h3>Las acciones peligrosas se frenan</h3><p>Enviar, extraer adjuntos y borrar definitivamente requieren frases literales de confirmación que un agente no debe completar por ti.</p></article>
+      </div>
+    </section>
+
+    <section class="section faq-section">
+      <div class="section-heading compact"><p class="eyebrow">Preguntas frecuentes</p><h2>Antes de empezar</h2></div>
+      <div class="faq">
+        <details><summary>¿Funciona con Gmail, Outlook o un dominio propio?</summary><p>Funciona con cuentas que ofrezcan acceso IMAP para lectura y SMTP para envío. El formulario intenta detectar los servidores y permite introducirlos cuando no puede hacerlo.</p></details>
+        <details><summary>¿Dónde quedan mis correos?</summary><p>En la carpeta raíz que eliges, como archivos Markdown e índices locales. La carpeta <code>.</code> significa la carpeta actual.</p></details>
+        <details><summary>¿El agente puede enviar un correo sin preguntarme?</summary><p>No debería. El comando de envío exige revisar un borrador y escribir exactamente <code>CONFIRMAR ENVIO</code>; esa autorización pertenece al usuario.</p></details>
+        <details><summary>¿Qué hago si no reconoce el comando?</summary><p>Añade al PATH la carpeta <code>Scripts</code> de Python en Windows o <code>bin</code> en macOS/Linux, vuelve a abrir la terminal y ejecuta <code>email-agent --help</code>.</p></details>
+      </div>
+    </section>
+
+    <section class="closing">
+      <p class="eyebrow">Código abierto · Licencia MIT</p>
+      <h2>Haz que tu correo sea consultable,<br>sin entregar el control.</h2>
+      <div class="hero-actions"><a class="button primary" href="#instalar">Instalar Email Agent</a><a class="button secondary" href="https://github.com/MauricioPerera/email-agent-kdd">Explorar el código</a></div>
+    </section>
+  </main>
+
+  <footer><div class="brand"><span class="brand-mark" aria-hidden="true">@</span><span>Email Agent</span></div><p>CLI local y orientada a agentes.</p><a href="https://github.com/MauricioPerera/email-agent-kdd">GitHub</a></footer>
+</body>
+</html>

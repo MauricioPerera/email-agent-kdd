@@ -1,0 +1,145 @@
+# Email Agent CLI — installation guide for AI agents
+
+Email Agent is a local Python CLI for IMAP synchronization, local OKF/Markdown
+storage, search, contacts, notifications and explicitly confirmed email actions.
+
+## Safety contract
+
+- Explain that the CLI and email data are stored locally before installing.
+- Obtain explicit user authorization before changing the environment.
+- Never ask the user to paste an email password into chat or a terminal command.
+- Account passwords must be entered by the user in the local graphical form.
+- Never print, log, copy or inspect a password or credential reference.
+- Never silently replace the native credential store with plaintext or an
+  environment variable.
+- Never supply confirmation phrases for sending, unlinking, permanent deletion
+  or attachment extraction. Those phrases must come from the user.
+- Never retry an SMTP result whose delivery state is uncertain.
+
+## Requirements
+
+- Python 3.10 or newer.
+- pip for the selected Python interpreter.
+- Windows, macOS or Linux with its supported native credential store.
+- A graphical session with Tkinter is the preferred onboarding path.
+
+The repository installers check Python and pip but do not install Python. If a
+requirement is missing, stop and explain the required correction. Do not change
+the machine further without the user's authorization.
+
+## Install from a repository checkout
+
+Use the installer for the detected platform:
+
+Windows PowerShell:
+
+    powershell -File installers\install.ps1
+
+macOS or Linux:
+
+    sh installers/install.sh
+
+The stable installers download the release wheels, verify their SHA-256 hashes
+and install without a package index. They verify `email-agent --help` before
+finishing.
+
+To install the exact source currently checked out, use:
+
+    python -m pip install .
+
+An isolated alternative, when pipx is already available, is:
+
+    pipx install .
+
+Do not use a source installation unless the user intends to install that exact
+checkout. Do not claim local, unpublished changes are present in the stable
+release.
+
+## Verify the installation
+
+Run:
+
+    email-agent --help
+
+Then perform the read-only bootstrap check:
+
+    email-agent bootstrap --check --json
+
+`--check` must not create the data directory or connect to email. Interpret the
+JSON `status` and `action` fields instead of guessing the next step.
+
+If `email-agent` is not found after a successful pip installation, Python's
+scripts directory is missing from PATH (`Scripts` on Windows and `bin` on
+macOS/Linux). Explain the correction, reopen the terminal and verify again.
+
+## Assisted first use
+
+After the user authorizes account setup, run:
+
+    email-agent bootstrap --gui --lang es
+
+The CLI chooses its per-user data directory. Use `--root DIR` only when the user
+explicitly requests a custom location.
+
+The graphical form asks the user directly for email and password. The agent
+must not read or enter the password. The form discovers mail servers when the
+code supports the provider; otherwise it displays advanced server fields for
+the user. It authenticates IMAP and SMTP before saving, and SMTP verification
+does not send a message.
+
+Bootstrap exit code 3 means user action is required; it is not an operational
+failure. A successful setup stops at:
+
+    "status": "ready-to-sync"
+    "action": "authorize-first-sync"
+
+Do not synchronize yet. Ask for separate user authorization.
+
+## First synchronization
+
+Only after the user explicitly authorizes the first synchronization, run:
+
+    email-agent bootstrap --resume --sync --sync-limit 20
+
+Successful completion returns JSON with:
+
+    "status": "complete"
+    "action": "none"
+
+Synchronization is paginated. Repeat an authorized synchronization only when
+the user requested all remaining pages or another synchronization. A page with
+`fetched: 0` means there are no UIDs newer than the saved cursor.
+
+Attachments are not downloaded by default. Do not enable attachment download
+or extraction without the user's explicit request and required confirmation.
+
+## Bootstrap states
+
+- `missing-runtime`: show the failed checks and stop.
+- `needs-account`: request authorization to open account setup.
+- `needs-user-action`: let the user complete or retry the local form.
+- `ready-to-sync`: request separate authorization for synchronization.
+- `complete`: installation, account setup and authorized sync completed.
+- `failed`: report `error` and `action`; do not invent a repair.
+
+Resume an interrupted flow with:
+
+    email-agent bootstrap --resume
+
+Use `email-agent doctor --fix` only to obtain repair instructions. It does not
+apply repairs automatically.
+
+## Important confirmation boundaries
+
+The agent must never generate these confirmations on the user's behalf:
+
+- CONFIRMAR ENVIO
+- CONFIRMAR REENVIO INCIERTO
+- CONFIRMAR DESVINCULAR
+- CONFIRMAR BORRADO PERMANENTE
+- CONFIRMAR BORRADO ADJUNTOS
+- CONFIRMAR EXTRACCION
+- CONFIRMAR REGLA
+
+Installation or synchronization authorization does not authorize sending,
+deletion, unlinking, startup registration or attachment extraction.

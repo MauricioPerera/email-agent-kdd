@@ -1,18 +1,33 @@
 ---
 name: email-agent
-description: Operate the local Email Agent CLI to synchronize, search, read, and draft email safely.
+description: Install, configure, diagnose and operate the local Email Agent CLI for safe email synchronization, search, contacts, notifications, attachments, drafts and confirmation-gated actions.
 ---
 
 # Email Agent
 
-Use the CLI from the repository root with `python -m src.email`.
+Use the installed `email-agent` command. Do not assume a repository checkout or
+invoke `python -m src.email` from the user's current project.
 
 ## Installation
 
+For a non-technical assisted flow, first verify whether `email-agent --help`
+works. If it does not, explain the local installation and obtain explicit user
+authorization. Resolve this skill's plugin root and execute its bundled
+`scripts/install-cli.ps1` on Windows or `scripts/install-cli.sh` on macOS/Linux;
+do not assume `installers/` exists in the user's current directory. After
+installation, prefer `email-agent bootstrap --check
+--json`, then (after explicit setup authorization) `email-agent bootstrap
+--gui --lang es`. A successful account setup stops at `ready-to-sync`; only
+run `email-agent bootstrap --resume --sync` after the user separately
+authorizes the first synchronization. Bootstrap uses a stable per-user data
+directory unless `--root` is explicitly supplied, is safe to resume, and
+never persists a password or credential reference in its state. Treat exit
+code 3 as required user action, not as an operational failure.
+
 The same onboarding flow works on Windows, macOS, and Linux: install, verify, create the account. `account setup-gui` persists the secret only in the native secure store of the platform: Windows Credential Manager, macOS Keychain (via the `security` CLI), or Linux Secret Service (via `secret-tool`/libsecret, which requires a desktop session with a Secret Service daemon). If that backend is unavailable, the form stops with a clear per-OS warning; there is no insecure fallback, no plaintext and no `env://` substitute. The terminal wizard `account setup` (environment-variable reference) works identically on all three systems and never asks for the password itself.
 
-- Install with the platform-appropriate installer: `powershell -File installers\install.ps1` (Windows) or `sh installers/install.sh` (macOS and Linux); both download the stable `v0.2.0` CLI wheel and its bundled pypdf/typing_extensions wheels, verify all SHA-256 hashes from `SHA256SUMS.txt` before invoking pip, and verify the command when they finish. For development only, use `-FromSource -Source URL -Ref REF` on Windows or `sh installers/install.sh --source URL REF` on macOS/Linux. Alternatively `python -m pip install .`.
-- Before invoking commands, check whether `email-agent --help` is available. If it is missing, offer the user the platform-appropriate installer or install the package with `python -m pip install .`; do not install silently. Verify the command after installation.
+- Install from the plugin with `powershell -File <PLUGIN_ROOT>\scripts\install-cli.ps1` (Windows) or `sh <PLUGIN_ROOT>/scripts/install-cli.sh` (macOS/Linux). Both download the stable `v0.2.0` CLI wheel and bundled dependencies, verify every SHA-256 before invoking pip, and verify `email-agent --help` when finished.
+- Before invoking commands, check whether `email-agent --help` is available. If it is missing, offer the bundled platform installer; do not install silently. Use `python -m pip install .` only when the user explicitly wants the exact repository checkout.
 - If the command is not found, tell the user to add Python's script directory to PATH (`Scripts` on Windows, `bin` on macOS/Linux), reopen the terminal, and verify again.
 - Guide the user to create their first account with `account setup-gui ROOT` (simple local form) or `account setup ROOT` (terminal wizard).
 - For the simplest first use, prefer `onboard ROOT`; it checks prerequisites and selects GUI or terminal. Use `onboard ROOT --gui` or `--terminal` to force a flow, and `--lang es|en|pt` to choose the language. Never invent or provide a password.

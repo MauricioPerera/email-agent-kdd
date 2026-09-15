@@ -1,0 +1,38 @@
+# Email Agent plugin instructions
+
+This Codex plugin contains guidance and verified installer scripts for the
+local `email-agent` CLI. The plugin itself is not the CLI.
+
+Before installation, explain that the CLI and synchronized email are stored
+locally and obtain explicit user authorization. Never request an email
+password in chat or put one in a command.
+
+Resolve the plugin directory from the loaded skill path, then run:
+
+Windows:
+
+    powershell -File <PLUGIN_ROOT>\scripts\install-cli.ps1
+
+macOS or Linux:
+
+    sh <PLUGIN_ROOT>/scripts/install-cli.sh
+
+Do not assume the user's project contains `installers/` or `src/`. After the
+installer succeeds, verify with:
+
+    email-agent --help
+    email-agent bootstrap --check --json
+
+After explicit setup authorization, run:
+
+    email-agent bootstrap --gui --lang es
+
+The user enters credentials only in the local form. Exit code 3 means user
+action is required. When the result is `ready-to-sync`, obtain separate user
+authorization before running:
+
+    email-agent bootstrap --resume --sync --sync-limit 20
+
+Never provide confirmation phrases for sending, deletion, unlinking,
+notifications or attachment extraction on the user's behalf. Read
+`skills/email-agent/SKILL.md` for the complete operating and safety contract.

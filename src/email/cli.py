@@ -95,6 +95,8 @@ from src.email.autostart import install_startup, remove_startup, startup_status
 from src.email.unlink import unlink_email_account
 from src.email.diagnostics import run_diagnostics, write_diagnostic_report, _write_diagnostic_report
 from src.email.language import load_language, save_language, normalize_language
+from src.email.app_paths import resolve_data_root
+from src.email.bootstrap_state import read_bootstrap_state, write_bootstrap_state
 
 USAGE = (
     "usage: email-agent [--help] | email-agent query ROOT INSTRUCTION | "
@@ -113,6 +115,8 @@ USAGE = (
     "email-agent doctor [ROOT] [--fix] [--lang es|en|pt] [--format json|text] [--report FILE] | "
     "email-agent language set|get ROOT [es|en|pt] | "
     "email-agent onboard ROOT [--gui|--terminal] [--lang es|en|pt] | "
+    "email-agent bootstrap [--check|--resume] [--gui|--terminal] "
+    "[--lang es|en|pt] [--root DIR] [--sync] [--sync-limit N] | "
     "email-agent message delete ROOT REL_PATH | "
     "email-agent message restore ROOT TRASH_REL_PATH | "
     "email-agent message trash ROOT | "
@@ -1737,6 +1741,194 @@ def _run_onboard(argv):
     return code
 
 
+def _bootstrap_payload(status, root, language, **extra):
+    payload = {
+        "schema": 1,
+        "status": status,
+        "root": str(root),
+        "language": language,
+    }
+    payload.update(extra)
+    return payload
+
+
+def _parse_bootstrap(argv):
+    options = list(argv[1:])
+    parsed = {
+        "check": False,
+        "resume": False,
+        "mode": None,
+        "language": None,
+        "root": None,
+        "sync": False,
+        "sync_limit": 20,
+        "json": False,
+    }
+    while options:
+        option = options.pop(0)
+        if option == "--check":
+            parsed["check"] = True
+        elif option == "--json":
+            # Output is always JSON; accepting the explicit flag makes the
+            # machine-readable contract discoverable to agent clients.
+            parsed["json"] = True
+        elif option == "--resume":
+            parsed["resume"] = True
+        elif option in ("--gui", "--terminal") and parsed["mode"] is None:
+            parsed["mode"] = option
+        elif option == "--sync":
+            parsed["sync"] = True
+        elif option in ("--lang", "--root", "--sync-limit") and options:
+            value = options.pop(0)
+            key = {"--lang": "language", "--root": "root", "--sync-limit": "sync_limit"}[option]
+            parsed[key] = value
+        else:
+            raise ValueError("invalid bootstrap arguments")
+    if parsed["check"] and (parsed["sync"] or parsed["mode"] is not None):
+        raise ValueError("check cannot perform setup or sync")
+    try:
+        parsed["sync_limit"] = int(parsed["sync_limit"])
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid sync limit") from exc
+    if not LIMIT_MIN <= parsed["sync_limit"] <= LIMIT_MAX:
+        raise ValueError("invalid sync limit")
+    if parsed["language"] is not None:
+        parsed["language"] = normalize_language(parsed["language"])
+    return parsed
+
+
+def _run_bootstrap(argv):
+    """Resumable, agent-readable first-use orchestrator.
+
+    Setup may open a local form.  The first sync is never implicit: callers
+    must supply ``--sync`` after obtaining the user's authorization.
+    """
+    try:
+        options = _parse_bootstrap(argv)
+        root_path = resolve_data_root(options["root"])
+    except (OSError, ValueError):
+        return _fail(["error: bootstrap recibio opciones o una ruta invalidas", USAGE])
+    root = str(root_path)
+    language = options["language"] or load_language(root)
+    diagnostics = run_diagnostics(root)
+    if diagnostics["status"] != "ready":
+        payload = _bootstrap_payload(
+            "missing-runtime", root_path, language,
+            action="repair-requirements", checks=diagnostics["checks"],
+            next="email-agent doctor --fix",
+        )
+        print(json.dumps(payload, sort_keys=True))
+        return 1
+
+    try:
+        previous = read_bootstrap_state(root) if options["resume"] else None
+        accounts = load_email_accounts(root)
+    except RuntimeError:
+        payload = _bootstrap_payload(
+            "failed", root_path, language, action="repair-bootstrap-state",
+            error="bootstrap-state-invalid",
+        )
+        print(json.dumps(payload, sort_keys=True))
+        return 1
+    except ValueError:
+        payload = _bootstrap_payload(
+            "failed", root_path, language, action="repair-account-store",
+            error="account-store-invalid",
+        )
+        print(json.dumps(payload, sort_keys=True))
+        return 1
+
+    if options["check"]:
+        status = "ready-to-sync" if accounts else "needs-account"
+        account_id = accounts[-1]["account_id"] if accounts else None
+        payload = _bootstrap_payload(
+            status, root_path, language,
+            action="authorize-sync" if accounts else "authorize-account-setup",
+            account_id=account_id,
+            previous_status=previous.get("status") if previous else None,
+        )
+        print(json.dumps(payload, sort_keys=True))
+        return 0
+
+    root_path.mkdir(parents=True, exist_ok=True)
+    if options["language"] is not None:
+        save_language(root, language)
+
+    if not accounts:
+        write_bootstrap_state(root, "needs-user-action", language=language)
+        mode = options["mode"]
+        gui_available = any(
+            item["name"] == "gui" and item["status"] == "ok"
+            for item in diagnostics["checks"]
+        )
+        if mode == "--gui" and not gui_available:
+            payload = _bootstrap_payload(
+                "needs-user-action", root_path, language,
+                action="use-terminal-setup", error="gui-unavailable",
+            )
+            print(json.dumps(payload, sort_keys=True))
+            return 3
+        use_gui = mode == "--gui" or (mode is None and gui_available)
+        setup_argv = ["account", "setup", root]
+        if not use_gui:
+            setup_argv.extend(["--lang", language])
+        code = _account_setup_gui(["account", "setup-gui", root]) if use_gui else _account_setup(setup_argv)
+        if code != 0:
+            payload = _bootstrap_payload(
+                "needs-user-action", root_path, language,
+                action="complete-account-setup",
+            )
+            print(json.dumps(payload, sort_keys=True))
+            return 3
+        try:
+            accounts = load_email_accounts(root)
+        except (ValueError, RuntimeError):
+            accounts = []
+        if not accounts:
+            payload = _bootstrap_payload(
+                "failed", root_path, language,
+                action="repair-account-store", error="account-not-persisted",
+            )
+            print(json.dumps(payload, sort_keys=True))
+            return 1
+
+    account_id = accounts[-1]["account_id"]
+    if not options["sync"]:
+        write_bootstrap_state(
+            root, "ready-to-sync", account_id=account_id, language=language
+        )
+        payload = _bootstrap_payload(
+            "ready-to-sync", root_path, language, account_id=account_id,
+            action="authorize-first-sync",
+            next="email-agent bootstrap --resume --sync",
+        )
+        print(json.dumps(payload, sort_keys=True))
+        return 3
+
+    sync_code = _run_sync([
+        "sync", root, account_id, "--limit", str(options["sync_limit"])
+    ])
+    if sync_code != 0:
+        write_bootstrap_state(
+            root, "failed", account_id=account_id, language=language
+        )
+        payload = _bootstrap_payload(
+            "failed", root_path, language, account_id=account_id,
+            action="retry-first-sync", error="sync-failed",
+        )
+        print(json.dumps(payload, sort_keys=True))
+        return 1
+    write_bootstrap_state(
+        root, "complete", account_id=account_id, language=language
+    )
+    payload = _bootstrap_payload(
+        "complete", root_path, language, account_id=account_id,
+        action="none",
+    )
+    print(json.dumps(payload, sort_keys=True))
+    return 0
+
+
 def cli_main(argv: list) -> int:
     if argv and argv[0] in ("-h", "--help"):
         print(USAGE)
@@ -1778,6 +1970,7 @@ def cli_main(argv: list) -> int:
         print("  language set ROOT es|en|pt  guarda la preferencia local")
         print("  language get ROOT  muestra la preferencia efectiva")
         print("  onboard ROOT [--gui|--terminal] [--lang es|en|pt]  revisa requisitos y abre el flujo de primer uso")
+        print("  bootstrap [--check|--resume] [--gui|--terminal] [--lang es|en|pt] [--root DIR] [--sync]  instalacion asistida y reanudable")
         print("  draft ROOT ACCOUNT_ID TO SUBJECT BODY")
         print("  draft show ROOT DRAFT_ID  vista previa de solo lectura")
         print("  send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO")
@@ -1864,6 +2057,8 @@ def cli_main(argv: list) -> int:
         return 0 if result["status"] == "ready" else 1
     if argv[0] == "onboard":
         return _run_onboard(argv)
+    if argv[0] == "bootstrap":
+        return _run_bootstrap(argv)
     if argv[0] == "language":
         if len(argv) < 3 or argv[1] not in ("set", "get"):
             return _fail(["error: language requiere set o get y ROOT", USAGE])

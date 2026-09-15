@@ -29,6 +29,25 @@ es|en|pt`.
 
 Necesitas Python 3.10 o superior instalado en tu equipo. Los mismos pasos valen en los tres sistemas: instala, comprueba y crea tu cuenta.
 
+### Primer uso asistido por un agente
+
+Para una persona no técnica, el agente debe usar el flujo reanudable y su
+carpeta de datos predeterminada:
+
+```text
+email-agent bootstrap --check --json
+email-agent bootstrap --gui --lang es
+email-agent bootstrap --resume --sync
+```
+
+`--check` es de solo lectura. El segundo comando abre el formulario local y
+termina en `ready-to-sync`; nunca inicia una sincronización implícita. El
+agente solo debe ejecutar el tercer comando después de que el usuario autorice
+la primera sincronización. Los resultados incluyen un objeto JSON con
+`schema`, `status`, `action` y el siguiente paso. El estado persistido no
+contiene correos, contraseñas ni referencias de credenciales. `--root DIR`
+permite cambiar la ubicación únicamente como opción avanzada.
+
 1. **Instala el programa** con el instalador de tu sistema (ambos avisan de lo que hacen y pueden tardar unos minutos):
 
    ```text

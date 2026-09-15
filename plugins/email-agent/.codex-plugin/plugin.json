@@ -1,7 +1,7 @@
 {
   "name": "email-agent",
   "version": "0.2.0",
-  "description": "Local, agent-friendly email CLI: IMAP sync, OKF Markdown knowledge store, search, attachments and send-only-after-confirmation.",
+  "description": "Install, configure and operate a privacy-first local email CLI with confirmation-gated actions.",
   "author": {
     "name": "Mauricio Perera"
   },
@@ -17,7 +17,7 @@
   "skills": "./skills",
   "interface": {
     "displayName": "Email Agent",
-    "shortDescription": "Sync, search, read and draft email locally; sending and deletion require explicit literal confirmations.",
+    "shortDescription": "Install and operate private local email with explicit confirmation for sensitive actions.",
     "longDescription": "Provides agent guidance for paginated read-only sync, delivery-recipient search, trash/restore lifecycle, attachment metadata and authorized extraction, platform watchers, and confirmation-gated sending and deletion.",
     "developerName": "Mauricio Perera",
     "category": "Productivity",
@@ -32,7 +32,7 @@
     "defaultPrompt": [
       "Synchronize my inbox with email-agent sync and report new messages",
       "Search my mail with email-agent query for a topic",
-      "Install email-agent using installers/ and verify with email-agent --help"
+      "Install Email Agent safely, verify it, and open guided setup"
     ]
   }
 }
