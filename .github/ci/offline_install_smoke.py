@@ -24,7 +24,7 @@ def main():
              '--wheel-dir', str(wheels)], root)
         run([sys.executable, '-m', 'pip', 'download', '--no-deps', '--only-binary=:all:',
              'pypdf==6.18.1', 'typing_extensions==4.16.0', '-d', str(wheels)], root)
-        expected = {'email_agent_cli-0.2.0-py3-none-any.whl',
+        expected = {'email_agent_cli-0.2.1-py3-none-any.whl',
                     'pypdf-6.18.1-py3-none-any.whl', 'typing_extensions-4.16.0-py3-none-any.whl'}
         assert {p.name for p in wheels.iterdir()} == expected
         environment = root / 'venv'
@@ -36,7 +36,7 @@ def main():
              *[str(wheels / n) for n in sorted(expected)]], root)
         run([str(python), '-I', '-c',
              "import importlib.metadata as m, pypdf, src.email.cli; "
-             "assert m.version('email-agent-cli') == '0.2.0'; "
+             "assert m.version('email-agent-cli') == '0.2.1'; "
              "assert m.version('pypdf') == '6.18.1'"], root)
         run([str(cli), '--help'], root)
     print('OK: release wheels install offline in a clean environment')

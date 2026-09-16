@@ -10,7 +10,7 @@ import sys
 import pytest
 
 REPO = Path(__file__).resolve().parents[3]
-WHEELS = ('email_agent_cli-0.2.0-py3-none-any.whl', 'pypdf-6.18.1-py3-none-any.whl',
+WHEELS = ('email_agent_cli-0.2.1-py3-none-any.whl', 'pypdf-6.18.1-py3-none-any.whl',
           'typing_extensions-4.16.0-py3-none-any.whl')
 
 

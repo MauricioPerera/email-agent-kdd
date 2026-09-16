@@ -32,9 +32,10 @@ Repository: <https://github.com/MauricioPerera/email-agent-kdd>
 - Detect the operating system and available shell.
 - Check whether `email-agent --help` already works.
 - If it works, do not reinstall. Continue with the read-only bootstrap check.
-- If it is missing, check for Python 3.10 or newer, pip, and Git. Do not install
+- If it is missing, check for Python 3.10 or newer and pip. Do not install
   missing system prerequisites automatically. Explain what is missing and ask
-  the user before making any additional environment change.
+  the user before making any additional environment change. Git is not
+  required for the stable installation.
 
 ### 2. Ask permission to install
 
@@ -43,20 +44,35 @@ passwords use the operating system's native secure store, and that account
 verification authenticates with IMAP and SMTP but sends no message. Wait for
 explicit authorization before installing.
 
-### 3. Install the current repository code
+### 3. Install the published compiled release without Git
 
-Use a temporary checkout, outside the user's current project, and install the
-exact current code:
+Install the stable `v0.2.1` release from its compiled wheels. Do not clone the
+repository, use `git+...`, or install from the mutable `main` branch.
+
+Use a temporary directory outside the user's current project. Download these
+four assets from
+`https://github.com/MauricioPerera/email-agent-kdd/releases/download/v0.2.1/`:
 
 ```text
-git clone https://github.com/MauricioPerera/email-agent-kdd.git
-cd email-agent-kdd
-python -m pip install .
+SHA256SUMS.txt
+email_agent_cli-0.2.1-py3-none-any.whl
+pypdf-6.18.1-py3-none-any.whl
+typing_extensions-4.16.0-py3-none-any.whl
 ```
 
-Use `python3` instead of `python` when appropriate. If `pipx` is already
-available, `pipx install .` is acceptable. Do not claim the stable `v0.2.0`
-wheel contains current-source functionality.
+Before invoking pip, verify every wheel's SHA-256 against exactly one matching
+entry in `SHA256SUMS.txt`. If a hash is absent, duplicated, or differs, stop
+without installing anything. Only after all three hashes pass, install the
+local files without an index:
+
+```text
+python -m pip install --no-index typing_extensions-4.16.0-py3-none-any.whl pypdf-6.18.1-py3-none-any.whl email_agent_cli-0.2.1-py3-none-any.whl
+```
+
+Use `python3` instead of `python` when appropriate. The repository's
+platform installers implement the same verified release installation, but an
+agent following this prompt must download the release assets directly so it
+does not depend on Git.
 
 Verify with `email-agent --help`. If the command is missing after installation,
 explain that Python's scripts directory must be added to PATH (`Scripts` on

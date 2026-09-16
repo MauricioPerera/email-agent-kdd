@@ -4,10 +4,20 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 
 El formato se inspira en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 la versión sigue [SemVer](https://semver.org/lang/es/). La release pública actual
-es `0.2.0`, y coincide con `pyproject.toml` (`email-agent-cli`) y con
+es `0.2.1`, y coincide con `pyproject.toml` (`email-agent-cli`) y con
 `plugins/email-agent/.codex-plugin/plugin.json`.
 
 ## [Unreleased]
+
+## [0.2.1] — 2026-09-15
+
+### Distribución
+
+- Se publica por primera vez una rueda estable que incluye el flujo reanudable
+  `bootstrap` y la interfaz local `send-gui` documentados para agentes.
+- El prompt de instalación descarga directamente los wheels publicados y
+  `SHA256SUMS.txt`, los valida antes de ejecutar pip y no requiere Git.
+- Paquete, plugin, catálogo e instaladores se alinean con `v0.2.1`.
 
 ## [0.2.0] — 2026-09-12
 

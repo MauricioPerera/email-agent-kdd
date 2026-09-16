@@ -1,6 +1,6 @@
 {
   "name": "email-agent",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Install, configure and operate a privacy-first local email CLI with confirmation-gated actions.",
   "author": {
     "name": "Mauricio Perera"
