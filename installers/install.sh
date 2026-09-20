@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 SOURCE="https://github.com/MauricioPerera/email-agent-kdd.git"
-REF="v0.2.1"
+REF="v0.2.2"
 FROM_SOURCE=0
 if [ "${1:-}" = "--source" ]; then
   FROM_SOURCE=1
@@ -29,10 +29,10 @@ if [ "$FROM_SOURCE" -eq 1 ]; then
   printf '%s\n' "Modo desarrollo: instalando desde ${SOURCE}@${REF}"
   "$PYTHON_BIN" -m pip install "git+${SOURCE}@${REF}"
 else
-  RELEASE_BASE="https://github.com/MauricioPerera/email-agent-kdd/releases/download/v0.2.1"
+  RELEASE_BASE="https://github.com/MauricioPerera/email-agent-kdd/releases/download/v0.2.2"
   TEMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/email-agent-install.XXXXXX")"
   trap 'rm -rf "$TEMP_ROOT"' EXIT HUP INT TERM
-  WHEEL="$TEMP_ROOT/email_agent_cli-0.2.1-py3-none-any.whl"
+  WHEEL="$TEMP_ROOT/email_agent_cli-0.2.2-py3-none-any.whl"
   DEPENDENCY_WHEEL="$TEMP_ROOT/pypdf-6.18.1-py3-none-any.whl"
   TYPING_WHEEL="$TEMP_ROOT/typing_extensions-4.16.0-py3-none-any.whl"
   SUMS="$TEMP_ROOT/SHA256SUMS.txt"

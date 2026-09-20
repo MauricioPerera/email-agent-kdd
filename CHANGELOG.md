@@ -4,10 +4,24 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 
 El formato se inspira en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 la versión sigue [SemVer](https://semver.org/lang/es/). La release pública actual
-es `0.2.1`, y coincide con `pyproject.toml` (`email-agent-cli`) y con
+es `0.2.2`, y coincide con `pyproject.toml` (`email-agent-cli`) y con
 `plugins/email-agent/.codex-plugin/plugin.json`.
 
 ## [Unreleased]
+
+## [0.2.2] — 2026-09-20
+
+### Corregido
+
+- La configuración verifica que IMAP pueda abrir `INBOX` antes de guardar la
+  cuenta; un inicio de sesión parcial ya no se presenta como configuración
+  válida.
+- La persistencia bajo raíces absolutas funciona correctamente en Windows,
+  incluso cuando el archivo destino todavía no existe.
+- Los instaladores, el plugin, el marketplace y el prompt público apuntan a
+  esta release corregida.
+- Se añadieron pruebas de regresión para la selección del buzón y las rutas
+  absolutas de Windows.
 
 ## [0.2.1] — 2026-09-15
 

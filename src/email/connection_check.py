@@ -33,7 +33,9 @@ def verify_email_connection(account: dict, servers: dict, password: str,
     try:
         imap = imap_factory(imap_host, imap_port)
         imap.login(email, password)
-        imap.select("INBOX", readonly=True)
+        selected, _ = imap.select("INBOX", readonly=True)
+        if selected != "OK":
+            raise RuntimeError("imap_mailbox_selection_failed")
     except Exception as exc:
         raise RuntimeError("imap_authentication_failed") from exc
     finally:

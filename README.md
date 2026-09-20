@@ -56,7 +56,7 @@ permite cambiar la ubicación únicamente como opción avanzada.
    ```
 
    Los instaladores descargan por defecto el wheel de la release estable
-   `v0.2.1` y los wheels de `pypdf` y `typing_extensions`, verifican todos sus SHA-256 antes de instalar
+   `v0.2.2` y los wheels de `pypdf` y `typing_extensions`, verifican todos sus SHA-256 antes de instalar
    sin índices de paquetes y no requieren Git. Para
    desarrollo, Windows admite `-FromSource -Source URL -Ref NOMBRE` y macOS/Linux
    `sh installers/install.sh --source URL NOMBRE`.

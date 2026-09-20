@@ -126,7 +126,7 @@ def test_marketplace_entry_points_to_plugin():
     source = entry["source"]
     assert source["source"] == "github"
     assert source["repo"] == "MauricioPerera/email-agent-kdd"
-    assert source["ref"] == "v0.2.1"
+    assert source["ref"] == "v0.2.2"
     assert source["path"] == "plugins/email-agent"
 
 
@@ -253,7 +253,7 @@ def test_installers_point_to_origin_repository():
     sh = (REPO / "installers" / "install.sh").read_text(encoding="utf-8")
     for content in (text, sh):
         assert "github.com/MauricioPerera/email-agent-kdd" in content
-        assert "v0.2.1" in content
+        assert "v0.2.2" in content
         assert "git+" in content and "@" in content
 
 
@@ -262,7 +262,7 @@ def test_installers_verify_release_wheel_before_pip():
     sh = (REPO / "installers" / "install.sh").read_text(encoding="utf-8")
     for content in (ps1, sh):
         assert "SHA256SUMS.txt" in content
-        assert "email_agent_cli-0.2.1-py3-none-any.whl" in content
+        assert "email_agent_cli-0.2.2-py3-none-any.whl" in content
         assert "pypdf-6.18.1-py3-none-any.whl" in content
         assert "typing_extensions-4.16.0-py3-none-any.whl" in content
         assert "sha256" in content.lower()

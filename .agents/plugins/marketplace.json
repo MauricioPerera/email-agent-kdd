@@ -9,7 +9,7 @@
       "source": {
         "source": "github",
         "repo": "MauricioPerera/email-agent-kdd",
-        "ref": "v0.2.1",
+        "ref": "v0.2.2",
         "path": "plugins/email-agent"
       },
       "policy": {

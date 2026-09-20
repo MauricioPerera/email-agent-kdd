@@ -53,6 +53,7 @@ class _FakeImap:
         self.world.imap_select = (mailbox, readonly)
         if not readonly:
             raise AssertionError("INBOX debe abrirse readonly")
+        return "OK", []
 
     def close(self):
         self.world.imap_closed = True
@@ -155,7 +156,7 @@ def test_default_factories_ssl_for_465_and_starttls_for_587(monkeypatch):
             pass
 
         def select(self, mailbox, readonly=False):
-            pass
+            return "OK", []
 
         def close(self):
             pass

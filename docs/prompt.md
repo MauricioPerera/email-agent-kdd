@@ -46,16 +46,16 @@ explicit authorization before installing.
 
 ### 3. Install the published compiled release without Git
 
-Install the stable `v0.2.1` release from its compiled wheels. Do not clone the
+Install the stable `v0.2.2` release from its compiled wheels. Do not clone the
 repository, use `git+...`, or install from the mutable `main` branch.
 
 Use a temporary directory outside the user's current project. Download these
 four assets from
-`https://github.com/MauricioPerera/email-agent-kdd/releases/download/v0.2.1/`:
+`https://github.com/MauricioPerera/email-agent-kdd/releases/download/v0.2.2/`:
 
 ```text
 SHA256SUMS.txt
-email_agent_cli-0.2.1-py3-none-any.whl
+email_agent_cli-0.2.2-py3-none-any.whl
 pypdf-6.18.1-py3-none-any.whl
 typing_extensions-4.16.0-py3-none-any.whl
 ```
@@ -66,7 +66,7 @@ without installing anything. Only after all three hashes pass, install the
 local files without an index:
 
 ```text
-python -m pip install --no-index typing_extensions-4.16.0-py3-none-any.whl pypdf-6.18.1-py3-none-any.whl email_agent_cli-0.2.1-py3-none-any.whl
+python -m pip install --no-index typing_extensions-4.16.0-py3-none-any.whl pypdf-6.18.1-py3-none-any.whl email_agent_cli-0.2.2-py3-none-any.whl
 ```
 
 Use `python3` instead of `python` when appropriate. The repository's

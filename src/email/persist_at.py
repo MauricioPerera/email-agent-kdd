@@ -1,5 +1,6 @@
 """Persistencia de un registro normalizado como nodo OKF con raiz explicita."""
 
+import os
 from pathlib import Path
 
 from src.email.attachments import render_attachment_front_lines
@@ -19,7 +20,11 @@ _FRONT_FIELDS = (
 def _validate_root(root: str) -> Path:
     if not isinstance(root, str) or not root.strip():
         raise ValueError("root debe ser str no vacio")
-    return Path(root).resolve()
+    # `Path.resolve()` follows the host's virtualized path mapping on Windows
+    # for non-existent descendants. That can make a valid absolute user root
+    # appear outside itself before the file is created. Use an absolute,
+    # normalized lexical root; the relative path is validated below.
+    return Path(os.path.abspath(root))
 
 
 def _resolve_rel_path(root: Path, rel_path: str) -> Path:
@@ -35,7 +40,7 @@ def _resolve_rel_path(root: Path, rel_path: str) -> Path:
         raise ValueError("rel_path insegura: absoluta o fuera de la raiz: " + text)
     if ".." in portable_text.split("/"):
         raise ValueError("rel_path insegura: segmento '..' no permitido: " + text)
-    target = (root / Path(portable_text)).resolve()
+    target = Path(os.path.abspath(os.path.join(str(root), portable_text)))
     if target != root and root not in target.parents:
         raise ValueError("rel_path insegura: resuelve fuera de la raiz: " + text)
     return target
