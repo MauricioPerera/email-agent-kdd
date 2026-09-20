@@ -18,10 +18,10 @@ if ! "$PYTHON_BIN" -m pip --version >/dev/null 2>&1; then
   exit 1
 fi
 
-RELEASE_BASE="https://github.com/MauricioPerera/email-agent-kdd/releases/download/v0.2.2"
+RELEASE_BASE="https://github.com/MauricioPerera/email-agent-kdd/releases/download/v0.2.3"
 TEMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/email-agent-plugin-install.XXXXXX")"
 trap 'rm -rf "$TEMP_ROOT"' EXIT HUP INT TERM
-WHEEL="$TEMP_ROOT/email_agent_cli-0.2.2-py3-none-any.whl"
+WHEEL="$TEMP_ROOT/email_agent_cli-0.2.3-py3-none-any.whl"
 DEPENDENCY_WHEEL="$TEMP_ROOT/pypdf-6.18.1-py3-none-any.whl"
 TYPING_WHEEL="$TEMP_ROOT/typing_extensions-4.16.0-py3-none-any.whl"
 SUMS="$TEMP_ROOT/SHA256SUMS.txt"

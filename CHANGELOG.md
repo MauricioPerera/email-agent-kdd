@@ -4,10 +4,27 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 
 El formato se inspira en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y
 la versión sigue [SemVer](https://semver.org/lang/es/). La release pública actual
-es `0.2.2`, y coincide con `pyproject.toml` (`email-agent-cli`) y con
+es `0.2.3`, y coincide con `pyproject.toml` (`email-agent-cli`) y con
 `plugins/email-agent/.codex-plugin/plugin.json`.
 
 ## [Unreleased]
+
+## [0.2.3] — 2026-09-20
+
+### Añadido
+
+- `query` y las reglas locales de notificación comparten filtros deterministas
+  por cabeceras, cuenta, fecha, asunto, conversación, tema, respuestas y
+  adjuntos; se incorporan preview de reglas, resumen, enfriamiento y estado
+  local de sincronización.
+
+### Corregido
+
+- `is:reply` reconoce nodos históricos con asunto `Re:` aunque no conservaran
+  cabeceras de hilo, y las rutas emitidas por `query` vuelven a ser utilizables
+  con `read` y `attachment list` bajo la virtualización de rutas de Windows.
+- El smoke test offline valida la versión de release actual y conserva el
+  conjunto exacto de wheels instalados sin índice.
 
 ## [0.2.2] — 2026-09-20
 
