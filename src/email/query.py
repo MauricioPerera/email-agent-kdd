@@ -12,6 +12,8 @@ se leen.
 import re
 from pathlib import Path
 
+from src.email.filter_grammar import parse_filter_query, record_from_markdown, record_matches
+
 TRASH_DIRNAME = ".trash"
 _CONVERSATION_RE = re.compile(r"^[0-9a-f]{64}$")
 _TOPIC_RE = re.compile(r"^\w{1,64}$")
@@ -26,49 +28,16 @@ def _validate_root(root: str) -> Path:
 
 
 def _parse_filters(instruction: str):
-    if not isinstance(instruction, str):
-        raise ValueError("instruction debe ser str")
-    tokens = instruction.split()
-    if not tokens:
-        raise ValueError("instruction sin criterios tras normalizar espacios")
+    parsed = parse_filter_query(instruction)
     terms = []
     indexes = []
-    for token in tokens:
-        lowered = token.lower()
-        if lowered.startswith("contact:"):
-            email = token[8:].strip().lower()
-            local, _, domain = email.partition("@")
-            if not local or not domain:
-                raise ValueError("contact: EMAIL malformado (sin @ o partes vacias): " + token[8:])
-            terms.append("contact:" + email)
-        elif lowered.startswith("conversation:"):
-            key = token[13:].strip().lower()
-            if not _CONVERSATION_RE.match(key):
-                raise ValueError("conversation: KEY no es hex-64: " + token[13:])
-            indexes.append("store/conversations/" + key + ".md")
-        elif lowered.startswith("topic:"):
-            topic = token[6:].strip().lower()
-            if not _TOPIC_RE.match(topic):
-                raise ValueError("topic: TOPIC inseguro (requiere ^\\w{1,64}$): " + token[6:])
-            indexes.append("store/topics/" + topic + ".md")
-        elif lowered.startswith("account:"):
-            account = token[8:].strip()
-            if not _ACCOUNT_RE.match(account):
-                raise ValueError("account: ACCOUNT_ID inseguro (^[A-Za-z0-9_.-]{1,64}$): " + token[8:])
-            terms.append(account.casefold())
-        elif lowered.startswith("date:"):
-            date = token[5:].strip()
-            if not _DATE_RE.match(date):
-                raise ValueError("date: DATE fuera del formato estricto YYYY-MM-DD: " + token[5:])
-            terms.append(date.casefold())
-        elif lowered.startswith("para:"):
-            recipient = token[5:].strip().casefold()
-            local, _, domain = recipient.partition("@")
-            if not local or not domain:
-                raise ValueError("para: EMAIL malformado (sin @ o partes vacias): " + token[5:])
-            terms.append("para:" + recipient)
+    for item in parsed:
+        if item.kind == "conversation":
+            indexes.append("store/conversations/" + item.value + ".md")
+        elif item.kind == "topic":
+            indexes.append("store/topics/" + item.value + ".md")
         else:
-            terms.append(token.casefold())
+            terms.append(item)
     return terms, indexes
 
 
@@ -130,9 +99,6 @@ def _contact_header_match(text: str, value: str) -> bool:
 
 
 def _scan_terms(root_path: Path, terms: list) -> set:
-    plain = [term.casefold() for term in terms if not term.startswith(("para:", "contact:"))]
-    paras = [term[len("para:"):] for term in terms if term.startswith("para:")]
-    contacts = [term[len("contact:"):] for term in terms if term.startswith("contact:")]
     matches = set()
     for path in sorted(root_path.rglob("*")):
         if not path.is_file() or path.suffix.lower() != ".md":
@@ -143,12 +109,11 @@ def _scan_terms(root_path: Path, terms: list) -> set:
             text = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             raise ValueError("archivo .md no leible como UTF-8: " + str(path))
-        lowered = text.casefold()
-        if not all(term in lowered for term in plain):
+        try:
+            record = record_from_markdown(text)
+        except ValueError:
             continue
-        if not all(_delivered_to_match(text, value) for value in paras):
-            continue
-        if not all(_contact_header_match(text, value) for value in contacts):
+        if not record_matches(record, terms):
             continue
         matches.add(path.relative_to(root_path).as_posix())
     return matches

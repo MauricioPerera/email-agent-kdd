@@ -46,16 +46,16 @@ explicit authorization before installing.
 
 ### 3. Install the published compiled release without Git
 
-Install the stable `v0.2.2` release from its compiled wheels. Do not clone the
+Install the stable `v0.2.3` release from its compiled wheels. Do not clone the
 repository, use `git+...`, or install from the mutable `main` branch.
 
 Use a temporary directory outside the user's current project. Download these
 four assets from
-`https://github.com/MauricioPerera/email-agent-kdd/releases/download/v0.2.2/`:
+`https://github.com/MauricioPerera/email-agent-kdd/releases/download/v0.2.3/`:
 
 ```text
 SHA256SUMS.txt
-email_agent_cli-0.2.2-py3-none-any.whl
+email_agent_cli-0.2.3-py3-none-any.whl
 pypdf-6.18.1-py3-none-any.whl
 typing_extensions-4.16.0-py3-none-any.whl
 ```
@@ -66,7 +66,7 @@ without installing anything. Only after all three hashes pass, install the
 local files without an index:
 
 ```text
-python -m pip install --no-index typing_extensions-4.16.0-py3-none-any.whl pypdf-6.18.1-py3-none-any.whl email_agent_cli-0.2.2-py3-none-any.whl
+python -m pip install --no-index typing_extensions-4.16.0-py3-none-any.whl pypdf-6.18.1-py3-none-any.whl email_agent_cli-0.2.3-py3-none-any.whl
 ```
 
 Use `python3` instead of `python` when appropriate. The repository's
@@ -141,6 +141,21 @@ message bodies unless the user asks to read a selected message. Success is:
 
 If synchronization fails, preserve the resumable state, report the safe error,
 and do not guess credentials or server settings.
+
+### Notification filters
+
+`query` and notification rules share deterministic AND matching. Notification
+rules are evaluated locally after each synchronization and accept `para:ADDRESS`, `from:ADDRESS`,
+`to:ADDRESS`, `cc:ADDRESS`, `contact:ADDRESS`, `account:ACCOUNT_ID`,
+`subject:TEXT`, `date:YYYY-MM-DD`, `is:reply`, `has:attachment`,
+`conversation:KEY`, `topic:TOPIC`, and free-text terms. They inspect stored
+metadata and message text only; they never execute commands or webhooks. A
+notification rule still requires `sync`, `watch`, or platform startup to run.
+`is:reply` matches canonical thread headers and the legacy `Re:` subject
+prefix when those headers were not stored. Use `notification test ROOT NAME` to inspect matching local headers without
+writing state or showing a notification. A rule created with `--summary` emits
+one count notification per synchronization; `--cooldown N` limits it to one
+notification per N seconds.
 
 ## Completion criteria
 

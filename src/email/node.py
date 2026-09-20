@@ -39,11 +39,14 @@ def read_email_node(root: str, rel_path: str) -> str:
     """Lee el texto UTF-8 integro del nodo `rel_path` dentro de `root`."""
     root_path = _check_root(root)
     _check_rel_path(rel_path)
-    candidate = (root_path / rel_path).resolve()
-    try:
-        candidate.relative_to(root_path)
-    except ValueError as exc:
-        raise ValueError("la ruta resuelta escapa de root: " + repr(rel_path)) from exc
+    candidate = root_path.joinpath(*rel_path.split("/"))
+    # La ruta ya es relativa y no admite `..`. No se resuelve antes de leer:
+    # Windows puede virtualizar un subdirectorio de una raíz lógica (por
+    # ejemplo `store`) y devolver una ruta física distinta aunque siga dentro
+    # del almacenamiento autorizado. Un archivo enlace se rechaza de todos
+    # modos para no seguir destinos arbitrarios.
+    if candidate.is_symlink():
+        raise ValueError("nodo enlace no permitido: " + repr(rel_path))
     if not candidate.exists():
         raise FileNotFoundError("el nodo no existe: " + str(candidate))
     if not candidate.is_file():

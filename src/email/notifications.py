@@ -6,6 +6,10 @@ import os
 import platform
 import re
 import subprocess
+from pathlib import Path
+from time import time
+
+from src.email.filter_grammar import parse_filter_query, record_from_markdown, record_matches
 
 _RULES = "notification-rules.json"
 _STATE = "notification-state.json"
@@ -45,8 +49,11 @@ def _valid_query(query):
     normalized = query.strip()
     if any(ord(char) < 32 or ord(char) == 127 for char in normalized):
         return False
-    return all(not token.casefold().startswith("para:") or bool(token[5:])
-               for token in normalized.split())
+    try:
+        parse_filter_query(normalized)
+    except ValueError:
+        return False
+    return True
 
 
 def _valid_rule(rule):
@@ -56,6 +63,10 @@ def _valid_rule(rule):
         and _NAME_RE.fullmatch(rule["name"]) is not None
         and _valid_query(rule.get("query"))
         and isinstance(rule.get("enabled", True), bool)
+        and isinstance(rule.get("summary", False), bool)
+        and isinstance(rule.get("cooldown_seconds", 0), int)
+        and not isinstance(rule.get("cooldown_seconds", 0), bool)
+        and 0 <= rule.get("cooldown_seconds", 0) <= 86400
     )
 
 
@@ -75,7 +86,7 @@ def list_notification_rules(root):
     return rules
 
 
-def save_notification_rule(root, name, query, enabled=True):
+def save_notification_rule(root, name, query, enabled=True, summary=False, cooldown_seconds=0):
     if not isinstance(name, str) or not _NAME_RE.fullmatch(name):
         raise ValueError("nombre de regla invalido")
     if not _valid_query(query):
@@ -83,10 +94,23 @@ def save_notification_rule(root, name, query, enabled=True):
     normalized_query = query.strip()
     if not isinstance(enabled, bool):
         raise ValueError("enabled invalido")
+    if not isinstance(summary, bool):
+        raise ValueError("summary invalido")
+    if (
+        not isinstance(cooldown_seconds, int)
+        or isinstance(cooldown_seconds, bool)
+        or not 0 <= cooldown_seconds <= 86400
+    ):
+        raise ValueError("cooldown invalido")
     rules = [rule for rule in list_notification_rules(root) if rule.get("name") != name]
     if len(rules) >= MAX_NOTIFICATION_RULES:
         raise ValueError("limite de reglas de notificacion alcanzado")
-    rules.append({"name": name, "query": normalized_query, "enabled": enabled})
+    rule = {"name": name, "query": normalized_query, "enabled": enabled}
+    if summary:
+        rule["summary"] = True
+    if cooldown_seconds:
+        rule["cooldown_seconds"] = cooldown_seconds
+    rules.append(rule)
     _write(_path(root, _RULES), {"rules": rules})
     return name
 
@@ -121,18 +145,46 @@ def set_notification_rule_enabled(root, name, enabled):
 
 
 def notification_matches(record, query):
-    if not isinstance(record, dict) or not isinstance(query, str):
+    try:
+        return record_matches(record, parse_filter_query(query))
+    except (TypeError, ValueError):
         return False
-    delivered = {str(value).casefold() for value in record.get("delivered_to", [])}
-    searchable = " ".join(str(record.get(key, "")) for key in ("subject", "body"))
-    for token in query.split():
-        lowered = token.casefold()
-        if lowered.startswith("para:"):
-            if lowered[5:] not in delivered:
-                return False
-        elif lowered not in searchable.casefold():
-            return False
-    return True
+
+
+def _record_from_node(path, root):
+    """Carga solo el frontmatter y cuerpo local necesarios para probar reglas."""
+    record = record_from_markdown(path.read_text(encoding="utf-8"))
+    record["path"] = path.relative_to(root).as_posix()
+    return record
+
+
+def preview_notification_rule(root, name, limit=100):
+    """Evalua una regla localmente sin escribir estado ni lanzar avisos."""
+    if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 100:
+        raise ValueError("limit invalido")
+    rule = next((item for item in list_notification_rules(root) if item.get("name") == name), None)
+    if rule is None:
+        raise LookupError("regla no encontrada")
+    root_path = Path(root).resolve()
+    emails = root_path / "store" / "emails"
+    if not emails.is_dir():
+        return {"name": name, "total": 0, "truncated": False, "results": []}
+    results = []
+    for path in sorted(emails.glob("*.md")):
+        record = _record_from_node(path, root_path)
+        if notification_matches(record, rule["query"]):
+            results.append({
+                "path": record["path"],
+                "from": record.get("from", ""),
+                "subject": record.get("subject", ""),
+                "date": record.get("date", ""),
+            })
+    return {
+        "name": name,
+        "total": len(results),
+        "truncated": len(results) > limit,
+        "results": results[:limit],
+    }
 
 
 # Scripts CONSTANTES: el texto del correo jamas se interpola en ellos. En
@@ -182,13 +234,25 @@ def notify_new_records(root, records, notifier=None):
     notifier = notifier or _desktop_notify
     notified = 0
     failures = 0
+    now = int(time())
+    summaries = {}
     for record in records:
         if not isinstance(record, dict):
             continue
         identity = str(record.get("raw_sha256", ""))
         if not identity or identity in sent:
             continue
-        if not any(notification_matches(record, rule.get("query", "")) for rule in rules):
+        matches = [rule for rule in rules if notification_matches(record, rule.get("query", ""))]
+        if not matches:
+            continue
+        rule = matches[0]
+        cooldown = rule.get("cooldown_seconds", 0)
+        last_notified = state.get("last_notified", {}).get(rule["name"], 0)
+        if cooldown and now - last_notified < cooldown:
+            sent.add(identity)
+            continue
+        if rule.get("summary", False):
+            summaries.setdefault(rule["name"], []).append(identity)
             continue
         subject = str(record.get("subject", "")) or "Nuevo correo"
         try:
@@ -198,7 +262,23 @@ def notify_new_records(root, records, notifier=None):
             continue
         sent.add(identity)
         notified += 1
-    _write(_path(root, _STATE), {"sent": sorted(sent)[-5000:]})
+        if cooldown:
+            state.setdefault("last_notified", {})[rule["name"]] = now
+    for name, identities in summaries.items():
+        try:
+            notifier("Email Agent", f"{len(identities)} correos nuevos coinciden con la regla {name}")
+        except Exception:
+            failures += 1
+            continue
+        sent.update(identities)
+        rule = next(item for item in rules if item["name"] == name)
+        if rule.get("cooldown_seconds", 0):
+            state.setdefault("last_notified", {})[name] = now
+        notified += 1
+    persisted_state = {"sent": sorted(sent)[-5000:]}
+    if state.get("last_notified"):
+        persisted_state["last_notified"] = state["last_notified"]
+    _write(_path(root, _STATE), persisted_state)
     if failures:
         raise RuntimeError("fallo al emitir notificaciones")
     return notified
