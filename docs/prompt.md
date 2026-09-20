@@ -6,6 +6,18 @@ what they need to know, and pause whenever their authorization or direct action
 is required.
 
 Repository: <https://github.com/MauricioPerera/email-agent-kdd>
+Community plugin directory: <https://www.codex-marketplace.com/plugins/email-agent>
+
+The community directory offers this exact plugin installation command when the
+user asks to install the Codex plugin itself:
+
+```text
+npx codex-marketplace add MauricioPerera/email-agent-kdd/plugins/email-agent --plugin
+```
+
+It is a community directory, not an official OpenAI marketplace. Installing
+the plugin provides instructions and verified installer scripts; it does not
+replace the local Email Agent CLI installation and its safety boundaries below.
 
 ## Non-negotiable safety rules
 

@@ -55,6 +55,19 @@ Do not use a source installation unless the user intends to install that exact
 checkout. Do not claim local, unpublished changes are present in the stable
 release.
 
+## Install the Codex plugin from the public community directory
+
+Email Agent is listed in the community Codex Plugin Marketplace at
+https://www.codex-marketplace.com/plugins/email-agent. The directory is not
+operated by OpenAI. Install the published plugin with:
+
+    npx codex-marketplace add MauricioPerera/email-agent-kdd/plugins/email-agent --plugin
+
+The plugin packages instructions and verified installer scripts; it is not the
+Email Agent CLI itself. It still installs the CLI locally and must preserve all
+of the consent, credential, synchronization, confirmation, and SMTP safety
+rules in this document.
+
 ## Verify the installation
 
 Run:
