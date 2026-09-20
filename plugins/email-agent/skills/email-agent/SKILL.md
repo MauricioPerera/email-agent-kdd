@@ -57,15 +57,17 @@ The same onboarding flow works on Windows, macOS, and Linux: install, verify, cr
 - Treat a corrupt notification state store the same way: stop before notifying or rewriting it so delivery history cannot be lost silently.
 - Repeating an already-satisfied enable/disable or deleting a missing rule is a no-op; do not report a write or invent a new rule.
 - The local store accepts at most 100 notification rules; replace an existing rule when appropriate instead of creating unbounded names.
-- Rules are evaluated only after `sync`; do not promise an immediate notification before a synchronization cycle.
+- Rules are evaluated only after `sync`; do not promise an immediate notification before a synchronization cycle. `query` and notification queries share deterministic AND filters: `para:ADDRESS`, `from:ADDRESS`, `to:ADDRESS`, `cc:ADDRESS`, `contact:ADDRESS`, `account:ACCOUNT_ID`, `subject:TEXT`, `date:YYYY-MM-DD`, `is:reply`, `has:attachment`, `conversation:KEY`, `topic:TOPIC`, and free-text terms. These filters inspect stored metadata and message text only; they never execute commands or webhooks. Invalid filters fail closed.
 - List rules: `notification list ROOT`.
 - Inspect one rule without changing it: `notification show ROOT NAME`; use this to present the exact stored query before requesting a replacement or deletion.
+- `is:reply` recognizes thread headers and the legacy `Re:` subject prefix; preview a rule without writing notification state or showing an alert: `notification test ROOT NAME`.
+- Add `--summary` to `notification add ROOT NAME QUERY` for one local count notification per sync; add `--cooldown N` to rate-limit a rule. These options do not run commands, webhooks, or external actions.
 - Pause or resume a rule without changing its query: `notification disable ROOT NAME CONFIRMAR REGLA` or `notification enable ROOT NAME CONFIRMAR REGLA`; show the rule first and request confirmation for each change.
 - Listing rules is read-only and does not need confirmation.
 - Remove a rule: first show the rule name and exact query, then request and receive explicit confirmation immediately before running `notification delete ROOT NAME CONFIRMAR REGLA`.
 - Never delete, replace, or broaden a rule merely because a notification was inconvenient; if the requested name or query is ambiguous, stop and ask the user.
 
-Rules are evaluated after synchronization. They can use `para:ADDRESS` and free-text terms such as a subject keyword. Notifications are deduplicated by message hash and emitted through the native desktop mechanism when available. The message text is always passed as data (environment variables on Windows/macOS, an argument after `--` on Linux), never interpolated into a script and never through a shell, so a subject containing quotes, `$()`, or newlines is displayed as text and never executed. A native-mechanism failure is reported generically; already-sent notifications are remembered and failed ones are retried on the next cycle.
+Rules are evaluated after synchronization. They use the documented deterministic AND filters; unprefixed tokens remain free-text terms. Notifications are deduplicated by message hash and emitted through the native desktop mechanism when available. The message text is always passed as data (environment variables on Windows/macOS, an argument after `--` on Linux), never interpolated into a script and never through a shell, so a subject containing quotes, `$()`, or newlines is displayed as text and never executed. A native-mechanism failure is reported generically; already-sent notifications are remembered and failed ones are retried on the next cycle.
 
 Synchronization is read-only, paginated, and resumes from the stored UID cursor. Never assume that a dot variant or a `+tag` address is equivalent across providers.
 
@@ -102,7 +104,7 @@ The legacy terminal path remains `send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO`
 
 The core commands are platform-neutral. A watcher runs only while its process is alive; shutdown stops it. If startup persistence is requested, explain which OS integration will be used (Windows Task Scheduler, macOS launchd, or Linux systemd user service) and obtain confirmation immediately before enabling it.
 
-- Check status: `startup status ROOT ACCOUNT_ID`.
+- Check startup status: `startup status ROOT ACCOUNT_ID`; add `--details` for the last local sync summary without reading message bodies.
 - Install automatic startup: `startup install ROOT ACCOUNT_ID --every 300 --limit 50` (optionally add `--unread`) only after the user confirms immediately before enabling it; explain the OS integration first.
 - Remove automatic startup: `startup remove ROOT ACCOUNT_ID` only after showing the user which account and OS integration will be changed and receiving confirmation immediately before removal.
 - The three formats are serialized defensively: Windows quotes the Task Scheduler `/TR` value with `list2cmdline` rules, macOS XML-escapes every plist value, and Linux quotes each systemd `ExecStart` argument. Paths with spaces, quotes or Unicode travel as data; control characters (newlines, tabs, NUL) are rejected before anything is written.

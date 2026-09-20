@@ -90,13 +90,14 @@ from src.email.query import query_email
 from src.email.search import search_email_nodes
 from src.email.sync import sync_email_account
 from src.email.notifications import notify_new_records
-from src.email.notifications import delete_notification_rule, list_notification_rules, save_notification_rule, set_notification_rule_enabled
+from src.email.notifications import delete_notification_rule, list_notification_rules, save_notification_rule, set_notification_rule_enabled, preview_notification_rule
 from src.email.autostart import install_startup, remove_startup, startup_status
 from src.email.unlink import unlink_email_account
 from src.email.diagnostics import run_diagnostics, write_diagnostic_report, _write_diagnostic_report
 from src.email.language import load_language, save_language, normalize_language
 from src.email.app_paths import resolve_data_root
 from src.email.bootstrap_state import read_bootstrap_state, write_bootstrap_state
+from src.email.sync_status import read_sync_status, record_sync_status
 
 USAGE = (
     "usage: email-agent [--help] | email-agent query ROOT INSTRUCTION | "
@@ -106,11 +107,11 @@ USAGE = (
     "email-agent account setup ROOT [--lang es|en|pt] | "
     "email-agent account setup-gui ROOT | "
     "email-agent account remove ROOT ACCOUNT_ID CONFIRMAR DESVINCULAR | "
-    "email-agent account list ROOT | email-agent contact list ROOT | "
+    "email-agent account list ROOT | email-agent contact list|show|find ROOT ... | "
     "email-agent sync ROOT ACCOUNT_ID [HOST] [--limit N] [--unread] "
     "[--attachments CONFIRMAR EXTRACCION] | "
     "email-agent watch ROOT ACCOUNT_ID [--every N] [--limit N] [--unread] | "
-    "email-agent notification add|list|show|delete ROOT ... | "
+    "email-agent notification add|list|show|test|enable|disable|delete ROOT ... | "
     "email-agent startup install|status|remove ROOT ACCOUNT_ID ... | "
     "email-agent doctor [ROOT] [--fix] [--lang es|en|pt] [--format json|text] [--report FILE] | "
     "email-agent language set|get ROOT [es|en|pt] | "
@@ -121,11 +122,11 @@ USAGE = (
     "email-agent message restore ROOT TRASH_REL_PATH | "
     "email-agent message trash ROOT | "
     "email-agent message purge ROOT TRASH_REL_PATH CONFIRMAR BORRADO PERMANENTE | "
-    "email-agent message remote-delete ROOT ACCOUNT_ID UID TRASH_MAILBOX | "
+    "email-agent message remote-delete ROOT ACCOUNT_ID UID TRASH_MAILBOX --uidvalidity N | "
     "email-agent message remote-restore ROOT ACCOUNT_ID UID TRASH_MAILBOX "
-    "ORIGINAL_MAILBOX | "
+    "ORIGINAL_MAILBOX --uidvalidity N | "
     "email-agent message remote-purge ROOT ACCOUNT_ID UID MAILBOX "
-    "CONFIRMAR BORRADO PERMANENTE | "
+    "CONFIRMAR BORRADO PERMANENTE --uidvalidity N | "
     "email-agent attachment list ROOT REL_PATH | "
     "email-agent attachment download ROOT REL_PATH INDEX DEST "
     "CONFIRMAR EXTRACCION | "
@@ -134,7 +135,8 @@ USAGE = (
     "email-agent attachment gc ROOT [CONFIRMAR BORRADO ADJUNTOS] | "
     "email-agent draft ROOT ACCOUNT_ID TO SUBJECT BODY | "
     "email-agent draft show ROOT DRAFT_ID | "
-    "email-agent send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO | "
+    "email-agent send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO "
+    "[--retry-unknown CONFIRMAR REENVIO INCIERTO] | "
     "email-agent send-gui ROOT ACCOUNT_ID DRAFT_ID"
 )
 SYNC_USAGE = (
@@ -977,6 +979,10 @@ def _run_sync(argv):
         except Exception:
             _print_stderr(["error: no se pudieron emitir notificaciones"])
             return 1
+    try:
+        record_sync_status(root, summary)
+    except Exception:
+        _print_stderr(["aviso: no se pudo guardar el estado de la sincronizacion"])
     print(json.dumps(summary, sort_keys=True))
     return 0
 
@@ -1046,8 +1052,8 @@ def _run_watch(argv):
 
 
 def _run_notification(argv):
-    if len(argv) < 2 or argv[1] not in ("add", "list", "show", "enable", "disable", "delete"):
-        return _fail(["error: notification requiere add, list, show, enable, disable o delete", USAGE])
+    if len(argv) < 2 or argv[1] not in ("add", "list", "show", "test", "enable", "disable", "delete"):
+        return _fail(["error: notification requiere add, list, show, test, enable, disable o delete", USAGE])
     action = argv[1]
     try:
         if action == "list":
@@ -1068,6 +1074,12 @@ def _run_notification(argv):
                 return 1
             print(json.dumps(rule, sort_keys=True))
             return 0
+        if action == "test":
+            if len(argv) not in (4, 6) or (len(argv) == 6 and argv[4] != "--limit"):
+                return _fail(["error: notification test requiere ROOT NAME y --limit N opcional", USAGE])
+            limit = 100 if len(argv) == 4 else int(argv[5])
+            print(json.dumps(preview_notification_rule(argv[2], argv[3], limit), sort_keys=True))
+            return 0
         if action == "delete":
             if len(argv) != 6 or " ".join(argv[4:]) != _NOTIFICATION_DELETE_CONFIRMATION:
                 return _fail([
@@ -1085,13 +1097,27 @@ def _run_notification(argv):
             set_notification_rule_enabled(argv[2], argv[3], action == "enable")
             print(json.dumps({"enabled": action == "enable", "name": argv[3]}, sort_keys=True))
             return 0
-        if len(argv) not in (5, 7):
+        if len(argv) < 5:
             return _fail([
-                "error: notification add requiere ROOT NAME QUERY y, al "
-                "reemplazar, CONFIRMAR REGLA",
+                "error: notification add requiere ROOT NAME QUERY, --summary, "
+                "--cooldown N y, al reemplazar, CONFIRMAR REGLA",
                 USAGE,
             ])
-        confirmation = " ".join(argv[5:]) if len(argv) == 7 else None
+        extras = list(argv[5:])
+        confirmation = None
+        if len(extras) >= 2 and extras[-2:] == ["CONFIRMAR", "REGLA"]:
+            confirmation = _NOTIFICATION_DELETE_CONFIRMATION
+            extras = extras[:-2]
+        summary = False
+        cooldown = 0
+        while extras:
+            option = extras.pop(0)
+            if option == "--summary" and not summary:
+                summary = True
+            elif option == "--cooldown" and extras:
+                cooldown = int(extras.pop(0))
+            else:
+                return _fail(["error: notification add acepta --summary y --cooldown N", USAGE])
         existing = next(
             (rule for rule in list_notification_rules(argv[2]) if rule.get("name") == argv[3]),
             None,
@@ -1102,9 +1128,7 @@ def _run_notification(argv):
                 "CONFIRMAR REGLA antes de reemplazarla",
                 USAGE,
             ])
-        if len(argv) == 7 and confirmation != _NOTIFICATION_DELETE_CONFIRMATION:
-            return _fail(["error: confirmacion requerida: CONFIRMAR REGLA", USAGE])
-        save_notification_rule(argv[2], argv[3], argv[4])
+        save_notification_rule(argv[2], argv[3], argv[4], summary=summary, cooldown_seconds=cooldown)
         print(json.dumps({"saved": argv[3]}, sort_keys=True))
         return 0
     except (LookupError, ValueError, RuntimeError, OSError):
@@ -1118,7 +1142,12 @@ def _run_startup(argv):
     action, root, account_id = argv[1], argv[2], argv[3]
     try:
         if action == "status":
-            print(json.dumps({"enabled": startup_status(account_id)}, sort_keys=True))
+            if len(argv) not in (4, 5) or (len(argv) == 5 and argv[4] != "--details"):
+                return _fail(["error: startup status acepta --details opcional", USAGE])
+            payload = {"enabled": startup_status(account_id)}
+            if len(argv) == 5:
+                payload["last_sync"] = read_sync_status(root, account_id)
+            print(json.dumps(payload, sort_keys=True))
             return 0
         if action == "remove":
             print(json.dumps({"removed": remove_startup(account_id)}, sort_keys=True))
@@ -1957,13 +1986,15 @@ def _run_bootstrap(argv):
 def cli_main(argv: list) -> int:
     if argv and argv[0] in ("-h", "--help"):
         print(USAGE)
-        print("  query ROOT INSTRUCTION  consulta el store local con query_email")
+        print("  query ROOT INSTRUCTION  consulta el store local; comparte los filtros de notification QUERY")
         print("  account setup ROOT  alta guiada interactiva")
         print("  account setup ROOT --lang es|en|pt  asistente localizado")
         print("  account add ROOT ACCOUNT_ID PROVIDER EMAIL CREDENTIAL_REF")
         print("  account setup-gui ROOT  formulario local seguro")
-        print("  account list ROOT")
+        print("  account list ROOT  muestra el estado de aprovisionamiento; consulta startup status --details para el último sync")
         print("  contact list ROOT  lista la libreta de contactos")
+        print("  contact show ROOT EMAIL  muestra un contacto exacto")
+        print("  contact find ROOT TEXT [--offset N] [--limit N] [--json]  busca contactos")
         print("  search ROOT QUERY  busca nodos .md que contengan QUERY")
         print("  read ROOT REL_PATH  imprime el texto integro de un nodo .md")
         print("  attachment list ROOT REL_PATH  lista los adjuntos de un nodo .md")
@@ -1989,8 +2020,12 @@ def cli_main(argv: list) -> int:
         print(WATCH_USAGE)
         print("  notification add ROOT NAME QUERY  crea una regla local")
         print("  notification list ROOT  lista reglas")
-        print("  notification delete ROOT NAME  elimina una regla")
-        print("  startup install|status|remove ROOT ACCOUNT_ID  inicio automatico")
+        print("  notification show ROOT NAME  muestra una regla")
+        print("  notification test ROOT NAME [--limit N]  prueba una regla sin notificar ni escribir estado")
+        print("  notification enable|disable ROOT NAME CONFIRMAR REGLA  activa o pausa una regla")
+        print("  notification delete ROOT NAME CONFIRMAR REGLA  elimina una regla")
+        print("  notification add ROOT NAME QUERY [--summary] [--cooldown N]; QUERY admite para:, from:, to:, cc:, contact:, account:, subject:, date:YYYY-MM-DD, is:reply, has:attachment, conversation:, topic: y texto libre; combina con AND")
+        print("  startup install|status|remove ROOT ACCOUNT_ID [--details]  inicio automatico; --details muestra la última sincronización local")
         print("  doctor [ROOT] [--fix] [--lang es|en|pt] [--format json|text] [--report FILE]  diagnóstico seguro")
         print("  language set ROOT es|en|pt  guarda la preferencia local")
         print("  language get ROOT  muestra la preferencia efectiva")
@@ -1998,7 +2033,7 @@ def cli_main(argv: list) -> int:
         print("  bootstrap [--check|--resume] [--gui|--terminal] [--lang es|en|pt] [--root DIR] [--sync]  instalacion asistida y reanudable")
         print("  draft ROOT ACCOUNT_ID TO SUBJECT BODY")
         print("  draft show ROOT DRAFT_ID  vista previa de solo lectura")
-        print("  send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO")
+        print("  send ROOT ACCOUNT_ID DRAFT_ID CONFIRMAR ENVIO [--retry-unknown CONFIRMAR REENVIO INCIERTO]")
         print("  send-gui ROOT ACCOUNT_ID DRAFT_ID  aprobacion local y envio")
         return 0
 

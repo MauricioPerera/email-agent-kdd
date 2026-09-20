@@ -14,6 +14,8 @@ _FRONT_FIELDS = (
     ("raw_sha256", "raw_sha256"),
 )
 
+_OPTIONAL_FRONT_FIELDS = ("cc", "message_id", "in_reply_to", "references")
+
 
 def _resolve_safe(path):
     root = Path.cwd().resolve()
@@ -52,6 +54,10 @@ def _render(record):
                 "delivered_to: "
                 + ", ".join(str(addr) for addr in record["delivered_to"])
             )
+    for key in _OPTIONAL_FRONT_FIELDS:
+        value = record.get(key)
+        if value is not None and value != "":
+            lines.append(key + ": " + _scalar(value))
     # Identidad de re-descarga por UID: solo cuando el record la trae; los
     # records legacy (sin imap_uid/mailbox) se renderizan igual que antes.
     for key in ("imap_uid", "mailbox", "uidvalidity"):

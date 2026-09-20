@@ -107,9 +107,11 @@ email-agent watch . CUENTA --every 300 --limit 50
 
 Las notificaciones se emiten con el mecanismo nativo de cada sistema (aviso de PowerShell en Windows, `osascript` en macOS, `notify-send` en Linux) **sin shell y sin interpolar el asunto del correo en ningún script**: el texto viaja siempre como dato (variables de entorno en Windows y macOS, argumento tras `--` en Linux), de modo que un asunto con comillas, `$(...)` o saltos de línea se muestra tal cual y jamás se ejecuta. Un fallo del mecanismo nativo se informa con un mensaje genérico; las notificaciones ya emitidas se recuerdan y las fallidas se reintentan en el ciclo siguiente.
 
+`query` y las reglas de notificación comparten una gramática AND determinista. Además de `para:`, aceptan `from:`, `to:`, `cc:`, `contact:`, `account:`, `subject:`, `date:YYYY-MM-DD`, `is:reply`, `has:attachment`, `conversation:` y `topic:`, junto con términos libres. `is:reply` reconoce `In-Reply-To` o `References`, y también el prefijo histórico `Re:` cuando un nodo legado no preservó esas cabeceras. Solo inspeccionan datos locales; no ejecutan comandos ni webhooks. Usa `notification test ROOT NOMBRE` para revisar coincidencias sin crear avisos ni modificar estado. Añade `--summary` a una regla para un solo aviso con el número de correos coincidentes y `--cooldown N` para limitarla a una vez cada N segundos.
+
 ## Gestión de cuentas
 
-El alta puede hacerse con el formulario local `email-agent account setup-gui ROOT` o con el asistente de terminal `email-agent account setup ROOT`. Las cuentas vinculadas se consultan con `email-agent account list ROOT`.
+El alta puede hacerse con el formulario local `email-agent account setup-gui ROOT` o con el asistente de terminal `email-agent account setup ROOT`. Las cuentas vinculadas se consultan con `email-agent account list ROOT`. El valor `disconnected` de esa lista es el estado fijo y seguro del registro de aprovisionamiento, no una prueba de conectividad; para conocer la última sincronización real usa `startup status ROOT CUENTA --details`.
 
 El formulario valida los campos y comprueba autenticación IMAP y SMTP antes de guardar. La prueba SMTP solo autentica la cuenta: nunca envía un correo.
 
@@ -161,9 +163,9 @@ email-agent message purge ROOT TRASH_REL_PATH CONFIRMAR BORRADO PERMANENTE
 El borrado reversible en el servidor usa `src/email/imap_deletion.py` (abstracción `MailDeletionProvider`, implementación `ImapDeletionProvider` con `connection_factory` inyectable). Nunca se expurga en el borrado reversible: se usa `UID COPY` al mailbox Trash/Papelera y `UID STORE \Deleted` sobre el original, y la conexión se libera con `unselect`/`logout` (nunca `close`, que expurga en RFC 3501). El mailbox Trash/Papelera (`TRASH_MAILBOX`) es un parámetro obligatorio y explícito: se pasa siempre en el comando (`remote-delete`/`remote-restore`) o como argumento directo del provider, y se valida antes de conectar. No hay autodetección vía `LIST` ni valores implícitos: si falta, es inválido o no es un `str` no vacío sin espacios en bordes, la operación aborta sin tocar el buzón.
 
 ```bash
-email-agent message remote-delete ROOT ACCOUNT_ID UID TRASH_MAILBOX
-email-agent message remote-restore ROOT ACCOUNT_ID UID TRASH_MAILBOX ORIGINAL_MAILBOX
-email-agent message remote-purge ROOT ACCOUNT_ID UID MAILBOX CONFIRMAR BORRADO PERMANENTE
+email-agent message remote-delete ROOT ACCOUNT_ID UID TRASH_MAILBOX --uidvalidity N
+email-agent message remote-restore ROOT ACCOUNT_ID UID TRASH_MAILBOX ORIGINAL_MAILBOX --uidvalidity N
+email-agent message remote-purge ROOT ACCOUNT_ID UID MAILBOX CONFIRMAR BORRADO PERMANENTE --uidvalidity N
 ```
 
 `remote-delete` mueve el mensaje remoto a Trash con `UID COPY` + `UID STORE \Deleted` (sin expunge); el mailbox origen lo resuelve el provider (`INBOX` por defecto: el store de servidores solo guarda host/puerto). `remote-restore` mueve el mensaje desde Trash a su mailbox original (también sin expunge). `remote-purge` exige la frase literal exacta `CONFIRMAR BORRADO PERMANENTE` y solo usa `UID EXPUNGE` selectivo si el servidor anuncia `UIDPLUS`; si no lo anuncia, aborta antes de tocar el buzón para evitar un expunge global. La cuenta, el servidor y la credencial se resuelven del store (`account`, `mail_server_store`, `credential_ref`); nunca se aceptan passwords por argumentos ni se imprimen secretos, y la password jamás aparece en los mensajes de error. Los comandos devuelven un recibo JSON en stdout (código `0`), `1` ante fallo de operación y `2` ante error de argumentos. Un agente nunca debe completar la frase de purga por su cuenta.
@@ -174,11 +176,12 @@ El núcleo es multiplataforma. Para reanudar la descarga tras reiniciar el equip
 
 ```bash
 email-agent startup status ROOT ACCOUNT_ID
+email-agent startup status ROOT ACCOUNT_ID --details
 email-agent startup install ROOT ACCOUNT_ID --every 300 --limit 50
 email-agent startup remove ROOT ACCOUNT_ID
 ```
 
-`startup install` modifica la configuración de inicio del sistema y requiere confirmación directa del usuario. El contenido se procesa localmente y los adjuntos se conservan como metadatos hasta que el usuario solicite extracción.
+`startup install` modifica la configuración de inicio del sistema y requiere confirmación directa del usuario. `startup status --details` añade el resumen local de la última sincronización (hora, mensajes obtenidos y persistidos), sin leer ni mostrar cuerpos. El contenido se procesa localmente y los adjuntos se conservan como metadatos hasta que el usuario solicite extracción.
 
 La serialización de los tres formatos es segura ante datos hostiles: en Windows el valor de `/TR` se construye con `subprocess.list2cmdline` (sin contrabarra final antes de la comilla de cierre); en macOS cada valor del plist se escribe escapado con reglas XML (un `<`, `&` o comilla en la ruta no rompe el XML ni inyecta nodos); en Linux cada argumento de `ExecStart` se cita con el escapado propio de systemd (`\\`, `\"`, `%%`). Una raíz con espacios, comillas o Unicode viaja siempre como dato y nunca se interpreta como comando ni markup; los caracteres de control (saltos de línea, tabuladores, NUL) se rechazan con un error de validación antes de escribir nada.
 

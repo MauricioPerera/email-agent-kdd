@@ -113,6 +113,21 @@ the user requested all remaining pages or another synchronization. A page with
 Attachments are not downloaded by default. Do not enable attachment download
 or extraction without the user's explicit request and required confirmation.
 
+## Notification filters
+
+`query` and notification rules share a deterministic AND grammar. Notification rules run locally after synchronization. They are
+filters and support `para:ADDRESS`, `from:ADDRESS`, `to:ADDRESS`, `cc:ADDRESS`,
+`contact:ADDRESS`, `account:ACCOUNT_ID`, `subject:TEXT`, `date:YYYY-MM-DD`,
+`is:reply`, `has:attachment`, `conversation:KEY`, `topic:TOPIC`, and free-text
+terms. They do not execute commands or webhooks. Use `sync`, `watch`, or
+platform startup to trigger rule evaluation.
+
+`is:reply` recognizes canonical thread headers plus the legacy `Re:` subject
+prefix when thread headers are absent. Use `notification test ROOT NAME` to preview matching local headers without
+writing state or displaying an alert. `notification add ROOT NAME QUERY
+--summary` emits a single count notification for the matching messages in a
+synchronization; add `--cooldown N` to rate-limit a rule.
+
 ## Bootstrap states
 
 - `missing-runtime`: show the failed checks and stop.

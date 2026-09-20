@@ -142,6 +142,21 @@ message bodies unless the user asks to read a selected message. Success is:
 If synchronization fails, preserve the resumable state, report the safe error,
 and do not guess credentials or server settings.
 
+### Notification filters
+
+`query` and notification rules share deterministic AND matching. Notification
+rules are evaluated locally after each synchronization and accept `para:ADDRESS`, `from:ADDRESS`,
+`to:ADDRESS`, `cc:ADDRESS`, `contact:ADDRESS`, `account:ACCOUNT_ID`,
+`subject:TEXT`, `date:YYYY-MM-DD`, `is:reply`, `has:attachment`,
+`conversation:KEY`, `topic:TOPIC`, and free-text terms. They inspect stored
+metadata and message text only; they never execute commands or webhooks. A
+notification rule still requires `sync`, `watch`, or platform startup to run.
+`is:reply` matches canonical thread headers and the legacy `Re:` subject
+prefix when those headers were not stored. Use `notification test ROOT NAME` to inspect matching local headers without
+writing state or showing a notification. A rule created with `--summary` emits
+one count notification per synchronization; `--cooldown N` limits it to one
+notification per N seconds.
+
 ## Completion criteria
 
 Setup is complete only when `email-agent --help` succeeds, bootstrap reports a
